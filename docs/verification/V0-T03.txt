@@ -1,0 +1,51 @@
+V0-T03 Core Runtime Contracts - Verification Evidence
+Verified at: 2026-09-10T14:37:30.340907+00:00
+Baseline: 44ae2c4950ff6dc02fbf53ae3aab6530e5fd9c12
+Execution location: Windows PC
+Python executable: D:\OneDevice_Team_project\.venv\Scripts\python.exe
+Python version: 3.13.5
+Command: .venv\Scripts\python.exe -m unittest discover -s tests -v
+Result: PASS; unittest exit code: 0
+Tests: 19; PASS: 19; FAIL: 0; ERROR: 0; SKIP: 0
+Standard-library isolation: a -S subprocess imports contracts and serializes a result without ML/camera modules.
+Static import audit: contracts import only standard-library modules and local contracts.
+Preservation: all 23 baseline file hashes unchanged, including venv executable/config and all retained T02 smoke files.
+Packages: all 42 installed distribution names/versions unchanged.
+Protected tracked T02 evidence, ARCHITECTURE, DECISIONS and T04 task: no diff from baseline.
+T04 remains TODO. No dataset, training, export, device, Jetson or TensorRT work performed.
+Scope: contract validation, explicit JSON projection, UTC timestamps and test-local dummy interface calls.
+Not implemented/tested: real adapters, camera hardware, Recipe/Decision semantics, evidence storage success, API, PLC.
+PASS structural guards do not establish actual evidence sufficiency/persistence; T12/T13 must implement those checks.
+
+Source SHA256 (before Git line-ending normalization):
+src/contracts/enums.py: ad8b3edef1beefcefbd384db0da2f2762e49f6f48d3c503ead8abcdc34f80b9d
+src/contracts/interfaces.py: 056e2fdb462b76af03cc688a35fa51f242c8faed5e60d15e0bd831017d35bef5
+src/contracts/models.py: 1f95d1ce85b102848ed59b8244ce6fb7c6537b62e1c2e07dd9d1fc8fefaa4862
+src/contracts/__init__.py: 15896decdf9a303f2862f036c995ef074bf1db59b4fbe39206bcda8172791bf9
+tests/test_contracts.py: 8d6a0e2aee7697f8b0ed7777701f8220b84b0ac801413cf3ef530c4035def5f4
+
+Captured unittest output:
+test_backend_objects_are_rejected_in_serializable_fields (test_contracts.ContractTests.test_backend_objects_are_rejected_in_serializable_fields) ... ok
+test_bounding_box_rejects_invalid_coordinates (test_contracts.ContractTests.test_bounding_box_rejects_invalid_coordinates) ... ok
+test_bounding_box_uses_original_image_xyxy_pixel_edges (test_contracts.ContractTests.test_bounding_box_uses_original_image_xyxy_pixel_edges) ... ok
+test_contract_import_and_json_work_without_site_packages (test_contracts.ContractTests.test_contract_import_and_json_work_without_site_packages) ... ok
+test_detection_confidence_range_and_identity (test_contracts.ContractTests.test_detection_confidence_range_and_identity) ... ok
+test_detection_result_rejects_invalid_optional_metadata (test_contracts.ContractTests.test_detection_result_rejects_invalid_optional_metadata) ... ok
+test_detection_result_serializes_nested_contracts (test_contracts.ContractTests.test_detection_result_serializes_nested_contracts) ... ok
+test_dummy_camera_detector_pipeline_satisfies_interfaces (test_contracts.ContractTests.test_dummy_camera_detector_pipeline_satisfies_interfaces) ... ok
+test_empty_detection_is_valid_observation_without_inspection_status (test_contracts.ContractTests.test_empty_detection_is_valid_observation_without_inspection_status) ... ok
+test_frame_metadata_does_not_touch_or_serialize_image (test_contracts.ContractTests.test_frame_metadata_does_not_touch_or_serialize_image) ... ok
+test_frame_rejects_missing_payload_and_invalid_metadata (test_contracts.ContractTests.test_frame_rejects_missing_payload_and_invalid_metadata) ... ok
+test_frozen_contracts_and_detached_json_collections (test_contracts.ContractTests.test_frozen_contracts_and_detached_json_collections) ... ok
+test_inspection_result_json_and_request_correlation (test_contracts.ContractTests.test_inspection_result_json_and_request_correlation) ... ok
+test_manual_and_plc_requests_share_one_serialization_contract (test_contracts.ContractTests.test_manual_and_plc_requests_share_one_serialization_contract) ... ok
+test_naive_timestamps_are_rejected_at_each_entry_point (test_contracts.ContractTests.test_naive_timestamps_are_rejected_at_each_entry_point) ... ok
+test_reasons_support_common_codes_and_future_domain_strings (test_contracts.ContractTests.test_reasons_support_common_codes_and_future_domain_strings) ... ok
+test_result_status_has_exactly_four_string_values (test_contracts.ContractTests.test_result_status_has_exactly_four_string_values) ... ok
+test_result_structural_guards_do_not_implement_decision_engine (test_contracts.ContractTests.test_result_structural_guards_do_not_implement_decision_engine) ... ok
+test_timestamps_are_normalized_to_utc_and_iso8601 (test_contracts.ContractTests.test_timestamps_are_normalized_to_utc_and_iso8601) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.121s
+
+OK

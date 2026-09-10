@@ -1,15 +1,15 @@
 ﻿Task ID: V0-T03
 Title: Core Contracts / Camera + Detector Interfaces
-Status: TODO
+Status: DONE / VERIFIED
 Depends On: V0-T02
 
 ## Purpose
 Define framework-backend-neutral runtime contracts before adapter implementation.
 
 ## Required Contract Concepts
-- `DetectionResult` must be framework neutral.
+- `Detection` must be framework neutral.
   - `class_id`, `class_name`, `confidence`, `bounding_box`
-  - optional metadata only when needed (frame id, model version)
+- `DetectionResult` groups detections by frame_id, with optional model version and inference time.
 - `CameraFrame` must be backend neutral.
   - `image`, `frame_id`, `captured_at`, optional source tags
 - `InspectionRequest`
@@ -33,6 +33,7 @@ Define framework-backend-neutral runtime contracts before adapter implementation
 ## Verification
 - Contracts can be serialized without framework types.
 - Both replay/camera adapters consume the same contracts.
+  - At T03, verify this shape with test-local dummy classes; actual adapters and hardware are deferred.
 
 ## PASS Criteria
 - T03 contracts are complete and reviewed.
@@ -40,3 +41,30 @@ Define framework-backend-neutral runtime contracts before adapter implementation
 ## Artifacts
 - `docs/contracts.md`
 - `src/contracts`
+- `tests/test_contracts.py`
+- `docs/learning-notes/V0-T03.md`
+- `docs/verification/V0-T03.txt`
+
+## Result / Evidence
+
+- Baseline: `44ae2c4`; Windows PC, existing Python 3.13.5 project venv.
+- Standard-library frozen dataclasses, StrEnum and structural Protocols define
+  BoundingBox, Detection, DetectionResult, CameraFrame, FrameMetadata,
+  InspectionRequest, InspectionResult, Reason, Camera and Detector.
+- ResultStatus is exactly PASS / FAIL / REVIEW / ERROR. Generic ReasonCode values
+  contain no engine-specific definitions; manual and PLC share RunMode/request_id.
+- Explicit JSON projections exclude image payload; timestamps reject naive values
+  and normalize to UTC. Numeric and nested-field invariants are checked at construction.
+- PASS structural guards require frame metadata and evidence references; actual
+  evidence sufficiency, uncertainty and persistence checks remain T12/T13 duties.
+- Verification: `.venv\Scripts\python.exe -m unittest discover -s tests -v`
+  completed 19 tests, all PASS, including test-local dummy interface calls and a
+  separate Python -S process with no site-package dependency.
+- Static import audit: only standard-library and local contract imports.
+- Preservation: 23 baseline file hashes and 42 installed distribution versions
+  unchanged; T02 evidence/checkpoints and environment preserved.
+- Review: code fields, documented invariants and tests cross-checked; no change to
+  ARCHITECTURE.md or DECISIONS.md. No real adapters, training, camera access,
+  Jetson, TensorRT, Recipe/Decision/Persistence/API/PLC implementation.
+- PASS evidence: `docs/verification/V0-T03.txt`.
+- Next: V0-T04 Proxy Inspection Dataset Plan + Capture Tool, TODO; not started.

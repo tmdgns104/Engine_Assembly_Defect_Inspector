@@ -1,14 +1,30 @@
 # On-Device AI 기반 엔진 모형 조립 검사 시스템
 
 이 저장소는 `V0 → V1 → V2` 로드맵으로 구성됩니다.  
-현재는 `PLAN-REVISION-001` 기준의 **V0 Proxy Inspection System** 계획을 정비한 상태입니다.
+`PLAN-REVISION-001` 기준의 **V0 Proxy Inspection System**을 단계적으로 구현하며, 현재 GPU smoke와 공통 Runtime 계약을 검증했습니다.
 
 ## 현재 실행 상태
 
 - Phase: `V0 Proxy Inspection System`
 - Completed planning task: `PLAN-REVISION-001` (DONE / VERIFIED)
 - Current implementation task: `NONE`
-- Next implementation task: `V0-T02` (수행 대기)
+- Completed implementation tasks: `V0-T01`, `V0-T02`, `V0-T03` (DONE / VERIFIED)
+- Next implementation task: `V0-T04` (TODO, 미시작)
+
+공통 계약은 [docs/contracts.md](docs/contracts.md), 최신 실행 상태는 [docs/STATUS.md](docs/STATUS.md)를 참조합니다. 실제 Camera/Detector Adapter와 Runtime 실행 앱은 아직 구현하지 않았습니다.
+
+## 계약 코드와 테스트
+
+- `src/contracts/enums.py`: 결과 상태·실행 모드·공통 reason code
+- `src/contracts/models.py`: 데이터·불변 조건·JSON 변환
+- `src/contracts/interfaces.py`: Camera/Detector 인터페이스
+- `tests/test_contracts.py`: 장비 없이 실행하는 계약 테스트
+
+위 순서로 코드를 읽으면 데이터 흐름을 따라갈 수 있습니다. 저장소 루트에서 기존 가상환경으로 실행합니다.
+
+```powershell
+.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
 
 ## V0 목표 (재정의)
 
