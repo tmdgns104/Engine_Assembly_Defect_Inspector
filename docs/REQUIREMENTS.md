@@ -25,6 +25,8 @@
 - 판정 결과는 항상 `PASS / FAIL / REVIEW / ERROR`.
 - `EMERGENCY STOP`은 AI 판정 enum에 포함하지 않는다.
 - 대규모 바이너리(모델/훈련 원천 데이터)는 기본 Git 커밋에서 제외한다.
+- V0의 실제 학습 데이터는 Proxy dataset이며, public 데이터는 smoke test 용도로만 사용한다.
+- 학습 기록은 `docs/ML_LEARNING_GUIDE.md`의 최소 템플릿으로 각 T02~T10 task에서 작성한다.
 
 ## V0 타겟 모듈
 

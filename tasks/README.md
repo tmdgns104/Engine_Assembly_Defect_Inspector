@@ -5,7 +5,7 @@
 | V0-T01 | Bootstrap / Repo Foundation | V0 | DONE | V0-T02 |
 | V0-T02 | ML Environment + Tiny GPU Smoke Test | V0 | TODO | V0-T03 |
 | V0-T03 | Core Contracts / Camera + Detector Interfaces | V0 | TODO | V0-T04 |
-| V0-T04 | Proxy Inspection Dataset Plan + Capture Tooling | V0 | TODO | V0-T05 |
+| V0-T04 | Proxy Inspection Dataset Plan + Capture Tool | V0 | TODO | V0-T05 |
 | V0-T05 | Labeling + Dataset Validation | V0 | TODO | V0-T06 |
 | V0-T06 | Grouped Train / Val / Test Split | V0 | TODO | V0-T07 |
 | V0-T07 | Baseline Training | V0 | TODO | V0-T08 |
@@ -25,4 +25,5 @@
 
 Notes:
 - PLAN-REVISION-001 applies to all tasks.
+- Task filenames are aligned to purpose by this audit.
 - No implementation tasks are marked DONE after V0-T01.

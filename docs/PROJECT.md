@@ -26,6 +26,13 @@ V0는 실전 대비를 위해 3단계로 수행합니다.
   - Dataset / Classes / Trained Model / Recipe / Evaluation Set
 - AI 판정 상태는 항상 `PASS / FAIL / REVIEW / ERROR`.
 - 물리 엔진의 세부 규격(부품명/slot 수/좌표/임계치)은 엔진 도착 전까지 확정하지 않음.
+- V0는 Proxy dataset를 학습 주 데이터셋으로 사용하고 COCO8은 V0-A smoke-only로만 제한.
+
+## 학습형 V0 완료 조건
+
+V0는 실제 구현 가능한 상태가 되어야 하며, 단순 문서 정리가 아니라 다음 항목을 실제로 달성해야 한다.
+
+- ML 환경 설정 → Proxy 데이터 캡처 → 라벨링 → 그룹 분할 → Baseline 학습 → Tuning → Validation/Test 구분 → 최종 평가 → ONNX + parity → Runtime 통합 → Journal 저장 → API/HMI → Jetson E2E → Failure/Recovery → Packaging → Benchmark → TensorRT 리허설 판단 → V1 전환 준비.
 
 ## V0 상태
 
