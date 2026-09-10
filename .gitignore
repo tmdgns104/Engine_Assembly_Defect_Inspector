@@ -10,6 +10,8 @@ venv/
 # Data / artifacts (avoid large binaries in Git)
 data/raw/
 data/processed/
+data/proxy/raw/
+data/proxy/smoke/
 training/outputs/
 models/*.pt
 models/*.onnx

@@ -40,4 +40,5 @@ V0는 실제 구현 가능한 상태가 되어야 하며, 단순 문서 정리�
 - `PLAN-REVISION-001` 반영으로 V0 Task 순서를 재정의.
 - `V0-T02`는 기존 Windows PC GPU smoke 결과 검증과 기록을 마쳐 DONE / VERIFIED.
 - `V0-T03` 공통 Runtime 계약과 인터페이스는 DONE / VERIFIED이며, 실제 Adapter는 아직 구현하지 않았다.
-- 현재 상태와 근거는 `docs/STATUS.md`를 참조하며, 다음 `V0-T04`는 TODO로 유지한다.
+- `V0-T04`는 Windows 수집 도구·계획·테스트를 완료했으나 Jetson SSH 인증과 실기기 검증이 남아 BLOCKED / WINDOWS_TOOL_READY다.
+- 현재 상태와 근거는 `docs/STATUS.md`를 참조하며, T04를 재개하고 V0-T05는 TODO로 유지한다.

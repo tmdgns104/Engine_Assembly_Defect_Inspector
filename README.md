@@ -7,11 +7,13 @@
 
 - Phase: `V0 Proxy Inspection System`
 - Completed planning task: `PLAN-REVISION-001` (DONE / VERIFIED)
-- Current implementation task: `NONE`
+- Current implementation task: `V0-T04` — BLOCKED / WINDOWS_TOOL_READY
 - Completed implementation tasks: `V0-T01`, `V0-T02`, `V0-T03` (DONE / VERIFIED)
-- Next implementation task: `V0-T04` (TODO, 미시작)
+- Next action: 기존 Jetson SSH 인증 후 T04 실기기 smoke 검증 재개. T05는 TODO.
 
 공통 계약은 [docs/contracts.md](docs/contracts.md), 최신 실행 상태는 [docs/STATUS.md](docs/STATUS.md)를 참조합니다. 실제 Camera/Detector Adapter와 Runtime 실행 앱은 아직 구현하지 않았습니다.
+
+Dataset 수집용 CLI와 Session/Episode/Pilot 계획은 [Proxy Capture Workflow](training/datasets/proxy/README.md)에 있습니다. Windows 테스트는 통과했으나 Jetson 카메라 검증과 정식 물체 촬영은 아직 완료되지 않았습니다.
 
 ## 계약 코드와 테스트
 

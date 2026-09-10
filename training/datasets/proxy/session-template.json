@@ -1,0 +1,16 @@
+{
+  "session_id": "S001",
+  "session_date_local": null,
+  "operator": null,
+  "objects": {"OBJ_A": null, "OBJ_B": null, "OBJ_C": null},
+  "camera_mount_and_distance": null,
+  "lighting_and_background": null,
+  "inspection_region_description": null,
+  "device": null,
+  "camera_source": null,
+  "scenario_order": ["NORMAL", "MISSING_A", "MISSING_B", "MISSING_C", "EXTRA_OBJECT", "POSITION_SHIFT", "OCCLUSION", "BLUR", "LOW_EXPOSURE"],
+  "episodes_per_scenario": 3,
+  "captures_per_episode": 1,
+  "episode_id_example": "S001_NORMAL_01",
+  "notes": "Fill this planning sheet before the first physical session. Null values are not completed observations. Save the completed sheet beside that session's raw manifest."
+}

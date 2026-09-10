@@ -1,0 +1,106 @@
+V0-T04 - Windows Tool Ready / Jetson SSH authentication blocked
+Baseline: 89d1ab0
+Verified at UTC: 2026-09-10T15:56:05.310975+00:00
+Windows Python: 3.13.5; OpenCV: 5.0.0; existing project .venv
+Command: .venv\Scripts\python.exe -m unittest discover -s tests -v
+Tests: 40 total / 40 PASS / 0 FAIL (19 contract + 21 capture)
+Expected diagnostic: corrupt-PNG negative test emits decoder warnings/errors and passes by rejecting that image.
+Camera branch unit tests mock VideoCapture; their V4L2 output is not hardware evidence.
+Preservation: 22 baseline file hashes and 42 installed distributions unchanged.
+Protected: src/contracts, docs/contracts, ARCHITECTURE, DECISIONS, T02 evidence and T05 task unchanged.
+Windows synthetic sample CLI: 3 captures, all reloadable; metadata/size/SHA256 verified.
+JSON Schema: syntax and field/scenario inventory checked. Executable validate_record validates cross-field invariants; no external JSON Schema validator installed/run.
+Git ignore: actual data/proxy/smoke/T04_WINDOWS_CHECK/sample.png matches data/proxy/smoke/; raw probe matches data/proxy/raw/.
+
+Jetson connection attempt: ssh -o BatchMode=yes -o ConnectTimeout=8 jetson@192.168.50.2 "hostname; whoami; python3 --version"
+Exit code: 1
+Output: Permission denied (publickey,password).
+Interpretation: SSH server reachable, authentication unavailable in this invocation. This does not prove the user password is wrong.
+Jetson current hostname/Python/OpenCV/device/formats: UNVERIFIED.
+Jetson hardware smoke captures: 0; reload validation: UNVERIFIED; SCP: not performed.
+No system package, network, Wi-Fi, gateway, JetPack, CUDA or TensorRT changes.
+No labeling, split, training, production adapters or formal Pilot capture.
+Formal plan approval and human object placement pending; T04 NOT DONE; T05 TODO.
+
+Windows synthetic sample evidence (not Jetson camera data):
+{
+  "status": "verified",
+  "session_id": "SAMPLE_T04",
+  "captures": 3,
+  "images": [
+    {
+      "capture_id": "SAMPLE_T04_NORMAL_01_20260910T155447089184Z_5be2dd221a6d",
+      "image_path": "SAMPLE_T04/SAMPLE_T04_NORMAL_01/images/SAMPLE_T04_NORMAL_01_20260910T155447089184Z_5be2dd221a6d.png",
+      "width": 64,
+      "height": 48,
+      "bytes": 186,
+      "sha256": "3bfee6cb17816fb424715365ea394bd8771c124207f9e13403cf14d6f1b5828f"
+    },
+    {
+      "capture_id": "SAMPLE_T04_NORMAL_01_20260910T155447290266Z_ef306797a9f3",
+      "image_path": "SAMPLE_T04/SAMPLE_T04_NORMAL_01/images/SAMPLE_T04_NORMAL_01_20260910T155447290266Z_ef306797a9f3.png",
+      "width": 64,
+      "height": 48,
+      "bytes": 186,
+      "sha256": "3bfee6cb17816fb424715365ea394bd8771c124207f9e13403cf14d6f1b5828f"
+    },
+    {
+      "capture_id": "SAMPLE_T04_NORMAL_01_20260910T155447487646Z_9bd764f144cb",
+      "image_path": "SAMPLE_T04/SAMPLE_T04_NORMAL_01/images/SAMPLE_T04_NORMAL_01_20260910T155447487646Z_9bd764f144cb.png",
+      "width": 64,
+      "height": 48,
+      "bytes": 186,
+      "sha256": "3bfee6cb17816fb424715365ea394bd8771c124207f9e13403cf14d6f1b5828f"
+    }
+  ]
+}
+
+Captured unit test output:
+test_backend_objects_are_rejected_in_serializable_fields (test_contracts.ContractTests.test_backend_objects_are_rejected_in_serializable_fields) ... ok
+test_bounding_box_rejects_invalid_coordinates (test_contracts.ContractTests.test_bounding_box_rejects_invalid_coordinates) ... ok
+test_bounding_box_uses_original_image_xyxy_pixel_edges (test_contracts.ContractTests.test_bounding_box_uses_original_image_xyxy_pixel_edges) ... ok
+test_contract_import_and_json_work_without_site_packages (test_contracts.ContractTests.test_contract_import_and_json_work_without_site_packages) ... ok
+test_detection_confidence_range_and_identity (test_contracts.ContractTests.test_detection_confidence_range_and_identity) ... ok
+test_detection_result_rejects_invalid_optional_metadata (test_contracts.ContractTests.test_detection_result_rejects_invalid_optional_metadata) ... ok
+test_detection_result_serializes_nested_contracts (test_contracts.ContractTests.test_detection_result_serializes_nested_contracts) ... ok
+test_dummy_camera_detector_pipeline_satisfies_interfaces (test_contracts.ContractTests.test_dummy_camera_detector_pipeline_satisfies_interfaces) ... ok
+test_empty_detection_is_valid_observation_without_inspection_status (test_contracts.ContractTests.test_empty_detection_is_valid_observation_without_inspection_status) ... ok
+test_frame_metadata_does_not_touch_or_serialize_image (test_contracts.ContractTests.test_frame_metadata_does_not_touch_or_serialize_image) ... ok
+test_frame_rejects_missing_payload_and_invalid_metadata (test_contracts.ContractTests.test_frame_rejects_missing_payload_and_invalid_metadata) ... ok
+test_frozen_contracts_and_detached_json_collections (test_contracts.ContractTests.test_frozen_contracts_and_detached_json_collections) ... ok
+test_inspection_result_json_and_request_correlation (test_contracts.ContractTests.test_inspection_result_json_and_request_correlation) ... ok
+test_manual_and_plc_requests_share_one_serialization_contract (test_contracts.ContractTests.test_manual_and_plc_requests_share_one_serialization_contract) ... ok
+test_naive_timestamps_are_rejected_at_each_entry_point (test_contracts.ContractTests.test_naive_timestamps_are_rejected_at_each_entry_point) ... ok
+test_reasons_support_common_codes_and_future_domain_strings (test_contracts.ContractTests.test_reasons_support_common_codes_and_future_domain_strings) ... ok
+test_result_status_has_exactly_four_string_values (test_contracts.ContractTests.test_result_status_has_exactly_four_string_values) ... ok
+test_result_structural_guards_do_not_implement_decision_engine (test_contracts.ContractTests.test_result_structural_guards_do_not_implement_decision_engine) ... ok
+test_timestamps_are_normalized_to_utc_and_iso8601 (test_contracts.ContractTests.test_timestamps_are_normalized_to_utc_and_iso8601) ... ok
+test_bad_sample_returns_clear_nonzero_error (test_proxy_capture.ProxyCaptureTests.test_bad_sample_returns_clear_nonzero_error) ... ok
+test_camera_branch_negotiates_format_reads_one_saved_frame_and_releases (test_proxy_capture.ProxyCaptureTests.test_camera_branch_negotiates_format_reads_one_saved_frame_and_releases) ... {"backend": "V4L2", "fourcc": "YUYV", "fps_reported": 30}
+ok
+test_camera_open_or_read_failure_releases_without_output (test_proxy_capture.ProxyCaptureTests.test_camera_open_or_read_failure_releases_without_output) ... ok
+test_capture_ids_unique_even_for_same_timestamp (test_proxy_capture.ProxyCaptureTests.test_capture_ids_unique_even_for_same_timestamp) ... ok
+test_duplicate_preserves_image_and_manifest (test_proxy_capture.ProxyCaptureTests.test_duplicate_preserves_image_and_manifest) ... ok
+test_episode_cannot_silently_change_scenario_or_source (test_proxy_capture.ProxyCaptureTests.test_episode_cannot_silently_change_scenario_or_source) ... ok
+test_invalid_metadata_is_rejected (test_proxy_capture.ProxyCaptureTests.test_invalid_metadata_is_rejected) ... ok
+test_lock_contention_does_not_remove_existing_lock (test_proxy_capture.ProxyCaptureTests.test_lock_contention_does_not_remove_existing_lock) ... ok
+test_manifest_failure_is_not_reported_as_success_and_preserves_recovery (test_proxy_capture.ProxyCaptureTests.test_manifest_failure_is_not_reported_as_success_and_preserves_recovery) ... ok
+test_manifest_reader_rejects_preexisting_episode_inconsistency (test_proxy_capture.ProxyCaptureTests.test_manifest_reader_rejects_preexisting_episode_inconsistency) ... ok
+test_metadata_json_roundtrip_and_no_labels (test_proxy_capture.ProxyCaptureTests.test_metadata_json_roundtrip_and_no_labels) ... ok
+test_missing_recorded_image_blocks_append (test_proxy_capture.ProxyCaptureTests.test_missing_recorded_image_blocks_append) ... ok
+test_orphan_or_truncated_manifest_stops_next_writer (test_proxy_capture.ProxyCaptureTests.test_orphan_or_truncated_manifest_stops_next_writer) ... ok
+test_output_created_and_two_manifest_records_appended (test_proxy_capture.ProxyCaptureTests.test_output_created_and_two_manifest_records_appended) ... ok
+test_payload_hash_mismatch_rejected_before_writes (test_proxy_capture.ProxyCaptureTests.test_payload_hash_mismatch_rejected_before_writes) ... ok
+test_portable_session_and_episode_ids (test_proxy_capture.ProxyCaptureTests.test_portable_session_and_episode_ids) ... ok
+test_sample_cli_writes_decodable_png_without_camera (test_proxy_capture.ProxyCaptureTests.test_sample_cli_writes_decodable_png_without_camera) ... ok
+test_scenario_configuration_and_smoke_separation (test_proxy_capture.ProxyCaptureTests.test_scenario_configuration_and_smoke_separation) ... ok
+test_utc_timestamp_and_naive_rejection (test_proxy_capture.ProxyCaptureTests.test_utc_timestamp_and_naive_rejection) ... ok
+test_verifier_rejects_undecodable_bytes_even_with_matching_hash (test_proxy_capture.ProxyCaptureTests.test_verifier_rejects_undecodable_bytes_even_with_matching_hash) ... [ WARN:0@0.348] global grfmt_png.cpp:834 cv::PngDecoder::read_chunk user chunk data is too large
+[ERROR:0@0.348] global grfmt_png.cpp:297 cv::PngDecoder::readHeader IHDR chunk shall be first. This data may be broken or malformed.
+ok
+test_verifier_reloads_all_images_and_detects_corruption (test_proxy_capture.ProxyCaptureTests.test_verifier_reloads_all_images_and_detects_corruption) ... ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 0.712s
+
+OK
