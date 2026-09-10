@@ -1,0 +1,5 @@
+project: OneDeviceTeam
+environment:
+  dataset_version: demo_v0
+
+dataset_config: training/configs/demo_dataset.yaml

@@ -1,0 +1,13 @@
+version: 1
+name: demo_recipe
+required:
+  - CAP_TOP
+  - PIPE_LEFT
+optional:
+  - PIPE_RIGHT
+forbidden: []
+quality_reasons:
+  REVIEW:
+    - low_visibility
+    - motion_blur
+    - occlusion

@@ -1,0 +1,14 @@
+model: yolo11n
+data:
+  root: data/datasets/demo
+  train: images/train
+  val: images/val
+  test: images/test
+  classes_yaml: classes.yaml
+training:
+  epochs: 50
+  batch_size: 8
+  image_size: 640
+  learning_rate: 0.001
+  project: experiments
+  name: v0_demo_baseline

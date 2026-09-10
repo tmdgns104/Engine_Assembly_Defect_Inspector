@@ -1,0 +1,17 @@
+camera:
+  name: ReplayCamera
+  replay_dir: data/demo/replay
+
+detector:
+  name: FakeDetector
+  artifact_path: models/demo_fake.json
+
+recipe:
+  file: recipes/demo.yaml
+
+result_contract:
+  values:
+    - PASS
+    - FAIL
+    - REVIEW
+    - ERROR

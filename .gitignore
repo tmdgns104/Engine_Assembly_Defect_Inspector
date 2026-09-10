@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.env
+
+# Data / artifacts (avoid large binaries in Git)
+data/raw/
+data/processed/
+training/outputs/
+models/*.pt
+models/*.onnx
+models/*.engine
+
+# Runtime state
+journal/*.db
+*.log
