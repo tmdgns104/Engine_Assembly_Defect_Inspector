@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *.so
 .Python
+.venv/
 venv/
 .env
 
@@ -13,6 +14,11 @@ training/outputs/
 models/*.pt
 models/*.onnx
 models/*.engine
+runs/
+*.pt
+*.cache
+/datasets/
+.cache/
 
 # Runtime state
 journal/*.db

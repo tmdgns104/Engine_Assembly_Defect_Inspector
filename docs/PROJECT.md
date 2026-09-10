@@ -38,4 +38,5 @@ V0는 실제 구현 가능한 상태가 되어야 하며, 단순 문서 정리�
 
 - `V0-T01` 부트스트랩은 완료.
 - `PLAN-REVISION-001` 반영으로 V0 Task 순서를 재정의.
-- 구현 시작은 `V0-T02`부터이며, 현재는 계획 단계 수정만 수행.
+- `V0-T02`는 기존 Windows PC GPU smoke 결과 검증과 기록을 마쳐 DONE / VERIFIED.
+- 현재 상태와 근거는 `docs/STATUS.md`를 참조하며, 다음 `V0-T03`는 TODO로 유지한다.

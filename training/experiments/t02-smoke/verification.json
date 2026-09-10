@@ -1,0 +1,122 @@
+{
+  "result": "PASS",
+  "verified_at": "2026-09-10T13:51:09.854699+00:00",
+  "baseline": "486ed34",
+  "execution_location": "Windows PC",
+  "environment": {
+    "python": "3.13.5",
+    "executable": "D:\\OneDevice_Team_project\\.venv\\Scripts\\python.exe",
+    "torch": "2.11.0+cu128",
+    "torch_cuda": "12.8",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "ultralytics": "8.4.146",
+    "driver": "610.71"
+  },
+  "verification_command": ".venv\\Scripts\\python.exe runs/verify_t02_resume.py",
+  "verification_scope": "Read-only environment/import, persisted stdout/CSV/YAML/hash, Git and document checks; no training or validation rerun.",
+  "smoke": {
+    "successful_training_runs": 1,
+    "new_training_runs_during_resume": 0,
+    "failed_launch_attempts": 1,
+    "failed_attempt_count_source": "user handoff; retained stdout has no failed-launch record",
+    "module_entry_point_absent": true,
+    "dataset": "coco8.yaml",
+    "model": "yolov8n.pt",
+    "epochs": 1,
+    "device": "0",
+    "batch": 8,
+    "imgsz": 320,
+    "workers": 0,
+    "duration_sec_original_wrapper": 17.97,
+    "epoch_csv": {
+      "epoch": 1.0,
+      "time": 2.26436,
+      "train/box_loss": 1.29747,
+      "train/cls_loss": 3.69668,
+      "train/dfl_loss": 1.46568,
+      "metrics/precision(B)": 0.62933,
+      "metrics/recall(B)": 0.63069,
+      "metrics/mAP50(B)": 0.61653,
+      "metrics/mAP50-95(B)": 0.44667,
+      "val/box_loss": 1.62649,
+      "val/cls_loss": 1.45751,
+      "val/dfl_loss": 1.27955,
+      "lr/pg0": 0.000119,
+      "lr/pg1": 0.000119,
+      "lr/pg2": 0.000119
+    },
+    "best_validation_stdout_rounded": {
+      "images": 4,
+      "instances": 17,
+      "precision": 0.629,
+      "recall": 0.629,
+      "mAP50": 0.616,
+      "mAP50_95": 0.447
+    },
+    "results_files": [
+      "runs/detect/training/outputs/t02_smoke/results.csv"
+    ]
+  },
+  "artifact_root": "runs/detect/training/outputs/t02_smoke",
+  "artifacts": {
+    "weights/best.pt": {
+      "bytes": 6499114,
+      "sha256": "fd1a9b81400d50482ff8c1663ccc2df748de5181180f65cdf08eabcc49e32523"
+    },
+    "weights/last.pt": {
+      "bytes": 6499114,
+      "sha256": "c671c3e4db535e6d0226f8dad3187e95f90d579ecb66ec61d47fd3377c05cc30"
+    },
+    "results.csv": {
+      "bytes": 311,
+      "sha256": "ec3b597b1791a9bd401a97dab1662ebd1f58408cf97806f4699f3f60e02a53c6"
+    },
+    "args.yaml": {
+      "bytes": 1810,
+      "sha256": "e3136b500bedf4c659cab430c00268f61cdebdd14ed54ba78c4b40a9663cf6b2"
+    },
+    "env-smoke-original.txt": {
+      "bytes": 25112,
+      "sha256": "8dc661a6380dfde54283c06eb60716cd807379f21e8bf7321f403ec409294e43"
+    }
+  },
+  "original_stdout_encoding": "utf-16",
+  "git_ignore": {
+    ".venv/Scripts/python.exe": ".gitignore:6:.venv/\t.venv/Scripts/python.exe",
+    "runs/detect/training/outputs/t02_smoke/weights/best.pt": ".gitignore:17:runs/\truns/detect/training/outputs/t02_smoke/weights/best.pt",
+    "runs/detect/training/outputs/t02_smoke/weights/last.pt": ".gitignore:17:runs/\truns/detect/training/outputs/t02_smoke/weights/last.pt",
+    "yolov8n.pt": ".gitignore:18:*.pt\tyolov8n.pt",
+    "weights/yolo26n.pt": ".gitignore:18:*.pt\tweights/yolo26n.pt",
+    "datasets/coco8/images/train/example.jpg": ".gitignore:20:/datasets/\tdatasets/coco8/images/train/example.jpg",
+    "data/raw/example.jpg": ".gitignore:11:data/raw/\tdata/raw/example.jpg",
+    "training/outputs/example.pt": ".gitignore:13:training/outputs/\ttraining/outputs/example.pt",
+    ".cache/example": ".gitignore:21:.cache/\t.cache/example",
+    "example.cache": ".gitignore:19:*.cache\texample.cache"
+  },
+  "git_tracked_ml_binaries": [],
+  "acceptance": {
+    "existing_environment": "PASS",
+    "gpu_training_evidence": "PASS",
+    "existing_validation": "PASS",
+    "single_successful_run_evidence": "PASS",
+    "checkpoint_integrity": "PASS",
+    "documentation": "PASS",
+    "git_exclusions": "PASS",
+    "t02_done_t03_todo": "PASS",
+    "architecture_unchanged": "PASS"
+  },
+  "operation_scope": {
+    "jetson_used": false,
+    "tensorrt_work": false,
+    "packages_installed": false,
+    "new_training_runs": 0
+  },
+  "limitations": [
+    "COCO8 is environment smoke only, not engine inspection performance.",
+    "17.97 sec wrapper duration and 2.26436 sec CSV epoch time have different timing scopes.",
+    "Training count covers retained task artifacts and original stdout, corroborated by user handoff.",
+    "Raw stdout, original args/CSV, checkpoints, and this local verification helper are ignored in Git."
+  ],
+  "next_task": "V0-T03 Core Contracts / Camera + Detector Interfaces (TODO)"
+}

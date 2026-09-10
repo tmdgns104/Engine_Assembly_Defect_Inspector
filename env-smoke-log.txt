@@ -1,0 +1,58 @@
+﻿V0-T02-RESUME: existing GPU smoke verification (2026-09-10)
+Execution Location: Windows PC
+Jetson Used: NO
+Baseline Commit: 486ed34
+Python: 3.13.5
+Venv: D:\OneDevice_Team_project\.venv
+PyTorch: 2.11.0+cu128
+PyTorch CUDA: 12.8
+torch.cuda.is_available: True
+GPU: NVIDIA GeForce RTX 5070 Laptop GPU
+Driver: 610.71
+Ultralytics: 8.4.146
+Global Python: C:\Python313\python.exe
+Global PyTorch: 2.13.0+cpu; CUDA=None; cuda.is_available=False
+
+Smoke Dataset: COCO8 (coco8.yaml; 4 train / 4 validation images)
+Smoke Model: yolov8n.pt
+Epochs: 1
+Batch: 8
+Image Size: 320
+Workers: 0
+Device: 0 / CUDA GPU
+Duration: approximately 17.97 sec (original wrapper log: duration_sec 17.97)
+CSV epoch cumulative time: 2.26436 sec (different timing scope)
+Failed Launch Attempts: 1 (previous-session user report; absent from retained training stdout)
+Successful Smoke Training Runs: 1
+New Training Runs During Resume: 0
+Failed command: python -m ultralytics
+Reason: ultralytics package has no executable __main__ entry point
+Successful method: Ultralytics Python YOLO API
+Checkpoint: runs/detect/training/outputs/t02_smoke/weights/best.pt
+Last Checkpoint: runs/detect/training/outputs/t02_smoke/weights/last.pt
+Checkpoint Sizes: best.pt=6499114 bytes; last.pt=6499114 bytes
+
+Validation: PASS, existing best.pt validation completed; no validation rerun.
+Final best.pt validation (rounded original stdout):
+  Images=4, Instances=17, Precision=0.629, Recall=0.629, mAP50=0.616, mAP50-95=0.447
+Epoch CSV metrics (separate evaluation phase):
+  Precision=0.62933, Recall=0.63069, mAP50=0.61653, mAP50-95=0.44667
+  val/box_loss=1.62649, val/cls_loss=1.45751, val/dfl_loss=1.27955
+COCO8 is only an environment smoke test, not a product-performance evaluation dataset.
+
+Retained original execution evidence (ANSI/progress sequences omitted):
+  Ultralytics 8.4.146 Python-3.13.5 torch-2.11.0+cu128 CUDA:0 (NVIDIA GeForce RTX 5070 Laptop GPU, 8151MiB)
+  Epoch GPU_mem box_loss cls_loss dfl_loss Instances Size
+  1/1 0.207G 1.297 3.697 1.466 30 320
+  1 epochs completed in 0.001 hours.
+  Validating D:\OneDevice_Team_project\runs\detect\training\outputs\t02_smoke\weights\best.pt...
+  all 4 17 0.629 0.629 0.616 0.447
+  Speed: 0.4ms preprocess, 2.4ms inference, 0.0ms loss, 1.2ms postprocess per image
+  TRAIN_DONE
+  duration_sec 17.97
+AMP helper: weights/yolo26n.pt was downloaded for AMP checks, not used as the training model.
+Original stdout preserved unchanged (ignored): runs/detect/training/outputs/t02_smoke/env-smoke-original.txt
+Original stdout SHA256: 8dc661a6380dfde54283c06eb60716cd807379f21e8bf7321f403ec409294e43
+Original COCO8 download used the pre-existing Ultralytics dataset directory outside this repository.
+No dataset download, package installation, training, Jetson access, or TensorRT work during resume.
+Artifact hashes and focused verification: training/experiments/t02-smoke/verification.json
