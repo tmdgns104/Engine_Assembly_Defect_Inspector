@@ -1,30 +1,33 @@
 Task ID: V0-T15
-Title: Mock PLC Adapter
+Title: Manual Request + Mock PLC Adapter
 Status: TODO
 Depends On: V0-T14
 
 ## Purpose
-PLC 연동 경로를 mock 인터페이스로 분리해 V2 전환 시 실제 PLC Adapter로 교체할 수 있도록 한다.
+수동 검사 요청과 Mock PLC 경로를 동일 request contract로 연결한다.
 
 ## Dependencies
-- control/ 인터페이스 구조
+- V0-T14 API/HMI 기본 구성
 
 ## Allowed Changes
-- mock 어댑터 상태/요청 모델 정의
-- 인터럽트/응답 시뮬레이션
+- inspection request schema 정리
+- MockPLC adapter 스텁 및 상태 전이 정의
+- V2로의 adapter 교체 지점 정리
 
 ## Forbidden Changes
-- Runtime 판정 로직에서 PLC 신호를 직접 생성
+- V2 제어 동작을 V0에서 실제 PLC로 구현
+- request contract와 PLC 동작을 분리
 
 ## Implementation
-- `IPlcAdapter` 유사 추상화 설계
-- 요청/응답 플로우 및 타임아웃 정책 샘플화
+- request/response 공통 구조 정리
+- manual trigger + mock control flow 문서화
 
 ## Verification
-- Mock 동작에서 요청-응답 스텁 테스트
+- mock request가 동일 계약으로 처리되는지 점검
 
 ## PASS Criteria
-- PLC Adapter 교체 지점이 문서화됨
+- 요청/제어 계약이 분리 없이 문서화
+- V2 교체 포인트 명확
 
 ## Artifacts
-- Mock PLC adapter 스펙
+- mock plc adapter spec

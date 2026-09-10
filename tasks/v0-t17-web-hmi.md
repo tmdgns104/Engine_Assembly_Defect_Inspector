@@ -1,30 +1,34 @@
 Task ID: V0-T17
-Title: Web HMI
+Title: Failure / Recovery Tests
 Status: TODO
 Depends On: V0-T16
 
 ## Purpose
-검사 결과/이력/상태를 확인할 수 있는 간단한 Web HMI 초기 동작을 준비한다.
+불안정 상황에서 PASS/REVIEW/ERROR 처리가 일관되게 동작하는지 검증한다.
 
 ## Dependencies
-- REST API 스펙
+- V0-T16
 
 ## Allowed Changes
-- 상태 조회 화면/조회 API 호출
-- 결과 카드 및 이미지 링크 표시
+- 실패 주입 케이스(카메라 미사용 가능, 프레임 불량, detector 예외, 저장 실패, 중복요청, timeout 등) 추가
+- 재시작/복구 동작 체크
 
 ## Forbidden Changes
-- 복잡한 실시간 스트리밍 UI 과도 확장
+- 실제 물리 장치 고장 주입 또는 PLC 하드웨어 변경
+- 불완전 상태에서 PASS 허용
 
 ## Implementation
-- PASS/FAIL/REVIEW/ERROR 표시 화면 구성
-- 최근 이력, health, 수동 검사 트리거 버튼
+- 최소 실패 시나리오 8종 수립
+- each scenario에 대한 기대 상태 map 작성
 
 ## Verification
-- API 응답 기반 화면 렌더링 확인
+- 모든 시나리오가 REVIEW/ERROR 경로를 유도
+- PASS는 불완전 상태에서 유출되지 않음
 
 ## PASS Criteria
-- Runtime 계약을 반영한 최소 기능 화면 존재
+- 실패 인젝션 케이스 문서와 테스트 체크리스트 완성
+- Recovery 로그가 남음
 
 ## Artifacts
-- HMI 화면 설계 문서
+- failure test suite
+- recovery matrix

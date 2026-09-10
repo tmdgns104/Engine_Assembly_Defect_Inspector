@@ -1,33 +1,33 @@
 Task ID: V0-T19
-Title: Jetson Deployment Preparation
+Title: Benchmark
 Status: TODO
-Depends On: V0-T08
+Depends On: V0-T18
 
 ## Purpose
-V1/Jetson 전달용 배포 산출물(ONNX, labels, recipe, runtime config, version metadata)을 준비한다.
+Inference latency, E2E latency, memory, 버전/장치 정보를 측정한다.
 
 ## Dependencies
-- V0-T07, V0-T08
+- V0-T18
 
 ## Allowed Changes
-- 배포 체크리스트 작성
-- build/run 스크립트 템플릿 추가
+- runtime latency measurement plan 수립
+- 환경 메타 데이터 기록
 
 ## Forbidden Changes
-- Jetson에서 동작 불확실한 코드 강제 병합
+- 임의 pass/fail 임계치 임의 정의
+- 하드웨어별 편차를 무시한 단일 수치 고정
 
 ## Implementation
-- Windows training -> ONNX 전달 경로 명시
-- TensorRT build 준비 스크립트(대상에서 실행)
-- 배포용 폴더/매니페스트 생성
+- 단일 입력 시나리오 기반 latency 측정
+- FPS 또는 처리량 값 수집
+- memory/disk/resource snapshot 기록
 
 ## Verification
-- 배포 산출물 목록이 누락 없이 존재
+- 벤치 결과 항목이 누락 없이 저장
 
 ## PASS Criteria
-- Jetson 전달 항목이 문서로 고정
-- TensorRT 단계는 대상 장비에서 빌드 가능하도록 정리
+- 기준값은 수집되었으나 정식 pass 조건은 미설정
+- V1 비교의 baseline 역할을 할 수 있는 측정치 존재
 
 ## Artifacts
-- 배포 스크립트 템플릿
-- runtime manifest
+- benchmark report

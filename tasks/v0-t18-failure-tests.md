@@ -1,31 +1,34 @@
 Task ID: V0-T18
-Title: Failure Injection & Automated Tests
+Title: Jetson Packaging / Startup
 Status: TODO
 Depends On: V0-T17
 
 ## Purpose
-주요 실패 모드(카메라 오작동, 품질 실패, 추론 예외)에서 시스템의 REVIEW/ERROR 동작을 자동화한다.
+재현 가능한 Jetson 배포 패키지 구조와 서비스 시작 절차를 정비한다.
 
 ## Dependencies
-- V0-T11~V0-T17
+- V0-T17
 
 ## Allowed Changes
-- 실패 케이스 fixture 추가
-- pytest 기반 smoke test 구성
+- deployment manifest 구성
+- config/bootstrap/check readiness 설계
+- service startup 시퀀스 문서화
 
 ## Forbidden Changes
-- 실제 하드웨어 제어로의 테스트 의존
+- 검증되지 않은 프로덕션 설정 고정
+- runtime 외부 설정을 숨긴 채 배포
 
 ## Implementation
-- Detector/Camera/Quality/Decision 경로별 fail 케이스 작성
-- health/결과 consistency 테스트 추가
+- deployment 경로(모델, class, recipe, runtime config, version metadata) 정의
+- 최소 startup validation 설계
 
 ## Verification
-- 최소 각 1개 실패 시나리오 통과
+- start-up checklist가 재현 가능한지 확인
 
 ## PASS Criteria
-- REVIEW/ERROR 경로가 예측 가능하게 동작
-- 테스트가 CI 없이 로컬 실행 가능
+- 반복 실행 가능한 배포 항목이 문서화
+- 준비/기동 상태가 확인되는 체크리스트 존재
 
 ## Artifacts
-- tests 디렉터리 테스트 스켈레톤
+- deployment manifest
+- startup guide

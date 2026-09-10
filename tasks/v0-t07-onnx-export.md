@@ -1,35 +1,36 @@
 Task ID: V0-T07
-Title: ONNX Export
+Title: Baseline Training
 Status: TODO
 Depends On: V0-T06
 
 ## Purpose
-학습 모델을 Runtime 친화적인 ONNX로 변환한다.
+Proxy dataset으로 1회 재현 가능한 baseline 학습을 수행해 실험 baseline을 만든다.
 
 ## Dependencies
-- V0-T06에서 선택된 모델
+- V0-T06 분할 완료
 
 ## Allowed Changes
-- ONNX export 코드/스크립트 작성
-- 입력 크기/연산자 호환성 점검
+- 모델/epoch/image size/batch 설정 고정 baseline 실행
+- 실험 메타데이터 기록
+- 체크포인트 및 지표 저장
 
 ## Forbidden Changes
-- 모델 구조 대폭 변경
-- 학습 가중치 재학습
+- 대규모 tuning 탐색
+- 프레임워크 교체
 
 ## Implementation
-- 체크포인트 로드 후 export 실행
-- dynamic axes, opset, preprocessing 일치성 명세
-- export 로그/버전 메타 저장
+- baseline config 기반 실행
+- `model`, `epochs`, `image_size`, `batch`, `learning_rate`, `precision`, `recall`, `mAP50`, `mAP50_95`, `inference_latency` 기록
+- artifact 경로 수집
 
 ## Verification
-- ONNXRuntime 간단 추론 검증
-- export 경고/오류 없음
+- 정상 종료 확인
+- baseline 결과를 baseline log에 정리
 
 ## PASS Criteria
-- ONNX 파일 생성 완료
-- Runtime에서 추론 가능한 형태로 저장
+- Baseline 성능 지표가 1개 이상 기록
+- 모델 체크포인트 path가 남음
 
 ## Artifacts
-- ONNX model path
-- export 매니페스트
+- `training/experiments/<id>/` baseline result
+- 실험 메타 데이터

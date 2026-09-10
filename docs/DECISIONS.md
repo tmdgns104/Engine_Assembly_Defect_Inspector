@@ -1,21 +1,26 @@
 # Architectural Decisions
 
-## 1) V0에서 V0-T01만 완료
+## 1) V0 계획 재정의 (PLAN-REVISION-001)
 
-- 결정: 이번 실행은 `V0-T01` 부트스트랩에만 한정
-- 이유: 데이터/학습 파이프라인 구현 전에 프로젝트 기반을 안정화하고 Task를 선형으로 분해하기 위함
+- 결정: V0를 `Proxy Inspection System`으로 재정의한다.
+- 이유: V0의 역할을 Fake mock 단계에 머무르지 않게 하고, V1 전환 비용이 낮은 런타임을 미리 완성하기 위함.
 
-## 2) Training과 Runtime 분리
+## 2) V0-A, V0-B, V0-C 단계 분리
 
-- 결정: 학습 산출물(데이터셋/실험/체크포인트)과 Runtime(감지/판정/API/UI)을 디렉터리 레벨에서 분리
-- 이유: V1/V2 전환 시 교체 지점 최소화 및 Jetson 배포 범위 축소
+- 결정: COCO8 기반 smoke, proxy dataset 기반 workflow 학습, Jetson end-to-end 통합을 구분한다.
+- 이유: 실제 엔진 데이터셋이 없어도 파이프라인 구조를 먼저 검증할 수 있고, V1 교체 지점을 명확히 한다.
 
-## 3) Interface First 설계
+## 3) 인터페이스 우선 설계 고정
 
-- 결정: Detector와 Camera를 인터페이스로 먼저 고정하고 Fake/PyTorch/ONNX/TensorRT 등을 플러그인으로 추가
-- 이유: V1에서 실제 모델로 즉시 전환 가능한 구조 확보
+- 결정: Detector/Camera 계약을 ONNX/Framework 구현보다 먼저 정의한다.
+- 이유: V1/V2에서 구현체 교체 시 런타임 재설계 위험 감소.
 
-## 4) Demo Dataset는 조사만 수행
+## 4) Proxy 기준치는 공식 임계치로 사용하지 않음
 
-- 결정: V0-T01에서 대규모 Dataset 다운로드는 수행하지 않음
-- 이유: 과도한 네트워크/시간 소비 방지 및 Task 정합성(부트스트랩 범위)
+- 결정: V0에서 실험한 품질 임계치/정책은 `demo/proxy threshold`로 분류한다.
+- 이유: 실제 엔진 조도/거리/고정도/포즈가 정해지기 전 임계치를 engine 기준으로 오인 사용하지 않기 위함.
+
+## 5) V1/V2 분기 보장
+
+- 결정: V1은 데이터/클래스/모델/레시피 교체 중심으로 진행하고, V2는 MockPLC→RealPLC로만 확장한다.
+- 이유: 소프트웨어 아키텍처 재작성 없이 단계적 확장 가능.

@@ -1,51 +1,76 @@
-# Architecture (V0 Baseline)
-
-## 개요
+# Architecture (V0 Proxy Inspection System)
 
 ```
-Camera
- ↓
+V0-A (Proxy Dataset Smoke):
+Training Environment (PyTorch/Python/CUDA/GPU)
+
+V0-B:
+Camera Capture
+    ↓
 Image Quality Gate
- ↓
-Detector
- ↓
+    ↓
+Detector (interface -> Fake/PyTorch/ONNX/TensorRT)
+    ↓
 Recipe Engine
- ↓
+    ↓
 Decision Engine
- ↓
+    ↓
 PASS / FAIL / REVIEW / ERROR
- ↓
-Edge Journal
- ↓
+    ↓
+Journal + Evidence
+    ↓
+REST API
+    ↓
 Web HMI
 
-Mock PLC
- ↓
-Inspection Request
- ↓
+Manual Request + Mock PLC Adapter
+    ↓
 Edge Service
+
+V0-C:
+Jetson Runtime (V4L2 + trained proxy model)
+    ↓
+Quality + Detector + Recipe + Decision + Journal + API + HMI
 ```
 
-V0에서는 실제 하드웨어가 없으므로 `ReplayCamera`와 `FakeDetector` 중심으로 구성하고,
-런타임 인터페이스는 V1/V2 교체가 가능하게 분리한다.
+## 핵심 구조 원칙
+
+- `Training`과 `Runtime`은 분리한다.
+- 인터페이스 계약이 먼저 정의되어야 하며, 구현체는 뒤따라 교체 가능해야 한다.
+- Detector/Camera는 런타임에서 직접 참조하지 않고 contract를 통해 주입한다.
+- V1은 proxy 자산을 엔진 자산으로 대체해 런타임을 재사용한다.
+- V2는 MockPLC를 RealPLC로 교체해 자동화 파이프라인만 확장한다.
 
 ## Training / Runtime 경계
 
-- `training/` : 데이터셋 구성, 실험, 모델 훈련, 평가, 체크포인트/실험 산출 관리
-- `src/`, `apps/`, `config/`, `recipes/`, `tests/` : Runtime/API/Journal/Control 기반 검사 애플리케이션
-- 동일 레이어에서의 상호의존은 YAML/파라미터 계약을 통해 최소화
+- `training/`:
+  - config, dataset metadata, experiments, scripts
+  - 모델 훈련/평가/튜닝/실험 결과
+- `src/`, `apps/`, `recipes/`, `config/`, `tests/`:
+  - Runtime, API, HMI, Journal, control contracts
 
-## Detector 구조
+## Detector contract
 
 - `Detector` 인터페이스
   - `FakeDetector`
   - `PyTorchDetector`
   - `ONNXDetector`
-  - `TensorRTDetector` (V1 Jetson 단계)
+  - `TensorRTDetector` (Jetson)
 
-## Camera 구조
+## Camera contract
 
 - `Camera` 인터페이스
   - `ReplayCamera`
   - `SampleImageCamera`
-  - `V4L2Camera` (Jetson 단계)
+  - `V4L2Camera` (Jetson)
+
+## 배포 패키지 경계(문서화 대상)
+
+기본적으로 Jetson에는 아래만 전달한다.
+
+- `deployment/model/model.onnx`
+- `deployment/classes.yaml`
+- `deployment/recipe.yaml`
+- `deployment/camera.yaml`
+- `deployment/runtime.yaml`
+- `deployment/manifest.json`

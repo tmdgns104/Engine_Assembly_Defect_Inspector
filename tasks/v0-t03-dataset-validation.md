@@ -1,37 +1,36 @@
 Task ID: V0-T03
-Title: Dataset Validation Pipeline
+Title: Core Contracts / Camera + Detector Interfaces
 Status: TODO
 Depends On: V0-T02
 
 ## Purpose
-데이터셋 구성, annotation 무결성, split 구조(Train/Val/Test)를 자동 검증한다.
+`Detector`, `Camera`, 검사 요청/결과 계약을 먼저 확정한다. 계약이 먼저 존재한 후 구현체가 추가되도록 만든다.
 
 ## Dependencies
-- V0-T02에서 후보 선택
-- training/configs/*.yaml
+- V0-T02 smoke 검증 완료
 
 ## Allowed Changes
-- 데이터셋 구조 검사 스크립트 작성
-- 누락 파일/라벨/포맷/중복 검사 추가
-- Split 비율 검증
+- Detection Result, Inspection Request, Inspection Result 스키마 정의
+- Camera interface (`capture`, `status`, `close`) 정의
+- Detector interface (`detect`, confidence, bbox format, reason codes) 정의
+- 상태 enum: `PASS / FAIL / REVIEW / ERROR` 고정
 
 ## Forbidden Changes
-- 학습 코드 핵심 로직 변경
-- 대용량 데이터셋 이동
+- 구현체 중심의 하드코딩
+- 품질 임계치/조명 값 같은 V1 확정 기준 선입력
 
 ## Implementation
-- manifest 또는 annotation parser 기반 검사 루틴 추가
-- 경로/클래스 id/바운딩박스 유효성 검사
-- split 파일 존재 및 비율 확인
+- `src/contracts`에 공통 스키마/타입 문서화
+- Mock/Stub 계약 테스트 시나리오 정의
+- `docs/ARCHITECTURE.md`와 Task 의존성에서 인터페이스 선행성 반영
 
 ## Verification
-- 샘플 케이스로 pass/fail 로그 확인
-- 실패 케이스 예외 처리를 문서화
+- 최소 1개 가상 계약 테스트 시나리오 작성
+- Detector/Camera 구현이 계약만 의존하여 호출되는지 점검
 
 ## PASS Criteria
-- 유효하지 않은 샘플이 정확히 reject
-- 정상 split가 통과
+- 계약 항목이 문서와 Task에 반영
+- 구현체 추가 이전에도 계약 단위 문서가 명확히 존재
 
 ## Artifacts
-- 데이터셋 validation 스크립트
-- validation 리포트
+- Contracts 문서 및 인터페이스 스키마

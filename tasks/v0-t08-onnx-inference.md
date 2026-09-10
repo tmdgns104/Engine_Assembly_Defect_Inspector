@@ -1,34 +1,35 @@
 Task ID: V0-T08
-Title: ONNX Runtime Inference
+Title: Small Tuning Experiments
 Status: TODO
 Depends On: V0-T07
 
 ## Purpose
-ONNX Runtime으로 동작하는 추론 경로를 검증한다.
+기본 baseline을 기반으로 2~3개 튜닝 실험을 수행해 변화 추이를 학습한다.
 
 ## Dependencies
-- V0-T07 ONNX model
+- V0-T07 baseline
 
 ## Allowed Changes
-- preprocessing/postprocessing 일치 실험
-- latency 측정 스크립트
+- epoch/image size/LR/augmentation 조합 실험
+- 실험 비교표 작성
 
 ## Forbidden Changes
-- 학습 코드 변경
-- 레이블맵 재정의 무단 변경
+- 광범위 탐색(HPO)
+- Proxy 데이터셋 외부에서 성능 비교
 
 ## Implementation
-- sample image inference 실행
-- batch size 1 고정 추론과 latency 측정
-- 예측 포맷을 Detector 인터페이스에 맞춰 정규화
+- 2~3개 실험만 수행
+- 각 실험에서 변경 이유와 결과(precision, recall, mAP50, mAP50-95, latency, runtime)를 기록
+- best candidate 선택 근거 작성
 
 ## Verification
-- 동일 이미지에 대한 출력 포맷/클래스 일관성 검증
-- latency 로그 저장
+- 실험 단위별 결과표 작성
+- 가장 적합한 후보 1개를 결론으로 기록
 
 ## PASS Criteria
-- Runtime에서 추론 성공
-- 지표/속도 값 수집
+- 2~3개 실험 완료
+- 변경 이유/효과/선정 근거가 있는 비교표 존재
 
 ## Artifacts
-- ONNX inference 샘플 결과
+- tuning experiment table
+- tuning conclusion note

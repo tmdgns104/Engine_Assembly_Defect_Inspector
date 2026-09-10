@@ -1,30 +1,33 @@
 Task ID: V0-T11
-Title: Image Quality Gate
+Title: Runtime Detector Integration
 Status: TODO
 Depends On: V0-T10
 
 ## Purpose
-가림/흐림/밝기/노이즈/초점 등으로 인한 판정 불신뢰를 조기에 분리한다.
+인터페이스 기반 detector adapter를 runtime에 탑재한다.
 
 ## Dependencies
-- Camera Adapter 기본 동작
+- V0-T03 인터페이스 계약
+- V0-T10 ONNX export 완료
 
 ## Allowed Changes
-- quality score 지표 추가(블러/노출/크기/포커스)
-- REVIEW/ERROR 임계치 정의
+- FakeDetector, trained PyTorch detector, ONNXDetector 구현체 어댑터 정리
+- Detector contract 위반 없는 호출 구조 정리
 
 ## Forbidden Changes
-- 판정 모델 추론 결과를 과도하게 덮어쓰기
+- 모델 형식에 따라 런타임 분기 로직을 직접 확장
+- Quality/Decision 로직을 detector 내부에 결합
 
 ## Implementation
-- 기본적인 품질 규칙 도입
-- 낮은 신뢰 상태를 `REVIEW` 또는 `ERROR`로 매핑
+- Detector adapter registry 또는 팩토리 설계
+- 최소 3개 구현체 최소 스텁/연동 규격 정리
+- contract 기반 주입 포인트 문서화
 
 ## Verification
-- 저품질 합성 샘플에서 게이트 동작 확인
+- `detect` 호출에서 동일한 응답 스키마가 보장되는지 확인
 
 ## PASS Criteria
-- 품질 게이트 결과가 판정에 반영됨
+- Fake / trained / ONNX detector를 runtime에서 교체 실험 가능한 형태
 
 ## Artifacts
-- 품질 계산 모듈 및 규칙 문서
+- detector adapter map

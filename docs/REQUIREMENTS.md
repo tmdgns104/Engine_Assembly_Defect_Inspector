@@ -1,31 +1,40 @@
 # Requirements
 
-## 범위
+## 프로젝트 범위 (현재)
 
-본 저장소의 V0는 다음만 다룬다.
+- V0는 `PLAN-REVISION-001` 기준으로 **실행 계획 수립**이 완료된 상태에서 `V0-T02`부터 시작한다.
+- 이 계획 수립 단계에서는 다음을 수행하지 않는다.
+  - 대형 데이터셋 다운로드
+  - 모델 학습/평가/온전성 검증 실행
+  - ONNX 변환, Jetson 배포 실행
+  - PLC/Conveyor 하드웨어 구현
 
-- V0-T01(부트스트랩): 문서, 디렉터리, Task 분해, 환경 확인, 구조 기초 수립
-- V0-T02 및 이후 학습/실행 코드는 별도 실행 단계에서 진행
+## 핵심 요구사항
 
-## 기능 요구사항
-
-- Object Detection 기반 파이프라인을 V0에서 경험할 수 있어야 함
-- V1 교체 기준을 반영한 구조 설계를 해야 함
-  - Dataset / Classes / Model / Recipe / Evaluation Dataset는 교체 지점
-  - Detector/Camera/Quality/Decision/Journal 등은 인터페이스 중심으로 구성
-- 결과 상태는 `PASS`, `FAIL`, `REVIEW`, `ERROR` 만 사용
-- EMERGENCY STOP은 AI 판정 상태에 포함하지 않음
-- 대규모 binary(Model/데이터) commit 금지
+- V0는 `V0-A`에서 ML 환경 smoke test, `V0-B`에서 proxy dataset 기반 workflow 연습, `V0-C`에서 런타임 통합 연습을 모두 포함한다.
+- `V0`에서는 proxy 모델의 결과를 V1의 실제 엔진 모델로 교체하기 쉬운 구조를 먼저 만든다.
+- 교체 지점은 최소화:
+  - Dataset
+  - Classes / Labels
+  - Trained Model
+  - Recipe
+  - Evaluation Dataset
+- 인터페이스 기반 구조 유지:
+  - Detector interface: Fake / PyTorch / ONNX / TensorRT
+  - Camera interface: Replay / SampleImage / V4L2
+- 판정 결과는 항상 `PASS / FAIL / REVIEW / ERROR`.
+- `EMERGENCY STOP`은 AI 판정 enum에 포함하지 않는다.
+- 대규모 바이너리(모델/훈련 원천 데이터)는 기본 Git 커밋에서 제외한다.
 
 ## V0 타겟 모듈
 
-- Camera Adapter (Replay/Sample/V4L2)
-- Image Quality Gate
-- Detector Interface (Fake, PyTorch, ONNX, TensorRT 대상)
-- Recipe Engine
-- Decision Engine
-- Journal 저장
-- Web HMI + REST API
-- Mock PLC
-- ONNX Inference 예비 구성
-- Jetson 배포 스크립트 기초
+- Camera adapter and camera quality checks
+- Detector contracts + adapters
+- Recipe engine
+- Decision engine
+- Journal persistence (SQLite/evidence)
+- REST API
+- Web HMI
+- Mock PLC request contract
+- Jetson deployment package boundary design
+- Failure/recovery testing baseline

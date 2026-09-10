@@ -1,31 +1,32 @@
 Task ID: V0-T20
-Title: V0 Review and Readiness Package
+Title: V0 Final Review / V1 Readiness
 Status: TODO
 Depends On: V0-T19
 
 ## Purpose
-V0-T01~T19 산출물을 점검해 V0 총괄 상태를 정리하고 V1 전환 준비도를 기록한다.
+V0 전 단계가 V1 교체 전략(Proxy→Engine)을 충족하는지 최종 검증한다.
 
 ## Dependencies
 - V0-T19
 
 ## Allowed Changes
-- 산출물 목록 점검
-- 리스크/미완료 항목 정리
+- Task chain, status, artifact completeness 점검
+- V1 전환 교체 지점 점검
 
 ## Forbidden Changes
-- 미완료 항목을 임의 완료 처리
+- V0 미완료 Task를 완료 처리
 
 ## Implementation
-- Task별 상태 대조
-- 문서와 실제 디렉터리 일치 확인
-- 다음 단계 권고사항 정리
+- Dataset/Model/Recipe/Evaluation set 교체가 런타임 재작성 없이 가능한지 점검
+- 계획과 실제 상태 불일치 확인
 
 ## Verification
-- STATUS와 실제 상태 불일치 0건
+- T02~T19 chain 상태 점검
+- docs/STATUS, tasks/README와 일치 확인
 
 ## PASS Criteria
-- V1 시작 체크포인트 문서화
+- V1 시작 전 checklist가 충족
+- V1-Pilot(120개) 전략 및 품질 기준 보완 필요사항 기록
 
 ## Artifacts
-- V0 완료 요약
+- V0 readiness summary

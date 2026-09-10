@@ -1,30 +1,35 @@
 Task ID: V0-T16
-Title: REST API
+Title: Jetson Camera End-to-End
 Status: TODO
-Depends On: V0-T14
+Depends On: V0-T15
 
 ## Purpose
-검사 호출/상태 조회/Health Check를 제공하는 최소 API 사양을 정리한다.
+실제 Jetson + USB Camera + V4L2로 전체 V0 runtime chain을 통합 실행한다.
 
 ## Dependencies
-- Journal, Decision Engine
+- V0-T15 request/adapter 설계
 
 ## Allowed Changes
-- 엔드포인트 계약 설계
-- 응답 스키마, 상태코드 정의
+- Jetson capture 경로 정리
+- runtime sequence test (camera -> quality -> detector -> recipe -> decision -> journal -> api/hmi)
+- 실패 시 ERROR 상태 동작 확인
 
 ## Forbidden Changes
-- 장치 제어/파라미터를 API에서 직접 하드코딩
+- 임계치/정확도 정책을 엔진 기준으로 간주
+- V2 PLC 제어 동작 추가
 
 ## Implementation
-- health, trigger, history, image snapshot endpoint 설계
-- 입력 유효성 검사 및 에러 응답 규격 정의
+- Jetson의 실기기 연동 스텝 문서화
+- 실제 카메라에서 최소 1회 통합 실행
+- Proxy thresholds로 결과 분류
 
 ## Verification
-- 스키마 문서와 예시 요청/응답 정합성 확인
+- 연동 순서가 단절 없이 실행
+- 결과가 journal/API/HMI로 전달됨
 
 ## PASS Criteria
-- Web HMI와 결합 가능한 API 계약 초안 존재
+- V0-C 핵심 통합 흐름이 실제 장비에서 확인
 
 ## Artifacts
-- API 계약 문서
+- Jetson E2E run log
+- integration checklist

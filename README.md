@@ -1,19 +1,29 @@
 # On-Device AI 기반 엔진 모형 조립 검사 시스템
 
-본 저장소는 `V0 → V1 → V2` 단계로 진행되는 엔진 조립 검사 시스템의 공식 레포지토리입니다.
+이 저장소는 `V0 → V1 → V2` 로드맵으로 구성됩니다.  
+현재는 `PLAN-REVISION-001` 기준의 **V0 Proxy Inspection System** 계획을 정비한 상태입니다.
 
-현재 목표는 `V0-T01` 부트스트랩만 완료하고, V0 실행 파이프라인의 학습/런타임 분리를 기반으로 한 기초 구조를 확립하는 것입니다.
+## 현재 실행 상태
 
-## 현재 범위
+- Phase: `V0 Proxy Inspection System`
+- Completed planning task: `PLAN-REVISION-001` (DONE / VERIFIED)
+- Current implementation task: `NONE`
+- Next implementation task: `V0-T02` (수행 대기)
 
-- Repository 상태 점검
-- Git 초기화
-- 환경 점검(Windows / Python / pip / Git / GPU / Driver / CUDA 경로)
-- 프로젝트 디렉터리 설계 및 기본 산출물 생성
-- V0 Task 분해 (V0-T01 이후 진행 예정 항목 정의)
-- Demo dataset 후보 비교(다운로드 없이 문헌/명세 기반 조사)
-- 문서, 상태, 구조 검증
+## V0 목표 (재정의)
 
-## 다음 단계
+V0는 단순 가짜 모델 데모가 아니라 다음 3단계로 구성됩니다.
 
-`V0-T02`에서 Demo Dataset 실제 준비, 데이터 검증 스크립트, 학습 파이프라인 기반 작업을 시작합니다.
+1. ML 환경 smoke test (`V0-A`)  
+2. Proxy dataset로 ML/inspection workflow 연습 (`V0-B`)  
+3. Camera + 품질 게이트 + Detector + Recipe + Decision + Journal + API + HMI를 실제 벤치에서 연동 (`V0-C`)
+
+V1은 런타임 재설계 없이 교체 지점만 바꾸어 진행합니다.
+
+- Dataset / Classes / Model / Recipe / Evaluation Set
+
+## 제약
+
+- V0 단계에서 엔진 부품명/좌표/임계치 같은 실제 엔진 스펙은 확정하지 않습니다.
+- V0에서 만들어지는 임계치/지표는 proxy 목적 전용입니다.
+- `PASS / FAIL / REVIEW / ERROR` 4-state를 유지합니다. `EMERGENCY STOP`은 AI 판정에 포함하지 않습니다.

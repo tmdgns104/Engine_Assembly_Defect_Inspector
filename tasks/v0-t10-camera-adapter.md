@@ -1,31 +1,35 @@
 Task ID: V0-T10
-Title: Camera Adapter
+Title: ONNX Export + Parity Check
 Status: TODO
 Depends On: V0-T09
 
 ## Purpose
-Replay, SampleImage, V4L2 카메라 소스를 같은 Camera 인터페이스로 통합한다.
+선정 후보를 ONNX로 export하고, 원 모델 추론과 동등성 비교를 수행한다.
 
 ## Dependencies
-- src/camera 초기 구조
+- V0-T09 평가 완료 및 후보 모델 선정
 
 ## Allowed Changes
-- 공통 `Camera` 인터페이스 정의
-- 각 Adapter 기본 구현
+- ONNX export 스크립트 및 설정 정리
+- 동일 입력으로 original 대비 출력 비교
 
 ## Forbidden Changes
-- 하드웨어 종속 코드를 Runtime 핵심으로 침투
-- 플랫폼별 분기 무한 확장
+- 후보 선정 전 ONNX 단계 수행
+- runtime contract를 ONNX 형식에 고정
 
 ## Implementation
-- `capture()`, `status()`, `close()` 기반 인터페이스 정의
-- Mock/Replay 기반으로 V0에서 동작 테스트 가능
+- 선정 모델 export
+- dynamic axis/opset/전처리 일치성 점검
+- 동일 입력에서 출력 차이 보고
 
 ## Verification
-- Replay source 샘플 캡처 동작 확인
+- ONNX inference 성공
+- parity check 기록 생성
 
 ## PASS Criteria
-- V4L2 미연결 환경에서도 인터페이스 계약이 깨지지 않음
+- ONNX 모델 artifact 경로 존재
+- 동일 입력에서 기능 차이를 문서화
 
 ## Artifacts
-- Camera adapter 인터페이스 문서
+- ONNX artifact path
+- parity report

@@ -1,33 +1,35 @@
 Task ID: V0-T09
-Title: Detector Adapter
+Title: Evaluation + Error Analysis
 Status: TODO
 Depends On: V0-T08
 
 ## Purpose
-Fake/PyTorch/ONNX/TensorRT 구현체를 하나의 Detector 인터페이스로 묶는다.
+Baseline+튜닝 결과를 평가하고 오류 유형을 분류한다.
 
 ## Dependencies
-- src/vision 초기 구조
+- V0-T07, V0-T08
 
 ## Allowed Changes
-- Detector abstract contract 정의
-- Adapter 래퍼 구현
-- model/artifact/config 로딩
+- precision/recall/mAP50/mAP50-95 계산
+- 클래스별 오류, FP/FN 분석, 시각적 실패 예시 정리
 
 ## Forbidden Changes
-- 결정 로직을 Runtime과 결합
-- 모델 포맷별 중복 처리
+- 새로운 모델 구조 도입
+- 실패 분석 없이 모델을 임의 전환
 
 ## Implementation
-- `Detector` 인터페이스에서 `detect(image)->detections` 규격 고정
-- FakeDetector, PyTorchDetector, ONNXDetector, TensorRTDetector 스텁/인터페이스 정의
+- 공통 지표 집계
+- false positive/false negative 분석
+- 실패 사례 이미지와 사유 분류
 
 ## Verification
-- 1개 구현체에서 최소 인터페이스 응답 검증
-- 인터페이스 문서화
+- 평가 지표와 오류 분석 결과가 동일 기준으로 재현
+- 다음 단계의 export 후보가 문서화
 
 ## PASS Criteria
-- 같은 호출 규격으로 교체 가능한 구조
+- 모델 선택을 뒷받침하는 평가 보고서
+- 실패 분석과 우선 보완 포인트 기록
 
 ## Artifacts
-- Detector contracts
+- evaluation report
+- error analysis

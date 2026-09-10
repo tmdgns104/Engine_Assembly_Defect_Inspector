@@ -1,30 +1,34 @@
 Task ID: V0-T14
-Title: Journal and Persistence
+Title: REST API + Web HMI
 Status: TODO
 Depends On: V0-T13
 
 ## Purpose
-검사 결과를 추적 가능한 SQLite Journal로 저장하고 조회 인터페이스를 정의한다.
+검사 상태, 최신 결과, 히스토리, 이력 이미지 등 공개 API와 UI를 최소 형태로 제공한다.
 
 ## Dependencies
-- V0-T13 완료
+- V0-T13 journal persistence
 
 ## Allowed Changes
-- 검사 이벤트 스키마 정의
-- 실패/리뷰/에러 이력 저장
+- health, manual trigger, latest result, history, image evidence API 스키마
+- Web HMI 최소 화면 설계
 
 ## Forbidden Changes
-- 로그 저장을 모델 추론 루프에 동기화로 결합
+- 과도한 UI/라우팅 복잡화
+- journal가 없는 결과를 노출
 
 ## Implementation
-- SQLite schema v1 정의(inspection_id, timestamp, status, reasons, artifacts)
-- 간단한 조회/백업 경로 설계
+- API contract 문서화
+- HMI에서 PASS/FAIL/REVIEW/ERROR 표현
+- 시스템 상태와 최신 이력 표시
 
 ## Verification
-- 최소 1건 저장/조회 동작 확인
+- API contract와 화면 데이터 필드 일치
+- 오류 상태 코드와 메시지 일관성
 
 ## PASS Criteria
-- 결과 이력이 손실 없이 누적
+- API + HMI 요구 범위가 최소 기능으로 수렴
 
 ## Artifacts
-- journal schema 문서
+- API contract spec
+- UI screen spec
