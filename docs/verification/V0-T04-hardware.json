@@ -1,0 +1,104 @@
+{
+  "task": "V0-T04-FINALIZE",
+  "baseline_commit": "6363f80",
+  "evidence_status": "USER-EXECUTED / VERIFIED",
+  "source": "User-supplied final hardware capture report in this conversation",
+  "independently_reexecuted_by_codex": false,
+  "finalize_execution_location": "Windows PC",
+  "jetson": {
+    "hostname": "jetson-07",
+    "python": "3.10.12",
+    "opencv": "4.8.0"
+  },
+  "camera": {
+    "name": "HCAM0",
+    "driver": "uvcvideo",
+    "capture_node": "/dev/video0",
+    "pixel_format": "YUYV",
+    "width": 640,
+    "height": 480,
+    "configured_fps": 22
+  },
+  "v4l2": {
+    "status": "PASS",
+    "frames": 30,
+    "exit_code": 0
+  },
+  "opencv": {
+    "status": "PASS",
+    "opened": true,
+    "backend": "V4L2",
+    "width": 640,
+    "height": 480,
+    "fps_reported": 22,
+    "fourcc": "YUYV",
+    "frames_requested": 5,
+    "frames_read": 5
+  },
+  "capture_tool": {
+    "session_id": "HW_SMOKE01",
+    "episode_id": "HW_SMOKE01_CAMERA_01",
+    "scenario": "CAMERA_SMOKE",
+    "verifier_status": "verified",
+    "captures": 3,
+    "images": [
+      {
+        "capture_id": "HW_SMOKE01_CAMERA_01_20260911T001031990462Z_6190e4034bc8",
+        "width": 640,
+        "height": 480,
+        "bytes": 455634,
+        "sha256": "bc024787e1c59eb617ece4fd820427f5662186c4dca6b6e9c747c3a945b18d2b"
+      },
+      {
+        "capture_id": "HW_SMOKE01_CAMERA_01_20260911T001032983589Z_bee485fa73f4",
+        "width": 640,
+        "height": 480,
+        "bytes": 457623,
+        "sha256": "b065a8bd713db057301e9be5f4c85431a857418d1937809d7a3a75fddce476f2"
+      },
+      {
+        "capture_id": "HW_SMOKE01_CAMERA_01_20260911T001033935635Z_25bb490da4cc",
+        "width": 640,
+        "height": 480,
+        "bytes": 457824,
+        "sha256": "fd21ea4a349c418044bd8a25136265e7fab2d483c40569056a2deb8649f05ef9"
+      }
+    ]
+  },
+  "validation_reported": {
+    "png_exists": "PASS",
+    "nonzero_bytes": "PASS",
+    "unique_capture_ids": "PASS",
+    "metadata_image_path_linkage": "PASS",
+    "opencv_reload": "PASS",
+    "sha256_matches": "PASS"
+  },
+  "root_cause": {
+    "source": "User correction",
+    "cause": "USB Camera was physically disconnected during the camera failure attempts.",
+    "after_reconnection": "HCAM0 enumerated at /dev/video0; V4L2 and OpenCV succeeded.",
+    "limits": "Earlier user-provided /dev/video2 enumeration and stream success remain historical evidence. Intermediate OpenCV failure logs were not supplied. No independent root-cause reproduction in FINALIZE."
+  },
+  "formal_pilot": {
+    "status": "NOT STARTED",
+    "images": 0,
+    "planned_images": 81,
+    "smoke_included": false,
+    "human_object_selection": "REQUIRED",
+    "human_object_placement": "REQUIRED"
+  },
+  "boundaries": {
+    "gui_used": false,
+    "system_packages_changed": false,
+    "network_changed": false,
+    "additional_jetson_execution_in_finalize": false,
+    "labeling_started": false,
+    "training_started": false
+  },
+  "next_gate": "HUMAN-CAPTURE-001",
+  "limits": [
+    "Hardware PNG files and original complete manifest were not retrieved or independently rehashed on Windows in FINALIZE.",
+    "Configured FPS is not a sustained-throughput measurement.",
+    "Hardware smoke does not establish Dataset quality or model accuracy."
+  ]
+}

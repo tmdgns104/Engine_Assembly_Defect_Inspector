@@ -7,13 +7,13 @@
 
 - Phase: `V0 Proxy Inspection System`
 - Completed planning task: `PLAN-REVISION-001` (DONE / VERIFIED)
-- Current implementation task: `V0-T04` — BLOCKED / WINDOWS_TOOL_READY
-- Completed implementation tasks: `V0-T01`, `V0-T02`, `V0-T03` (DONE / VERIFIED)
-- Next action: 기존 Jetson SSH 인증 후 T04 실기기 smoke 검증 재개. T05는 TODO.
+- Latest implementation task: `V0-T04` — DONE / VERIFIED
+- Completed implementation tasks: `V0-T01`, `V0-T02`, `V0-T03`, `V0-T04` (DONE / VERIFIED)
+- Next action: `HUMAN-CAPTURE-001` — OBJ_A/B/C 선택·배치 후 S001의 NORMAL/MISSING_A를 단계별 촬영·검토. T05는 TODO / NOT STARTED.
 
 공통 계약은 [docs/contracts.md](docs/contracts.md), 최신 실행 상태는 [docs/STATUS.md](docs/STATUS.md)를 참조합니다. 실제 Camera/Detector Adapter와 Runtime 실행 앱은 아직 구현하지 않았습니다.
 
-Dataset 수집용 CLI와 Session/Episode/Pilot 계획은 [Proxy Capture Workflow](training/datasets/proxy/README.md)에 있습니다. Windows 테스트는 통과했으나 Jetson 카메라 검증과 정식 물체 촬영은 아직 완료되지 않았습니다.
+Dataset 수집용 CLI와 Session/Episode/Pilot 계획은 [Proxy Capture Workflow](training/datasets/proxy/README.md)에 있습니다. Windows 테스트 40개와 사용자가 실행한 Jetson HCAM0 실기기 smoke 3장을 검증했습니다. [검증 기록](docs/verification/V0-T04.txt)에 출처를 구분했습니다. 정식 Pilot은 **0/81장, NOT STARTED**이며 CAMERA_SMOKE 3장은 포함하지 않습니다.
 
 ## 계약 코드와 테스트
 

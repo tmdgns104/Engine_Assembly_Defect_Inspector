@@ -36,7 +36,7 @@ ID는 대문자 ASCII 문자로 시작하고 대문자/숫자/밑줄/하이픈�
 
 ## Pilot 규모와 누수 방지
 
-제안: **3 Session × 9 Scenario × 3개의 별도 배치 Episode × 1 Capture = 81장**.
+유지하는 Pilot 계획: **3 Session × 9 Scenario × 3개의 별도 배치 Episode × 1 Capture = 81장**. 현재 정식 수집량은 **0/81, NOT STARTED**다. T04 계획·도구·하드웨어 경로 완료와 실제 Dataset 수집을 구분한다.
 
 각 Session은 27개의 실제 배치에서 27장을 만든다. 처음에는 S001의 NORMAL 한 배치와 MISSING_A 한 배치만 단계별로 확인한 후 나머지를 진행한다. 필요할 때만 불량 촬영을 추가·재촬영하고 동일 배치의 그룹을 보존한다. CAMERA_SMOKE와 sample 이미지는 81장에 포함하지 않는다.
 
@@ -48,20 +48,20 @@ T06에서 session_id와 episode_id를 모두 유지해 grouping 기준으로 사
 
 T05 이전에 사람이 이미지 가독성, 실제 물체/시나리오, 손상/누락, 그룹 정보를 검토해야 한다. 도구의 저장 PASS는 라벨 품질이나 Dataset 준비 완료를 뜻하지 않는다.
 
-## 첫 물리 촬영의 Human Action
+## HUMAN-CAPTURE-001 — 첫 물리 촬영의 Human Action
 
-카메라 smoke 검증과 계획 확인 후에만 진행한다. 사용자는 우선 세 물체를 고르고 A/B/C 대응을 알려 준다. 다음으로 화면 중앙 검사 영역에 모두 놓고 NORMAL 상태를 확인한다. 그 다음 A만 제거해 MISSING_A를 만든다. 한 번에 전체 81장 행동을 요구하지 않는다.
+T04 계획 및 사용자 실행 카메라 smoke 3장 검증은 완료됐다. 사용자는 우선 세 물체를 고르고 A/B/C 대응을 알려 준다. 다음으로 화면 중앙 검사 영역에 모두 놓고 S001의 NORMAL 한 Episode를 촬영해 이미지 품질·배치를 확인한다. 그 다음 A만 제거해 MISSING_A 한 Episode를 촬영하고 다시 확인한다. 검토 후 나머지 촬영으로 확대하며, 한 번에 전체 81장 행동을 요구하지 않는다. 이 Gate는 아직 실행하지 않았다.
 
-기존 SSH 인증과 실제 카메라 포맷 확인이 끝나기 전에는 아래 명령을 검증 완료 명령으로 취급하지 않는다. 아래는 Jetson에 두 스크립트를 배치한 폴더에서 사용할 예시다. 현재 지원 포맷이 다르면 실측값으로 바꾼다.
+최종 smoke는 HCAM0 /dev/video0, YUYV 640×480, 설정 22 FPS로 성공했다. /dev/videoX 번호는 재연결 시 변할 수 있으므로 다음 Session 직전에 연결·장치 이름·Video Capture 기능·지원 포맷을 다시 확인한다. 아래는 두 스크립트를 배치한 폴더에서 사람의 배치 확인 후 실행할 예시이며, 실제 Pilot 실행 증거가 아니다. 노드가 바뀌면 현재 실측값으로 바꾼다.
 
 ```bash
-timeout 20s python3 capture_proxy.py --camera /dev/video0 --fourcc YUYV --width 640 --height 480 --fps 30 --output-root ./data/proxy/raw --session-id S001 --episode-id S001_NORMAL_01 --scenario NORMAL --notes "A B C placed by operator"
+timeout 20s python3 capture_proxy.py --camera /dev/video0 --fourcc YUYV --width 640 --height 480 --fps 22 --output-root ./data/proxy/raw --session-id S001 --episode-id S001_NORMAL_01 --scenario NORMAL --notes "A B C placed by operator"
 ```
 
 사람이 A를 제거하고 확인한 다음:
 
 ```bash
-timeout 20s python3 capture_proxy.py --camera /dev/video0 --fourcc YUYV --width 640 --height 480 --fps 30 --output-root ./data/proxy/raw --session-id S001 --episode-id S001_MISSING_A_01 --scenario MISSING_A --notes "A removed by operator"
+timeout 20s python3 capture_proxy.py --camera /dev/video0 --fourcc YUYV --width 640 --height 480 --fps 22 --output-root ./data/proxy/raw --session-id S001 --episode-id S001_MISSING_A_01 --scenario MISSING_A --notes "A removed by operator"
 ```
 
-T04의 정식 Dataset 수집과 계획 승인 여부는 Task 상태에 따르며, 사용자 행동 없이 완료로 표시하지 않는다.
+T04는 DONE / VERIFIED이며 정식 Dataset 수집은 별도 Human Action이다. 물체 선택·배치 없이 촬영 완료로 표시하지 않는다. V0-T05는 TODO / NOT STARTED이며 실제 이미지 수집과 사람의 품질 검토 이후에만 시작한다.

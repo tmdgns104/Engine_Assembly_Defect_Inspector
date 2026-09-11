@@ -1,6 +1,6 @@
 ﻿Task ID: V0-T04
 Title: Proxy Inspection Dataset Plan + Capture Tool
-Status: BLOCKED / WINDOWS_TOOL_READY
+Status: DONE / VERIFIED
 Depends On: V0-T03
 
 ## Purpose
@@ -30,7 +30,8 @@ Define a manageable pilot proxy dataset workflow so the user learns capture, lab
 - Verify: Windows unittest suite + existing T02/T03 preservation + Git exclusions;
   Jetson read-only device/formats check + 3 headless smoke images + reload/hash linkage.
 - Human gate: stop before formal Pilot capture; object choice/placement is a human action.
-- Do not mark DONE while plan approval/formal data readiness remains unresolved.
+- FINALIZE baseline: `6363f80`. User explicitly accepted the plan/tool/metadata/hardware-path scope as complete; formal Dataset collection is the separate HUMAN-CAPTURE-001 operational gate.
+- Hardware evidence is USER-EXECUTED / VERIFIED, supplied by the user; FINALIZE performs no additional Jetson execution. Preserve the distinction from Windows tests and synthetic samples.
 
 ## Verification
 - Capture protocol is executable and repeatable.
@@ -39,6 +40,8 @@ Define a manageable pilot proxy dataset workflow so the user learns capture, lab
 ## PASS Criteria
 - Proxy capture plan approved.
 - Dataset capture tool requirements finalized.
+- Windows contract/capture tests pass and Jetson hardware smoke saves/reloads 3 images with metadata/hash verification.
+- Formal Pilot count and required human selection/placement remain explicit; T05 is not automatically started.
 
 ## Artifacts
 - `training/datasets/proxy/proxy_capture_plan.md`
@@ -50,8 +53,9 @@ Define a manageable pilot proxy dataset workflow so the user learns capture, lab
 - `tests/test_proxy_capture.py`
 - `docs/learning-notes/V0-T04.md`
 - `docs/verification/V0-T04.txt`
+- `docs/verification/V0-T04-hardware.json`
 
-## Result / checkpoint
+## Earlier checkpoint (preserved history, superseded by final result below)
 
 - Windows Tool Ready: standalone one-shot capture and read-only session verifier implemented.
 - Verification: 40/40 unittest PASS (19 existing contracts + 21 capture tests),
@@ -71,3 +75,14 @@ Define a manageable pilot proxy dataset workflow so the user learns capture, lab
   the two scripts to a fresh directory, run 3 CAMERA_SMOKE captures and verify them.
   Then stop as READY_FOR_HUMAN_CAPTURE before formal object capture.
 - T04 is not DONE. T05 remains TODO and is not the next executable task yet.
+
+## Final result — V0-T04-FINALIZE
+
+- DONE / VERIFIED: user accepted the plan and completed the hardware smoke using the existing two scripts transferred from Windows. No capture implementation changes during FINALIZE.
+- USER-EXECUTED / VERIFIED: jetson-07, Python 3.10.12, OpenCV 4.8.0; HCAM0 via uvcvideo, final node /dev/video0, YUYV 640x480, configured 22 FPS.
+- V4L2 30-frame stream exit 0; OpenCV opened=True/backend=V4L2 and 5/5 frame reads. HW_SMOKE01 / HW_SMOKE01_CAMERA_01 / CAMERA_SMOKE saved 3 PNGs; verifier status=verified, captures=3, metadata/reload/SHA256 all PASS.
+- User identified USB camera physical disconnection as the root cause of the camera failures. Reconnection enumerated /dev/video0. Do not reinterpret the earlier successful /dev/video2 stream as a failure or assume a structural OpenCV/backend defect. Those later failure logs were not supplied to this repository; retain prior available evidence and attribute the root-cause correction to the user.
+- Windows final verification: run the existing complete 40-test suite and audit raw/binary exclusions. Evidence is retained in docs/verification/V0-T04.txt.
+- No Jetson execution, system package/network changes, labeling, split or training during FINALIZE.
+- Formal Proxy Pilot: NOT STARTED, 0/81 images. CAMERA_SMOKE 3 images are excluded. Human Object Selection and Placement: REQUIRED.
+- Next: HUMAN-CAPTURE-001. Human selects OBJ_A/B/C; start S001 with one NORMAL episode, inspect quality, then one MISSING_A episode and inspect again. Expand only after human review. V0-T05 stays TODO / NOT STARTED.

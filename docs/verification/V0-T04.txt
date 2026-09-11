@@ -1,3 +1,48 @@
+V0-T04 FINAL RESULT: DONE / VERIFIED
+Finalize baseline: 6363f80; execution location: Windows PC only.
+Hardware evidence: USER-EXECUTED / VERIFIED, from the user's final report.
+Jetson: jetson-07, Python 3.10.12, OpenCV 4.8.0.
+Final camera: HCAM0 /dev/video0, uvcvideo, YUYV 640x480, configured 22 FPS.
+V4L2: 30-frame stream PASS, exit 0.
+OpenCV: opened=True, backend=V4L2, YUYV 640x480, reported 22 FPS; 5/5 reads PASS.
+Existing capture/verify scripts transferred by user via SCP; no implementation rewrite.
+HW_SMOKE01 / HW_SMOKE01_CAMERA_01 / CAMERA_SMOKE: 3 actual PNG captures.
+verify_proxy_captures.py: status=verified, captures=3. PNG existence/nonzero size,
+640x480, unique IDs, metadata image_path linkage, reload and SHA256 all PASS.
+Exact user-supplied IDs, byte sizes and hashes: docs/verification/V0-T04-hardware.json.
+Provenance limitation: no additional Jetson execution in FINALIZE; no original PNGs
+or complete manifest retrieved or independently rehashed on Windows. The JSON is
+a structured transcription of the user's report, not newly produced verifier stdout.
+
+Root-cause correction (user-confirmed): USB Camera was physically disconnected
+during the camera failure attempts. After connection, HCAM0 enumerated at /dev/video0;
+V4L2 and OpenCV succeeded. Do not conclude a structural OpenCV/V4L2 backend defect.
+Earlier /dev/video2 enumeration/stream successes below are preserved as observations
+from that earlier connection. Intermediate OpenCV failure logs were not supplied;
+do not invent or erase them. /dev/videoX numbers can change after reconnection and
+are not permanent device identity. Recheck physical enumeration before backend work.
+
+T04 plan/tool/metadata/hardware scope accepted by user in FINALIZE.
+Formal Proxy Pilot: NOT STARTED, 0/81; CAMERA_SMOKE excluded.
+Human Object Selection / Placement: REQUIRED / REQUIRED.
+Next: HUMAN-CAPTURE-001, select OBJ_A/B/C, then S001 NORMAL and MISSING_A one
+episode at a time with human image-quality review. V0-T05: TODO / NOT STARTED.
+No GUI, package/network changes, labeling, split or training in this workflow.
+
+Windows FINALIZE verification:
+Command: .venv\Scripts\python.exe -m unittest discover -s tests -v
+Result: Ran 40 tests in 0.758s; OK; exit 0; 40 PASS / 0 FAIL.
+19 existing contract tests + 21 existing capture tests; no tests removed or changed.
+The mocked-camera output and corrupt-PNG negative-test diagnostics are expected;
+neither is a new Jetson measurement. No source code or dependency changes.
+FINALIZE audit: hardware JSON parses, 3 unique capture IDs, positive exact byte
+counts and SHA256 syntax checked; formal count 0/81 and smoke exclusion consistent.
+T04 Status DONE / VERIFIED; T05 source Status TODO. Python files/T05 task unchanged.
+git check-ignore verifies raw/smoke paths, runs and .venv exclusions.
+git ls-files reports no PNG/JPG/JPEG/PT/ONNX/ENGINE or raw/smoke Dataset files.
+No new model/binary files in the scoped changes; only small documentation/evidence.
+
+HISTORICAL CHECKPOINT BELOW (superseded by final result above; preserved evidence):
 V0-T04 - Windows Tool Ready / Jetson SSH authentication blocked
 Baseline: 89d1ab0
 Verified at UTC: 2026-09-10T15:56:05.310975+00:00
@@ -104,3 +149,29 @@ test_verifier_reloads_all_images_and_detects_corruption (test_proxy_capture.Prox
 Ran 40 tests in 0.712s
 
 OK
+
+V0-T04-RESUME: Jetson preflight (baseline 6363f80)
+Evidence source: user-provided interactive Jetson terminal output in this conversation.
+These remote results were not independently executed by Codex.
+Hostname: jetson-07
+User: jetson
+Python: 3.10.12
+Kernel: Linux 5.15.148-tegra, aarch64
+OpenCV: 4.8.0
+Interactive SSH: user terminal session available; Codex BatchMode remains unauthenticated.
+Camera: USB Composite Device: HCAM0
+Driver: uvcvideo, version 5.15.148
+Video Capture + Streaming node: /dev/video2
+Metadata Capture + Streaming node: /dev/video3 (not an image capture node)
+Enumerated YUYV: 640x480 at 22 FPS; 320x240 at 30/25 FPS.
+Enumerated MJPG: 1280x720, 640x480, 480x320 at 30 FPS.
+Selected next test: /dev/video2, YUYV, 640x480, 22 FPS.
+The device listing also printed Cannot open device /dev/video0; the explicit
+/dev/video2 query succeeded. Do not force the historical /dev/video0 path.
+V4L2 streaming: subsequent user terminal output confirms 30 frames received,
+V4L2_STREAM_EXIT=0, no Device or resource busy error; no images saved.
+Read-back format: /dev/video2, YUYV 640x480, configured 22/1 FPS.
+Streaming progress displayed 4.88 and 13.37 FPS. These are reported progress
+measurements, not proof of sustained 22 FPS capture throughput.
+Capture Tool hardware saves and image/metadata/hash verification: still UNVERIFIED.
+No package/network changes, GUI, formal Pilot capture or T05 work performed.

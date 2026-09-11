@@ -45,9 +45,13 @@ JSONL 한 행의 필드는 schema_version, capture_id, session_id, episode_id, s
 
 ## Jetson 검증 순서
 
+T04 최종 결과는 USER-EXECUTED / VERIFIED: jetson-07의 HCAM0, /dev/video0, YUYV 640×480, 설정 22 FPS에서 V4L2 stream·OpenCV 5/5 read·CAMERA_SMOKE PNG 3장·metadata/reload/SHA256 검증 성공이다. [검증 기록](../../../docs/verification/V0-T04.txt)에 이전 시도와 사용자 제공 최종 결과를 구분했다. 아래 순서는 향후 재연결 시에도 사용하며 노드 번호를 장치의 영구 identity로 취급하지 않는다. 미연결 상태에서는 backend 변경 전에 물리 연결과 enumeration을 먼저 확인한다.
+
 1. 기존 SSH 인증으로 접속한다. 네트워크·Wi-Fi profile·gateway를 바꾸지 않는다.
 2. hostname/whoami/Python/OpenCV, `/dev/video*`, V4L2 장치와 지원 포맷, 카메라 점유·저장공간을 읽기 전용으로 확인한다.
 3. 새 검증 폴더에 두 script만 SCP하고 Windows와 SHA256을 대조한다.
 4. 별도 smoke root에 `CAMERA_SMOKE`, 같은 smoke Episode로 명령을 3회 실행한다. 이는 정식 Dataset용 burst가 아니다.
 5. verifier로 3장 모두 재로드하고 metadata/hash를 대조한다. 점유 해제와 필요 시 이미지의 시각적 상태도 확인한다.
 6. 실기기 검증 성공 후 정식 물체 준비/배치 단계에서 멈춘다. T05는 자동 시작하지 않는다.
+
+현재 다음 Gate는 **HUMAN-CAPTURE-001**이다. 정식 Pilot은 **0/81장, NOT STARTED**이며 smoke 3장을 포함하지 않는다. OBJ_A/B/C를 실제 물체에 대응하고 배치한 뒤 S001 NORMAL 한 Episode와 MISSING_A 한 Episode부터 사람의 품질 검토를 거쳐 진행한다.
