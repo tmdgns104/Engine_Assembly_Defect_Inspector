@@ -1,0 +1,11 @@
+{
+  "baseline": "8a800d1",
+  "comparison": "retained T04 preservation snapshot plus current Git diff",
+  "protected_file_hashes_checked": 22,
+  "file_mismatches": [],
+  "ml_distribution_count": 42,
+  "ml_packages_match_prior": true,
+  "jetson_access": false,
+  "camera_access": false,
+  "training": false
+}

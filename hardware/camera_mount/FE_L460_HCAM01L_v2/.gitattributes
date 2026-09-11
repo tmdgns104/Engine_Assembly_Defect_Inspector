@@ -1,0 +1,4 @@
+# Preserve the validated source bytes across Windows checkouts.
+*.scad text eol=lf
+*.stl binary
+*.png binary

@@ -1,0 +1,698 @@
+{
+  "task": "HARDWARE-CAD-001",
+  "units": "mm",
+  "machine": "Windows PC",
+  "python": "3.13.5",
+  "openscad": "OpenSCAD version 2021.01",
+  "numpy": "2.5.3",
+  "trimesh": "5.1.0",
+  "source_sha256": "b8a60a585503f0aad5f243608b36f3e24cec6cfe6e410ca8f2d9c7de8d575659",
+  "print_parts": [
+    {
+      "file": "stl/upright.stl",
+      "sha256": "f51203c6a0e861f4313edb57134a511334b063c444d3b4235154f51f79a8c7ae",
+      "file_bytes": 61684,
+      "vertices": 612,
+      "faces": 1232,
+      "volume_mm3": 94761.83533846932,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          40.0,
+          230.0,
+          14.0
+        ]
+      ],
+      "extents_mm": [
+        40.0,
+        230.0,
+        14.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 2
+    },
+    {
+      "file": "stl/clamp_body.stl",
+      "sha256": "a227cc12e5c3dfd5d7a8011fb491d4ce6cdffbb059b0753805e9cabd69151221",
+      "file_bytes": 82484,
+      "vertices": 818,
+      "faces": 1648,
+      "volume_mm3": 51134.886840536354,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          58.0,
+          64.0,
+          48.0
+        ]
+      ],
+      "extents_mm": [
+        58.0,
+        64.0,
+        48.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/clamp_body_left.stl",
+      "sha256": "21329525ed68cfbf8795c55841eeba8a56276e43cad97f161f3c539b4bab3a38",
+      "file_bytes": 82484,
+      "vertices": 818,
+      "faces": 1648,
+      "volume_mm3": 51134.88673986798,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          58.0,
+          64.0,
+          48.0
+        ]
+      ],
+      "extents_mm": [
+        58.0,
+        64.0,
+        48.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/clamp_jaw.stl",
+      "sha256": "618b2811a34b6a430aa4c6426e7b386c7d65c71a182c2a6792ad4dca8268760f",
+      "file_bytes": 40284,
+      "vertices": 400,
+      "faces": 804,
+      "volume_mm3": 29751.2902458976,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          48.0,
+          64.0,
+          10.0
+        ]
+      ],
+      "extents_mm": [
+        48.0,
+        64.0,
+        10.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 2
+    },
+    {
+      "file": "stl/crossbar.stl",
+      "sha256": "31d2a600d768f6b92dfcce01d214b7df29e051b42d94a298608c538c0f43d8c1",
+      "file_bytes": 80284,
+      "vertices": 792,
+      "faces": 1604,
+      "volume_mm3": 124701.42086804383,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          180.0,
+          48.0,
+          18.0
+        ]
+      ],
+      "extents_mm": [
+        180.0,
+        48.0,
+        18.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/camera_carriage.stl",
+      "sha256": "a49646650f0ecfa60010b16424a9e2eac444b2c911aca0da6818f73ab60ca4bc",
+      "file_bytes": 104284,
+      "vertices": 1032,
+      "faces": 2084,
+      "volume_mm3": 31037.51329996786,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          56.0,
+          52.5,
+          40.0
+        ]
+      ],
+      "extents_mm": [
+        56.0,
+        52.5,
+        40.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/camera_mount_plate.stl",
+      "sha256": "5fdb429ff65d80b64b03e177c6ece5a8f640cc29a14d851d9f54a72f721b7959",
+      "file_bytes": 70084,
+      "vertices": 694,
+      "faces": 1400,
+      "volume_mm3": 50999.788637201906,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          104.0,
+          58.0,
+          38.0
+        ]
+      ],
+      "extents_mm": [
+        104.0,
+        58.0,
+        38.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/camera_cradle_HCAM01L.stl",
+      "sha256": "06d669e8047dccc6c93ed516b302183c1e2d8994a57a2821cc3641512917275e",
+      "file_bytes": 107284,
+      "vertices": 1066,
+      "faces": 2144,
+      "volume_mm3": 54617.996429562314,
+      "bounds_mm": [
+        [
+          5.722046125811175e-07,
+          0.0,
+          0.0
+        ],
+        [
+          98.19999694824219,
+          39.19999694824219,
+          48.20000076293945
+        ]
+      ],
+      "extents_mm": [
+        98.19999637603757,
+        39.19999694824219,
+        48.20000076293945
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/clamp_fit_coupon.stl",
+      "sha256": "9c31cc9e0e3998fcfaa8dea448fdd08520555de105531eef8b12e4ca36449ad7",
+      "file_bytes": 30484,
+      "vertices": 304,
+      "faces": 608,
+      "volume_mm3": 9036.542044536889,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          48.0,
+          20.0,
+          10.0
+        ]
+      ],
+      "extents_mm": [
+        48.0,
+        20.0,
+        10.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/clamp_fit_coupon_jaw.stl",
+      "sha256": "ba4ddbc86c760a1dcbff0c1447a7195ee481b8b89aad30a8b3ba3fc12a129d62",
+      "file_bytes": 30484,
+      "vertices": 304,
+      "faces": 608,
+      "volume_mm3": 9036.542044536887,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          48.0,
+          20.0,
+          10.0
+        ]
+      ],
+      "extents_mm": [
+        48.0,
+        20.0,
+        10.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    },
+    {
+      "file": "stl/camera_mount_fit_coupon.stl",
+      "sha256": "b44088c5a1c853ce88bf4c03e1b5fe4e95ecf6c9064a9eb60c01a9d6fb15151e",
+      "file_bytes": 52484,
+      "vertices": 520,
+      "faces": 1048,
+      "volume_mm3": 41666.12659082667,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          104.0,
+          56.0,
+          8.0
+        ]
+      ],
+      "extents_mm": [
+        104.0,
+        56.0,
+        8.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "quantity": 1
+    }
+  ],
+  "csg_checks": [
+    {
+      "name": "cradle_clearance",
+      "parameters": {},
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_-15_height_84_slide_-50",
+      "parameters": {
+        "TILT": -15,
+        "HEIGHT_POSITION": 84,
+        "CAMERA_SLIDE": -50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_-15_height_84_slide_50",
+      "parameters": {
+        "TILT": -15,
+        "HEIGHT_POSITION": 84,
+        "CAMERA_SLIDE": 50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_-15_height_184_slide_-50",
+      "parameters": {
+        "TILT": -15,
+        "HEIGHT_POSITION": 184,
+        "CAMERA_SLIDE": -50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_-15_height_184_slide_50",
+      "parameters": {
+        "TILT": -15,
+        "HEIGHT_POSITION": 184,
+        "CAMERA_SLIDE": 50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_0_height_84_slide_-50",
+      "parameters": {
+        "TILT": 0,
+        "HEIGHT_POSITION": 84,
+        "CAMERA_SLIDE": -50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_0_height_84_slide_50",
+      "parameters": {
+        "TILT": 0,
+        "HEIGHT_POSITION": 84,
+        "CAMERA_SLIDE": 50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_0_height_184_slide_-50",
+      "parameters": {
+        "TILT": 0,
+        "HEIGHT_POSITION": 184,
+        "CAMERA_SLIDE": -50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_0_height_184_slide_50",
+      "parameters": {
+        "TILT": 0,
+        "HEIGHT_POSITION": 184,
+        "CAMERA_SLIDE": 50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_30_height_84_slide_-50",
+      "parameters": {
+        "TILT": 30,
+        "HEIGHT_POSITION": 84,
+        "CAMERA_SLIDE": -50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_30_height_84_slide_50",
+      "parameters": {
+        "TILT": 30,
+        "HEIGHT_POSITION": 84,
+        "CAMERA_SLIDE": 50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_30_height_184_slide_-50",
+      "parameters": {
+        "TILT": 30,
+        "HEIGHT_POSITION": 184,
+        "CAMERA_SLIDE": -50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    },
+    {
+      "name": "tilt_30_height_184_slide_50",
+      "parameters": {
+        "TILT": 30,
+        "HEIGHT_POSITION": 184,
+        "CAMERA_SLIDE": 50
+      },
+      "empty_intersection": true,
+      "exit_code": 1,
+      "status": "PASS"
+    }
+  ],
+  "parameter_smoke": [
+    {
+      "file": "clamp_left_lip_22.stl",
+      "sha256": "005fb578e5860c457290b3349945c063d8d8d9b6774d12e489e800c73ceb267c",
+      "file_bytes": 82484,
+      "vertices": 818,
+      "faces": 1648,
+      "volume_mm3": 48578.806724380316,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          58.0,
+          64.0,
+          44.0
+        ]
+      ],
+      "extents_mm": [
+        58.0,
+        64.0,
+        44.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "FRAME_LIP_DEPTH": 22,
+      "temporary_export": true,
+      "width_matches_parameter": true
+    },
+    {
+      "file": "clamp_left_lip_40.stl",
+      "sha256": "b8c43128bdc1b5f65b44071df7d5060a5cadcbb694963fb4898bd9d6af6e7418",
+      "file_bytes": 82484,
+      "vertices": 818,
+      "faces": 1648,
+      "volume_mm3": 60081.16670867215,
+      "bounds_mm": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          58.0,
+          64.0,
+          62.0
+        ]
+      ],
+      "extents_mm": [
+        58.0,
+        64.0,
+        62.0
+      ],
+      "components": 1,
+      "checks": {
+        "nonempty": true,
+        "positive_volume": true,
+        "watertight": true,
+        "winding_consistent": true,
+        "one_connected_component": true,
+        "finite_positive_bounds": true,
+        "bed_z_zero": true
+      },
+      "status": "PASS",
+      "FRAME_LIP_DEPTH": 40,
+      "temporary_export": true,
+      "width_matches_parameter": true
+    }
+  ],
+  "dimensions": {
+    "camera_confirmed_WHD_mm": [
+      87.0,
+      37.0,
+      33.0
+    ],
+    "cradle_internal_WHD_mm": [
+      88.2,
+      38.2,
+      34.2
+    ],
+    "per_side_clearance_mm": 0.6,
+    "crossbar_length_mesh_mm": 180.0,
+    "crossbar_length_matches_source": true,
+    "body_front_datum_height_mm": [
+      120.0,
+      220.0
+    ],
+    "lens_working_distance": "UNVERIFIED: actual belt/frame/lens offset unknown"
+  },
+  "camera_fit_geometry": {
+    "inner_width_ray_mm": 88.19999647140503,
+    "floor_z_ray_mm": 9.999999999999998,
+    "rear_y_ray_mm": 5.0,
+    "inner_wall_height_mm": 38.20000076293945,
+    "open_depth_mm": 34.19999694824219,
+    "front_open_ray": true,
+    "csg_gauge_boundary_inset_mm": 0.02,
+    "status": "PASS"
+  },
+  "fixed_structure_bounds": {
+    "bar_post_y_clearance_mm": 12.0,
+    "clamp_z_clearance_mm": 45.2830194396976,
+    "scope": "All configured heights/slides and tilt -15..30; excludes unmeasured stand/cable/bolts",
+    "status": "PASS"
+  },
+  "fallback_fastener_clearance": {
+    "nut_to_fork_x_mm": 2.8000000000000007,
+    "washer_to_fork_radial_mm": 7.4617573718305295,
+    "washer_min_swept_z_above_pivot_mm": 10.865420762900735,
+    "washer_to_fork_root_z_mm": 4.365420762900735,
+    "scope": "Tilt -15..30, M6 nut radius <=6, washer thickness <=1.6/OD<=18; actual camera screw unmeasured",
+    "status": "PASS"
+  },
+  "assembly_preview": {
+    "exit_code": 0,
+    "exists": true
+  },
+  "duration_seconds": 100.92,
+  "limitations": [
+    "No physical print or FE-L460 fit test",
+    "No load/creep/vibration qualification",
+    "Folded stand/cable/insert positions are unmeasured",
+    "CSG collision checks cover listed sample poses only",
+    "Belt plane and camera lens position are reference assumptions",
+    "STL mesh validity is not slicer or printer qualification"
+  ],
+  "status": "PASS"
+}
