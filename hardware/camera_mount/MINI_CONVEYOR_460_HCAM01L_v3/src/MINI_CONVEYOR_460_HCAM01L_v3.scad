@@ -1,4 +1,4 @@
-// HARDWARE-CAD-002 | mm | X across belt, Y travel, Z up from table.
+// HARDWARE-CAD-002 + 003 | mm | X across belt, Y travel, Z up from table.
 // PROTOTYPE: digital dimensions are not physical fit/load/optical qualification.
 PART = "assembly";
 CONVEYOR_LENGTH = 460;         // CONFIRMED_USER_DRAWING, user transcription
@@ -13,7 +13,16 @@ CAMERA_H = 37;
 CAMERA_D = 33;
 CAMERA_CLEARANCE = 1.2;        // PROVISIONAL total / 0.6 each side
 POCKET_DEPTH = 2.5;
-LENS_WINDOW_D = 30;            // PROVISIONAL; change offset after coupon, not just diameter
+LENS_WINDOW_D = 30;            // PROVISIONAL top diameter; bottom flares automatically
+CAMERA_HFOV = 90;             // PROVISIONAL_DESIGN_ENVELOPE, not HCAM01L specification
+CAMERA_VFOV = 70;             // PROVISIONAL_DESIGN_ENVELOPE / REQUIRES_MEASUREMENT
+OPTICAL_ORIGIN_ABOVE_SUPPORT = 3; // PROVISIONAL pupil reference, not ring tip
+OPTICAL_ORIGIN_MARGIN_XY = 2;  // PROVISIONAL origin uncertainty, per side
+OPTICAL_CLEARANCE_MARGIN = 5; // mm normal to lateral FOV planes; no rearward extension
+OPTICAL_TARGET_Z = 0;         // table plane, includes provisional belt surface
+INSPECTION_ZONE_W = 85;       // reference only, actual coverage requires camera test
+INSPECTION_ZONE_L = 120;      // PROVISIONAL inspection area, not engine dimensions
+SHOW_FOV = true;              // assembly only; never included in printable PARTs
 LENS_RING_ESTIMATE_D = 22;     // PHOTO_ESTIMATE, not metrology
 LENS_OFFSET_X = 0;             // PHOTO_ESTIMATE / adjustable
 LENS_OFFSET_Y = 0;
@@ -40,10 +49,10 @@ BAR_BOLT_SEPARATION = 45;
 CAMERA_SLIDE = 0;             // +/-30 operating range
 DECK_BACK_T = 10;
 DECK_W = 112;
-DECK_FRONT_Y = 92;
 DECK_BOTTOM_Z = 60;
 DECK_T = 8;
-CAMERA_Y = 62;
+CAMERA_Y = 255;               // rear Portal -> Conveyor central inspection zone
+COUPON_REAR_OFFSET = 34;
 STOP_EXTRA_H = 1.5;           // 4 mm above contact plane (2.5+1.5)
 EDGE_R = 4;
 GAUGE_EPS = 0.02;
@@ -59,12 +68,38 @@ CI_H = CAMERA_H+CAMERA_CLEARANCE;
 DECK_TOP = DECK_BOTTOM_Z+DECK_T;
 CONTACT_Z = DECK_TOP-POCKET_DEPTH;
 BODY_Z = CONTACT_Z+PAD_T;
+DECK_FRONT_Y = CAMERA_Y+30;
+COUPON_START_Y = CAMERA_Y-COUPON_REAR_OFFSET;
+FOV_TX = tan(CAMERA_HFOV/2);
+FOV_TY = tan(CAMERA_VFOV/2);
+WINDOW_FLARE_SLOPE = sqrt(FOV_TX*FOV_TX+FOV_TY*FOV_TY);
+LENS_WINDOW_BOTTOM_D = LENS_WINDOW_D+2*DECK_T*WINDOW_FLARE_SLOPE;
 assert(LOWER_INDEX>=2 && LOWER_INDEX<=HEIGHT_HOLE_COUNT-3);
 assert(abs(CAMERA_SLIDE)<=30);
 assert(BAR_BOLT_SEPARATION==3*HEIGHT_HOLE_PITCH);
 assert(UPRIGHT_THICKNESS>=14 && UPRIGHT_WIDTH>=36);
 assert(abs(LENS_OFFSET_X)+LENS_WINDOW_D/2<CI_W/2-4);
 assert(abs(LENS_OFFSET_Y)+LENS_WINDOW_D/2<CI_H/2-1);
+assert(CAMERA_HFOV>0 && CAMERA_HFOV<150 && CAMERA_VFOV>0 && CAMERA_VFOV<150);
+assert(OPTICAL_CLEARANCE_MARGIN>=5);
+assert(LENS_WINDOW_BOTTOM_D/2+abs(LENS_OFFSET_Y)<29);
+
+module lens_window() {
+    // Exact diameter30 at Deck top; grows toward conveyor. Extended only for Boolean cut.
+    translate([LENS_OFFSET_X,CAMERA_Y+LENS_OFFSET_Y,DECK_BOTTOM_Z-1])
+        cylinder(h=DECK_T+2,r1=LENS_WINDOW_D/2+(DECK_T+1)*WINDOW_FLARE_SLOPE,
+                 r2=LENS_WINDOW_D/2-WINDOW_FLARE_SLOPE);
+}
+module camera_fov_reference(margin=OPTICAL_CLEARANCE_MARGIN) {
+    origin_z=BAR_Z+CONTACT_Z+OPTICAL_ORIGIN_ABOVE_SUPPORT;
+    depth=origin_z-OPTICAL_TARGET_Z;
+    hx=OPTICAL_ORIGIN_MARGIN_XY+margin*sqrt(1+FOV_TX*FOV_TX);
+    hy=OPTICAL_ORIGIN_MARGIN_XY+margin*sqrt(1+FOV_TY*FOV_TY);
+    assert(depth>0 && hx>0 && hy>0);
+    translate([CAMERA_SLIDE+LENS_OFFSET_X,CAMERA_Y+LENS_OFFSET_Y,OPTICAL_TARGET_Z])
+        linear_extrude(depth,scale=[hx/(hx+depth*FOV_TX),hy/(hy+depth*FOV_TY)])
+            square([2*(hx+depth*FOV_TX),2*(hy+depth*FOV_TY)],center=true);
+}
 
 module rounded_rect(w,h,r) {
     hull() for(x=[r,w-r],y=[r,h-r]) translate([x,y]) circle(r=r);
@@ -135,12 +170,12 @@ module contact_lands(h=2) {
 module deck(coupon=false) {
     difference() {
         union() {
-            translate([-DECK_W/2,coupon?36:BAR_T,DECK_BOTTOM_Z])
-                soft_box([DECK_W,DECK_FRONT_Y-(coupon?36:BAR_T),DECK_T]);
+            translate([-DECK_W/2,coupon?COUPON_START_Y:BAR_T,DECK_BOTTOM_Z])
+                soft_box([DECK_W,DECK_FRONT_Y-(coupon?COUPON_START_Y:BAR_T),DECK_T]);
             if(!coupon) {
                 translate([0,BAR_T+DECK_BACK_T,0]) xz_plate(92,BAR_H,DECK_BACK_T);
                 for(x=[-40,34]) translate([x,0,0]) rotate([90,0,90]) linear_extrude(6)
-                    polygon([[24,29],[24,61],[83,61]]);
+                    polygon([[24,15],[24,61],[CAMERA_Y+21,61]]);
             }
             // Low stops, rounded external ends. Pocket cut keeps exact clear rectangle.
             // Rear and side stops have a small plan-view gap; no tangent-only seam.
@@ -154,11 +189,12 @@ module deck(coupon=false) {
             translate([-CI_W/2,CAMERA_Y-CI_H/2,CONTACT_Z-1]) cube([CI_W,CI_H,2]);
             contact_lands(4);
         }
-        z_hole(LENS_OFFSET_X,CAMERA_Y+LENS_OFFSET_Y,LENS_WINDOW_D);
-        for(x=[-51,51]) z_slot(x,CAMERA_Y-8,CAMERA_Y+8,3.6);
+        lens_window();
+        // Retention underpass stays in the rear band, never across the optical window.
+        for(x=[-51,51]) z_slot(x,CAMERA_Y-30,CAMERA_Y-16,3.6);
         if(!coupon) {
             for(z=[BAR_BOLT_Z,BAR_BOLT_Z+BAR_BOLT_SEPARATION]) y_hole(0,z);
-            for(x=[45,51]) z_slot(x,28,36,3);
+            for(x=[45,51]) z_slot(x,CAMERA_Y-49,CAMERA_Y-41,3);
         }
     }
 }
@@ -170,11 +206,11 @@ module base_coupon() {
     }
 }
 module conveyor() {
-    translate([-CONVEYOR_OUTER_WIDTH/2,-CONVEYOR_LENGTH/2,CONVEYOR_BOTTOM_Z])
+    translate([-CONVEYOR_OUTER_WIDTH/2,CAMERA_Y-CONVEYOR_LENGTH/2,CONVEYOR_BOTTOM_Z])
         cube([CONVEYOR_OUTER_WIDTH,CONVEYOR_LENGTH,CONVEYOR_SIDE_HEIGHT]);
 }
 module motor_ref() {
-    translate([-CONVEYOR_OUTER_WIDTH/2,CONVEYOR_LENGTH/2-MOTOR_REF_LENGTH,CONVEYOR_BOTTOM_Z])
+    translate([-CONVEYOR_OUTER_WIDTH/2,CAMERA_Y+CONVEYOR_LENGTH/2-MOTOR_REF_LENGTH,CONVEYOR_BOTTOM_Z])
         cube([CONVEYOR_OUTER_WIDTH,MOTOR_REF_LENGTH,MOTOR_END_MAX_HEIGHT]);
 }
 module rails() {
@@ -193,9 +229,29 @@ module lens() {
         cylinder(h=LENS_PROTRUSION_REF,d=LENS_RING_ESTIMATE_D);
 }
 module cable() {
-    // Illustrative free-space route, not measured exit or bend specification.
-    points=[[30,55,BODY_Z+CAMERA_D+2],[40,40,122],[50,20,125],[58,22,100],[51,32,74]];
+    // Camera rear/top -> rear deck tie points -> Crossbar rear -> right Upright rear.
+    // Illustrative retained route; exit, bending radius and folded stand require measurement.
+    points=[[30,CAMERA_Y-10,BODY_Z+CAMERA_D+2],[42,CAMERA_Y-17,117],
+        [48,CAMERA_Y-30,110],[48,CAMERA_Y-45,76],[0,80,76],[0,-22,76],[POST_X-CAMERA_SLIDE,-22,76]];
     for(i=[0:len(points)-2]) hull() for(p=[points[i],points[i+1]]) translate(p) sphere(r=2,$fn=20);
+}
+module cable_tail() {
+    hull() for(z=[20,BAR_Z+76]) translate([POST_X,-22,z]) sphere(r=2,$fn=20);
+}
+module strap() {
+    // Conservative10 mm-wide routing envelope. Under-deck bridge uses rear band only.
+    points=[[-51,CAMERA_Y-25,DECK_BOTTOM_Z-1],[-51,CAMERA_Y-25,DECK_TOP+1],
+        [-47,CAMERA_Y-10,BODY_Z+CAMERA_D+2],[47,CAMERA_Y-10,BODY_Z+CAMERA_D+2],
+        [51,CAMERA_Y-25,DECK_TOP+1],[51,CAMERA_Y-25,DECK_BOTTOM_Z-1],
+        [-51,CAMERA_Y-25,DECK_BOTTOM_Z-1]];
+    for(i=[0:len(points)-2]) hull() for(p=[points[i],points[i+1]])
+        translate(p-[1,5,0.7]) cube([2,10,1.4]);
+}
+module table_fasteners() {
+    for(s=[-1,1],x=[0,50],y=[-28,20]) translate([s*(POST_X+x),y,-5]) {
+        cylinder(h=15,d=6);
+        translate([0,0,15]) cylinder(h=5,d=12);
+    }
 }
 module structure() { bases(); rails(); translate([0,0,BAR_Z]) bar(); deck_pose() deck(); }
 module bolt_envelope(x,z,y0,y1) {
@@ -234,9 +290,11 @@ module hardware_intersections() {
     intersection() { deck_pose() deck(); hardware_envelopes(); }
 }
 module assembly() {
-    color([0.75,0.76,0.78,0.3]) translate([-210,-250,-3]) cube([420,500,3]);
+    color([0.75,0.76,0.78,0.3]) translate([-210,-55,-3]) cube([420,CAMERA_Y+310,3]);
     color([0.55,0.58,0.6,0.6]) conveyor();
-    color("SeaGreen") translate([-BELT_WIDTH/2,-230,CONVEYOR_BOTTOM_Z+CONVEYOR_SIDE_HEIGHT]) cube([BELT_WIDTH,460,0.2]);
+    color("SeaGreen") translate([-BELT_WIDTH/2,CAMERA_Y-CONVEYOR_LENGTH/2,CONVEYOR_BOTTOM_Z+CONVEYOR_SIDE_HEIGHT]) cube([BELT_WIDTH,CONVEYOR_LENGTH,0.2]);
+    color([1,0.1,0.8,0.6]) translate([-INSPECTION_ZONE_W/2,CAMERA_Y-INSPECTION_ZONE_L/2,CONVEYOR_BOTTOM_Z+CONVEYOR_SIDE_HEIGHT+0.3])
+        cube([INSPECTION_ZONE_W,INSPECTION_ZONE_L,0.2]);
     color("DimGray") motor_ref();
     color("SteelBlue") bases();
     for(s=[-1,1]) {
@@ -247,7 +305,11 @@ module assembly() {
     color([0.12,0.13,0.15]) deck_pose() body();
     color("Silver") deck_pose() lens();
     color("Purple") deck_pose() cable();
+    color("Purple") cable_tail();
+    color("DarkSlateGray") deck_pose() strap();
     color([0.5,0.5,0.5,0.6]) hardware_envelopes();
+    color("Gray") table_fasteners();
+    if(SHOW_FOV) color([0.05,0.75,0.85,0.18]) camera_fov_reference();
     color("Crimson") deck_pose() translate([LENS_OFFSET_X,CAMERA_Y+LENS_OFFSET_Y,BODY_Z-55]) {
         cylinder(h=40,r=1.4); translate([0,0,-9]) cylinder(h=9,r1=0,r2=5);
     }
@@ -259,13 +321,24 @@ else if(PART=="base_left") translate([BASE_W-UPRIGHT_WIDTH/2,40,0]) mirror([1,0,
 else if(PART=="upright_300") translate([UPRIGHT_WIDTH/2,RAIL_LENGTH,UPRIGHT_THICKNESS]) rotate([90,0,0]) rail();
 else if(PART=="upright_hole_coupon") translate([UPRIGHT_WIDTH/2,65,UPRIGHT_THICKNESS]) rotate([90,0,0]) rail(true);
 else if(PART=="crossbar") translate([BAR_LENGTH/2,BAR_H,0]) rotate([90,0,0]) bar();
-else if(PART=="camera_deck") translate([DECK_W/2,DECK_TOP+STOP_EXTRA_H,-BAR_T]) rotate([90,0,0]) deck();
-else if(PART=="camera_deck_fit_coupon") translate([DECK_W/2,-36,-DECK_BOTTOM_Z]) deck(true);
+else if(PART=="camera_deck") multmatrix([[0,1,0,-BAR_T],[0,0,1,0],[1,0,0,DECK_W/2],[0,0,0,1]]) deck();
+else if(PART=="camera_deck_fit_coupon") translate([DECK_W/2,-COUPON_START_Y,-DECK_BOTTOM_Z]) deck(true);
 else if(PART=="base_mount_coupon") base_coupon();
 else if(PART=="camera_body_reference") body();
 else if(PART=="conveyor_reference") conveyor();
 else if(PART=="motor_reference") motor_ref();
 else if(PART=="cable_reference") cable();
+else if(PART=="cable_tail_reference") cable_tail();
+else if(PART=="strap_reference") strap();
+else if(PART=="hardware_reference") hardware_envelopes();
+else if(PART=="rail_fasteners_reference")
+    for(s=[-1,1],z=[BAR_BOLT_Z,BAR_BOLT_Z+45]) bolt_envelope(s*POST_X,z,-14,18);
+else if(PART=="deck_fasteners_reference")
+    for(z=[BAR_BOLT_Z,BAR_BOLT_Z+45]) bolt_envelope(0,z,0,28);
+else if(PART=="base_fasteners_reference")
+    for(s=[-1,1],z=[30,60]) bolt_envelope(s*POST_X,z,-14,10);
+else if(PART=="table_fasteners_reference") table_fasteners();
+else if(PART=="fov_reference") camera_fov_reference();
 else if(PART=="collision_conveyor") intersection() { structure(); conveyor(); }
 else if(PART=="collision_motor") intersection() { structure(); motor_ref(); }
 else if(PART=="collision_rail_bar") intersection() { rails(); translate([0,0,BAR_Z]) bar(); }
@@ -277,5 +350,6 @@ else if(PART=="collision_base_rail") intersection() {
     base(); translate([0,-GAUGE_EPS,RAIL_BOTTOM_Z+GAUGE_EPS]) rail();
 }
 else if(PART=="collision_hardware") hardware_intersections();
+else if(PART=="collision_optical_deck") intersection() { deck_pose() deck(); camera_fov_reference(); }
 else if(PART=="assembly") assembly();
 else assert(false,"Unknown PART");

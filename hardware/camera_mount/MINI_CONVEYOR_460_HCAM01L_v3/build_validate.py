@@ -7,14 +7,17 @@ from pathlib import Path
 import argparse
 import hashlib
 import json
+import math
 import platform
 import re
 import subprocess
+import sys
 import tempfile
 import time
 
 import numpy as np
 import trimesh
+import optical_validation
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parents[2]
@@ -134,10 +137,9 @@ def original_deck(mesh, p, coupon=False):
     result = mesh.copy()
     v = mesh.vertices
     if coupon:
-        result.vertices = np.column_stack([v[:,0]-p["DECK_W"]/2,v[:,1]+36,v[:,2]+p["DECK_BOTTOM_Z"]])
+        result.vertices = np.column_stack([v[:,0]-p["DECK_W"]/2,v[:,1]+p['CAMERA_Y']-p['COUPON_REAR_OFFSET'],v[:,2]+p["DECK_BOTTOM_Z"]])
     else:
-        result.vertices = np.column_stack([v[:,0]-p["DECK_W"]/2,v[:,2]+p["BAR_T"],
-            p["DECK_BOTTOM_Z"]+p["DECK_T"]+p["STOP_EXTRA_H"]-v[:,1]])
+        result.vertices = np.column_stack([v[:,2]-p['DECK_W']/2,v[:,0]+p['BAR_T'],v[:,1]])
     return result
 
 
@@ -147,17 +149,28 @@ def deck_dimensions(mesh, p):
     length = ray_hit(mesh,centre,[0,1,0])+ray_hit(mesh,centre,[0,-1,0])
     lands = [100-ray_hit(mesh,[x,p["CAMERA_Y"]+y,100],[0,0,-1])
              for x in [-35,35] for y in [-12,12]]
-    outer_top = 100-ray_hit(mesh,[53,80,100],[0,0,-1])
+    outer_top = 100-ray_hit(mesh,[53,p['CAMERA_Y']+18,100],[0,0,-1])
     relief_floor = 100-ray_hit(mesh,[25,p["CAMERA_Y"],100],[0,0,-1])
     circles = circle_sections(mesh,2,p["DECK_BOTTOM_Z"]+3)
     lens = [c for c in circles if c["diameters"][0]>20]
     assert len(lens)==1
+    slope=math.sqrt(sum(np.tan(np.radians([p['CAMERA_HFOV'],p['CAMERA_VFOV']])/2)**2))
+    window_sections=[]
+    for level in [p['DECK_BOTTOM_Z']+0.02, p['DECK_BOTTOM_Z']+3, p['DECK_BOTTOM_Z']+p['DECK_T']-0.02]:
+        # Rays through the actual cut measure the aperture even where the pocket removes its top wall.
+        origin=[p['LENS_OFFSET_X'],p['CAMERA_Y']+p['LENS_OFFSET_Y'],level]
+        xy=[ray_hit(mesh,origin,a)+ray_hit(mesh,origin,-np.asarray(a)) for a in [[1,0,0],[0,1,0]]]
+        expected=p['LENS_WINDOW_D']+2*(p['DECK_BOTTOM_Z']+p['DECK_T']-level)*slope
+        window_sections.append({'z_mm':level,'clear_xy_mm':xy,'cone_diameter_mm':expected,
+            'status':'PASS' if min(xy)>=expected-0.004 else 'FAIL'})
     measured = {"pocket_xy_mm":[width,length], "contact_land_z_mm":lands,
                 "pocket_depth_mm":float(outer_top-lands[0]), "relief_depth_mm":float(lands[0]-relief_floor),
-                "lens_window":lens[0]}
+                "lens_window":lens[0], 'flared_sections':window_sections,
+                'window_top_nominal_mm':p['LENS_WINDOW_D'],'window_bottom_nominal_mm':p['LENS_WINDOW_D']+2*p['DECK_T']*slope}
     measured["status"] = "PASS" if (close([width,length],[88.2,38.2])
         and close(lands,[65.5]*4) and close(outer_top-lands[0],2.5)
-        and close(lens[0]["diameters"],[30,30])
+        and close(lens[0]["diameters"],[p['LENS_WINDOW_D']+2*(p['DECK_T']-3)*slope]*2,0.006)
+        and all(r['status']=='PASS' for r in window_sections)
         and close(lens[0]["centre"],[p["LENS_OFFSET_X"],p["CAMERA_Y"]+p["LENS_OFFSET_Y"]])) else "FAIL"
     return measured
 
@@ -252,11 +265,14 @@ def bounds_checks(meshes,refs,p,dimensions):
         for slide in [-30,0,30]:
             solids={**fixed,"crossbar":bar.bounds+[0,0,z],"deck":deck.bounds+[slide,0,z]}
             body=refs["camera_body_reference"].bounds+[slide,0,z]
-            cable=refs["cable_reference"].bounds+[slide,0,z]
+            cable_mesh=refs.get(f'cable_reference_{slide}',refs['cable_reference'])
+            cable=cable_mesh.bounds+[slide,0,z]
             pairs=[]
             pairs += [("conveyor/"+n,refs["conveyor_reference"].bounds,b,False) for n,b in solids.items()]
             pairs += [("motor/"+n,refs["motor_reference"].bounds,b,False) for n,b in {**solids,"camera":body,"cable":cable}.items()]
-            pairs += [("cable/"+n,cable,b,False) for n,b in solids.items()]
+            segment_boxes=optical_validation.cable_segment_boxes(p,slide,z)
+            assert optical_validation.cable_boxes_cover_mesh(cable_mesh,segment_boxes-[slide,0,z])
+            pairs += [(f'cable_segment{k}/'+n,a,b,False) for k,a in enumerate(segment_boxes) for n,b in solids.items()]
             pairs += [("bar/"+n,solids["crossbar"],solids[n],True) for n in ["rail_left","rail_right"]]
             pairs += [("deck/bar",solids["deck"],solids["crossbar"],True)]
             pairs += [("camera/"+n,body,b,False) for n,b in solids.items() if n!="deck"]
@@ -283,10 +299,18 @@ def main():
         (ROOT/name).mkdir(parents=True,exist_ok=True)
     began=time.time()
     version=subprocess.run([args.openscad,"--version"],capture_output=True,text=True,check=True)
-    report={"task":"HARDWARE-CAD-002","machine":"Windows PC","units":"mm",
+    report={"task":"HARDWARE-CAD-003","machine":"Windows PC","units":"mm",
         "source_sha256":sha(SOURCE),"validator_sha256":sha(Path(__file__)),
+        "optical_validator_sha256":sha(ROOT/'optical_validation.py'),
         "openscad":(version.stdout+version.stderr).strip(),"python":platform.python_version(),
         "numpy":np.__version__,"trimesh":trimesh.__version__,"parts":[],"collision_checks":[]}
+    report['status']='IN_PROGRESS'
+    (ROOT/'validation/stl_validation.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    tests=subprocess.run([sys.executable,'-m','unittest','test_optical_validation','-v'],cwd=ROOT,capture_output=True,text=True,timeout=30)
+    (ROOT/'validation/optical_predicate_tests.txt').write_text(tests.stdout+tests.stderr,encoding='utf-8')
+    report['optical_predicate_tests']={'exit_code':tests.returncode,'status':'PASS' if tests.returncode==0 else 'FAIL'}
+    if tests.returncode:
+        raise RuntimeError(tests.stdout+tests.stderr)
     meshes={}
     for name,quantity in PARTS.items():
         path=ROOT/"stl"/(name+".stl")
@@ -308,24 +332,36 @@ def main():
     with tempfile.TemporaryDirectory(prefix="cad-v3-check-") as folder:
         temp=Path(folder).resolve()
         refs={}
-        for name in ["camera_body_reference","conveyor_reference","motor_reference","cable_reference"]:
+        for name in ["camera_body_reference","conveyor_reference","motor_reference","cable_reference",
+                     'strap_reference','cable_tail_reference','rail_fasteners_reference',
+                     'deck_fasteners_reference','base_fasteners_reference','table_fasteners_reference','fov_reference']:
             path=temp/(name+".stl")
-            result,log=run_cad(args.openscad,path,name)
+            result,log=run_cad(args.openscad,path,name,{'LOWER_INDEX':12} if name=='cable_tail_reference' else None)
             if result.returncode or "ERROR:" in log or "WARNING:" in log:
                 raise RuntimeError(log)
             refs[name]=trimesh.load_mesh(path)
+            assert refs[name].is_watertight and refs[name].is_winding_consistent, name
+        for slide in [-30,30]:
+            path=temp/f'cable_reference_{slide}.stl'
+            result,log=run_cad(args.openscad,path,'cable_reference',{'CAMERA_SLIDE':slide})
+            if result.returncode:
+                raise RuntimeError(log)
+            refs[f'cable_reference_{slide}']=trimesh.load_mesh(path)
         body_mesh=refs["camera_body_reference"]
         report["camera_body_reference"]={"extents_mm":body_mesh.extents.tolist(),
             "status":"PASS" if close(body_mesh.extents,[87,37,33]) else "FAIL"}
         report["collision_bounds"]=bounds_checks(meshes,refs,p,report["dimensions"])
         print("collision_bounds",report["collision_bounds"]["status"],flush=True)
+        report['optical_fov']=optical_validation.check_all(meshes,refs,p,report['dimensions'],original_deck)
+        report['optical_fov']['lens_window']=report['dimensions']['camera_deck']
+        print('optical_fov',report['optical_fov']['status'],flush=True)
         offset=temp/"offset_coupon.stl"
-        result,log=run_cad(args.openscad,offset,"camera_deck_fit_coupon",{"LENS_OFFSET_X":2,"LENS_OFFSET_Y":1})
+        result,log=run_cad(args.openscad,offset,"camera_deck_fit_coupon",{"LENS_OFFSET_X":2,"LENS_OFFSET_Y":1},['--export-format','binstl'])
         if result.returncode:
             raise RuntimeError(log)
         offset_mesh=original_deck(trimesh.load_mesh(offset),p,True)
-        lens=[c for c in circle_sections(offset_mesh,2,63) if c["diameters"][0]>20][0]
-        report["offset_parameter_smoke"]={"measured_window":lens,"status":"PASS" if close(lens["centre"],[2,63]) else "FAIL"}
+        lens=[c for c in circle_sections(offset_mesh,2,63.173) if c["diameters"][0]>20][0]
+        report["offset_parameter_smoke"]={"measured_window":lens,"status":"PASS" if close(lens["centre"],[2,p['CAMERA_Y']+1]) else "FAIL"}
         if not args.mesh_only:
             for index,slide in [(2,-30),(7,0),(12,30)]:
                 for kind in ["collision_hardware"]:
@@ -336,10 +372,13 @@ def main():
                 row=empty_check(args.openscad,temp,kind,7,0)
                 report["collision_checks"].append(row)
                 print(kind,row["status"],flush=True)
+            row=empty_check(args.openscad,temp,'collision_optical_deck',2,0)
+            report['collision_checks'].append(row)
+            print('collision_optical_deck',row['status'],flush=True)
     report["previews"]=[]
-    for label,index in [("low",2),("mid",7),("high",12)]:
-        path=ROOT/"preview"/f"preview_{label}.png"
-        result,log=run_cad(args.openscad,path,"assembly",{"LOWER_INDEX":index},
+    for label,index,slide in [('low',2,0),('mid',7,0),('high',12,0),('low_left',2,-30),('low_right',2,30)]:
+        path=ROOT/"preview"/f"fov_{label}.png"
+        result,log=run_cad(args.openscad,path,"assembly",{"LOWER_INDEX":index,'CAMERA_SLIDE':slide},
             ["--imgsize=1400,1100","--autocenter","--viewall","--projection=o","--camera=0,0,150,64,0,210,700"])
         report["previews"].append({"file":f"preview/{path.name}","lower_index":index,"sha256":sha(path) if path.exists() else None,
             "status":"PASS" if result.returncode==0 and path.exists() else "FAIL"})
@@ -356,7 +395,8 @@ def main():
     checks=[all(r["status"]=="PASS" for r in report["parts"]),report["dimensions"]["status"]=="PASS",
         report["camera_body_reference"]["status"]=="PASS",report["offset_parameter_smoke"]["status"]=="PASS",
         report["collision_bounds"]["status"]=="PASS",
-        len(report["collision_checks"])==6,all(r["status"]=="PASS" for r in report["collision_checks"]),
+        report['optical_fov']['status']=='PASS',
+        len(report["collision_checks"])==7,all(r["status"]=="PASS" for r in report["collision_checks"]),
         all(r["status"]=="PASS" for r in report["previews"])]
     report["status"]="PASS" if all(checks) else "FAIL"
     report["duration_seconds"]=round(time.time()-began,2)

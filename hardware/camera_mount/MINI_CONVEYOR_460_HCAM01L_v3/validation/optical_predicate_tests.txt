@@ -1,0 +1,12 @@
+test_clear_cavity_is_not_solid_containment (test_optical_validation.OpticalIntersectionTests.test_clear_cavity_is_not_solid_containment) ... ok
+test_crossing_without_inside_vertices (test_optical_validation.OpticalIntersectionTests.test_crossing_without_inside_vertices) ... ok
+test_far_box_clear (test_optical_validation.OpticalIntersectionTests.test_far_box_clear) ... ok
+test_fov_fully_enclosed_by_mesh (test_optical_validation.OpticalIntersectionTests.test_fov_fully_enclosed_by_mesh) ... ok
+test_margin_rejects_near_boundary (test_optical_validation.OpticalIntersectionTests.test_margin_rejects_near_boundary) ... ok
+test_pupil_rear_is_not_optical_space (test_optical_validation.OpticalIntersectionTests.test_pupil_rear_is_not_optical_space) ... ok
+test_solid_inside_fov_rejected (test_optical_validation.OpticalIntersectionTests.test_solid_inside_fov_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.004s
+
+OK

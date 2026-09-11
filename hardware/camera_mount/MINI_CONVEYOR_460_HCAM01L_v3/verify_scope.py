@@ -7,7 +7,7 @@ import subprocess
 ROOT=Path(__file__).resolve().parent
 REPO=ROOT.parents[2]
 PREFIX=ROOT.relative_to(REPO).as_posix()+"/"
-BASELINE="95886b5"
+BASELINE="daf1a8a"
 
 
 def sha(path):
@@ -16,7 +16,7 @@ def sha(path):
 
 def main():
     changed=subprocess.check_output(["git","diff","--name-only",BASELINE],cwd=REPO,text=True).splitlines()
-    unrelated=[p for p in changed if not p.startswith(PREFIX) and p!="docs/learning-notes/HARDWARE-CAD-002.md"]
+    unrelated=[p for p in changed if not p.startswith(PREFIX) and p!="docs/learning-notes/HARDWARE-CAD-003.md"]
     snapshot=json.loads((REPO/"runs/t04-preservation-before.json").read_text(encoding="utf-8"))
     mismatches=[p for p,h in snapshot["files"].items() if not (REPO/p).exists() or sha(REPO/p)!=h]
     program='import importlib.metadata as m,json; print(json.dumps(sorted((d.metadata["Name"],d.version) for d in m.distributions())))'

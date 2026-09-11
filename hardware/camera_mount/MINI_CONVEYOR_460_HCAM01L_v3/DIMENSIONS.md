@@ -28,7 +28,15 @@
 | PROVISIONAL_DESIGN | Table screw holes | 4개 per Base, D6.5, X/Y 간격50/48, 입구 chamfer; 나사 규격 미확정 |
 | PROVISIONAL_DESIGN | Camera Deck pocket | 88.2×38.2; 지지 land 기준 깊이2.5; 주변 relief1 |
 | PROVISIONAL_DESIGN | Camera 접촉 land | 10×6 네 곳, centre X±35/Y±12; optional pad1 |
-| PROVISIONAL_DESIGN | Lens window | 원형D30, STL은64각 근사; 단면 정점에서 측정한 최소 지름도 보고 |
+| PROVISIONAL_DESIGN | Lens window | Deck top 생성 기준D30 → bottom 약49.53; top 실제 개구는 pocket88.2×38.2 |
+| PROVISIONAL_DESIGN_ENVELOPE | Camera HFOV / VFOV | 90° / 70°, 공식 사양 아님; 실제 시야보다 넓다는 보장 없음 |
+| PROVISIONAL_DESIGN_ENVELOPE | Optical pupil / XY 불확실성 | Deck 지지면+3 / 편측2 |
+| PROVISIONAL_DESIGN_ENVELOPE | Optical clearance | FOV 측면 법선 방향5; 뒤쪽 동공 평면 너머에는 적용하지 않음 |
+| PROVISIONAL_DESIGN_ENVELOPE | Optical target plane | table Z0; belt reference Z22.7을 포함 |
+| PROVISIONAL_DESIGN | Portal→Camera / Conveyor 중심 | Y255, 이전Y62에서193 이동; Camera가 Conveyor 중앙 위에 위치 |
+| PROVISIONAL_DESIGN | Extended Deck 출력 크기 | 267×69.5×112; 옆면 바닥, 지지대 필요 |
+| PROVISIONAL_DESIGN | Inspection zone | Belt 위85×120; 엔진 크기 가정 아님 |
+| PROVISIONAL_DESIGN | Velcro | 폭10 reference, 하부는 lens 뒤쪽25 mm band로 통과 |
 | PROVISIONAL_DESIGN | Lens protrusion reference | 4, 실제 돌출 길이 아님 |
 | PROVISIONAL_DESIGN | Slide / Tilt | ±30, M6 두 개 잠금 / fixed0° TOP-DOWN |
 | PROVISIONAL_DESIGN | Conveyor reference datum | bottom table Z0을 그림에만 사용; 실제 belt 높이 미확정 |
@@ -42,6 +50,7 @@
 5. 작업대 재질·두께·나사 규격·유효 체결 깊이·washer/head 크기.
 6. 검사할 물체 최대 높이, 요구 focus/FOV/pixel coverage, camera 실제 무게.
 7. Printer bed 유효 범위, brim/support, hole 보정, PETG 재료/설정.
+8. 실제 HCAM01L HFOV/VFOV/왜곡, optical pupil 위치, 사용 해상도와 crop 설정. 큰 가설 FOV로 나온 coverage가 실제 coverage를 보장하지 않는다.
 
 `Belt-to-Lens = table-to-contact + pad - optical offset - table-to-belt`이며 실제 값은 **DERIVED AFTER PHYSICAL MEASUREMENT**다. CAD의 ring 끝은 optical centre가 아니다. 도면의110/100/300/60은 의미를 부여하지 않았다.
 
