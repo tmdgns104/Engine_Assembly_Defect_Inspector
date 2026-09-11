@@ -1,0 +1,16 @@
+{
+  "baseline": "95886b5",
+  "unrelated_tracked_changes": [],
+  "protected_file_hashes_checked": 22,
+  "protected_file_mismatches": [],
+  "ml_distribution_count": 42,
+  "ml_packages_match_retained_snapshot": true,
+  "v2_stl_hashes_checked": 11,
+  "v2_stl_mismatches": [],
+  "v0_t05_todo": true,
+  "jetson_access": false,
+  "camera_access": false,
+  "training": false,
+  "user_photo_zip_and_directory": "preserved outside new CAD folder; excluded from CAD commit",
+  "status": "PASS"
+}

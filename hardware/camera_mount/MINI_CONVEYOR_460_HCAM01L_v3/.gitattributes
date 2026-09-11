@@ -1,0 +1,4 @@
+*.scad text eol=lf
+*.py text eol=lf
+*.stl binary
+*.png binary

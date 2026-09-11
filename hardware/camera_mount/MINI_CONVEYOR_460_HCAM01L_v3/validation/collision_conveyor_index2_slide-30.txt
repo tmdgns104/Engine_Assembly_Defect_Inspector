@@ -1,0 +1,6 @@
+Geometries in cache: 234
+Geometry cache size in bytes: 2687840
+CGAL Polyhedrons in cache: 23
+CGAL cache size in bytes: 99065952
+Total rendering time: 0:01:52.473
+Current top level object is empty.

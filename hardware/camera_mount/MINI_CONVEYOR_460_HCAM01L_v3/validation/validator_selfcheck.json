@@ -1,0 +1,8 @@
+{
+  "test": "shift one actual STL height hole 1 mm off centre in memory",
+  "original_dimensions": "PASS",
+  "mutated_dimensions": "FAIL",
+  "mutated_rail_status": "FAIL",
+  "status": "PASS",
+  "files_changed_by_mutation": false
+}
