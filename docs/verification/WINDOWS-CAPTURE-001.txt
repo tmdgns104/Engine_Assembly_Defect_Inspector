@@ -1,0 +1,74 @@
+WINDOWS-CAPTURE-001
+Date: 2026-09-13 (Windows PC)
+Baseline: 7cdc739c9ffba33a0ea67fea7ddac5af12572e7b
+Result: SOFTWARE_VERIFIED / ACTUAL_USB_CAMERA_USER_EXECUTION_PENDING
+
+Environment (existing project .venv; no installations/upgrades):
+Python: 3.13.5
+OpenCV: 5.0.0 (opencv-python distribution 5.0.0.93)
+Pillow: 12.3.0
+Tk: 8.6
+NumPy: 2.5.2
+PyTorch: 2.11.0+cu128
+Ultralytics: 8.4.146
+Requested Codex configuration was not independently verified; no setting change claimed.
+
+Full test command:
+.venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -v
+Result: 92 tests / PASS 92 / FAIL 0 / SKIP 0 (7.510 seconds)
+Original tests: 56, retained without edits.
+New tests: 29 camera/session + 7 Tk GUI = 36.
+Full local output (ignored): runs/windows-capture-final-tests.txt
+
+Coverage:
+- Explicit DSHOW/MSMF/index, no fallback; requested vs actual resolution.
+- Connect/read errors and release, stale/future frames, own blocked worker shutdown.
+- Single save request, duplicate/frame guard, source_kind sample/camera separation.
+- Four earbud scenarios and correct removals; case retained in MISSING_BOTH.
+- Same placement retains episode; state/rearrangement changes episode.
+- Session metadata, schema v1/v2/profile/hash compatibility, verified reopen/counts.
+- Partial write / verifier failure preserves files and does not increase success count.
+- Original BGR pixels round-trip to PNG without UI/flip/crop/resize.
+- Alternate synthetic product populates GUI and saves using the same common code.
+- Tk event loop remains responsive during storage; shutdown waits for pending save.
+- Additional bounded 1920x1080 synthetic frame followed by read failure: client
+  poll/shutdown completed with error state and no remaining worker (no real camera).
+
+GUI visual verification:
+Actual Tk window opened on Windows. Initial controls, synthetic 1280x720 preview,
+one sample save and restored counts were visually inspected through screenshots.
+The synthetic preview explicitly said "SYNTHETIC UI TEST - NO CAMERA".
+All synthetic images used temporary test paths and source_kind=sample.
+Layout corrections: scrollable session/count controls, fixed preview viewport,
+reserved/wrapped status bar. No actual camera input was used in this verification.
+Local screenshot references: runs/windows-capture-visual.json (ignored).
+
+Launcher:
+scripts/start_capture_windows.cmd
+Uses own location to find repository; invokes existing .venv explicitly.
+From a temporary working directory: --help exit=0.
+Missing profile: exit=1 retained after readable error/pause; no auto-install.
+Startup does not open a camera; the user must select a candidate and connect.
+
+Preservation / Git:
+Protected tracked file SHA256 comparisons: 150/150 unchanged.
+Includes existing capture/verify scripts, profiles/schema, original tests, src and hardware.
+Installed distributions: 42/42 name/version pairs unchanged.
+Unrelated untracked CAD review files and original camera photos preserved/excluded.
+git check-ignore -v data/proxy/raw/S_TEST/E_TEST/images/example.png: PASS.
+Formal data/proxy/raw PNG count=0; manifest count=0 at verification time.
+No raw captures, synthetic images, model binaries, installers or environments staged.
+Local details: runs/windows-capture-final-checks.json (ignored).
+
+Boundaries:
+Actual USB camera: user reports connected to laptop; open/read/release/save NOT VERIFIED.
+Jetson access: NO. CAD changes: NO. Training/labeling/split: NO.
+ML environment changes: NO. Global Skill/Hook changes: NO.
+V0-T05: TODO / NOT STARTED.
+Past Jetson hardware evidence remains historical; it is not current Windows evidence.
+
+Next human action:
+Open scripts/start_capture_windows.cmd, select index/backend, press Connect and confirm
+the external USB view. Create session, place both real L/R earbuds in the open case,
+select NORMAL, press Save once, then review the original PNG.
+The first four states are framing/storage checks, not sufficient model training data.

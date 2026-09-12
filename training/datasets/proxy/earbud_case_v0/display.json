@@ -1,0 +1,10 @@
+{
+  "display_schema_version": 1,
+  "product_name": "열린 이어폰 케이스",
+  "scenario_labels": {
+    "NORMAL": "정상",
+    "MISSING_LEFT": "왼쪽 누락",
+    "MISSING_RIGHT": "오른쪽 누락",
+    "MISSING_BOTH": "양쪽 누락"
+  }
+}

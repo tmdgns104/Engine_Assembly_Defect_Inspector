@@ -1,5 +1,8 @@
 # 이어폰 케이스 첫 촬영 준비
 
+현재 촬영 위치는 **Windows 노트북 + USB 카메라**다. [Windows 촬영 화면](../../../capture_windows/README_KR.md)에 따라
+`scripts/start_capture_windows.cmd`를 실행하고 첫 정상 사진부터 확인한다. 아래 Jetson CLI 설명은 기존 headless 경로의 참고로 보존한다.
+
 제품 ID는 `earbud_case_v0`다. 엔진 모형 도착 전 촬영 → 라벨링 → 데이터 분리 →
 학습 → 튜닝 → 평가 → ONNX 변환 → Jetson 실행 → 검사 판정 → DB 저장 → 화면 조회
 과정을 준비하기 위한 Proxy 제품이다. 이번에는 **검사 명세와 첫 네 장 촬영 준비**만 한다.

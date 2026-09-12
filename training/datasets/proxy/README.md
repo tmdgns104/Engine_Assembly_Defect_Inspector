@@ -49,4 +49,6 @@ v1 JSONL 필드는 schema_version, capture_id, session_id, episode_id, scenario,
 
 ## 실기기 근거와 다음 작업
 
+현재 촬영은 [Windows 노트북 USB 카메라 화면](../../capture_windows/README_KR.md)을 사용한다. 기존 V4L2 CLI를 보존하며 같은 저장·검증 함수를 재사용한다.
+
 기존 사용자 실행 CAMERA_SMOKE 3장의 결과는 [V0-T04 검증 기록](../../../docs/verification/V0-T04.txt)에 보존한다. 당시 장치 번호와 포맷은 역사적 관측이며 현재 장치 확인값이 아니다. 이번 작업에서는 Jetson 접속이나 촬영을 하지 않았다. 현재 촬영 안내와 프리뷰 종료 순서는 제품 README를 따른다.

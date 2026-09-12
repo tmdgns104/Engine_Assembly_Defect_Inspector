@@ -7,11 +7,14 @@
 
 - Phase: `V0 Proxy Inspection System`
 - Completed planning task: `PLAN-REVISION-001` (DONE / VERIFIED)
-- Latest implementation task: `HUMAN-CAPTURE-001-PREP` — DONE / VERIFIED (검사 명세·촬영 준비 범위)
+- Latest implementation task: `WINDOWS-CAPTURE-001` — Windows 공통 촬영 화면 (검증 상태는 아래 STATUS 참조)
 - Completed implementation tasks: `V0-T01`, `V0-T02`, `V0-T03`, `V0-T04` (DONE / VERIFIED)
-- Next action: `HUMAN-CAPTURE-001` — Jetson 현재 카메라 확인 → 열린 이어폰 케이스 첫 정상 사진 촬영·검토. T05는 TODO / NOT STARTED.
+- Next action: Windows 노트북 + USB 카메라 → 열린 이어폰 케이스 첫 정상 사진 촬영·검토. T05는 TODO / NOT STARTED.
 
 공통 계약은 [docs/contracts.md](docs/contracts.md), 최신 실행 상태는 [docs/STATUS.md](docs/STATUS.md)를 참조합니다. 실제 Camera/Detector Adapter와 Runtime 실행 앱은 아직 구현하지 않았습니다.
+
+촬영 화면은 [scripts/start_capture_windows.cmd](scripts/start_capture_windows.cmd)를 더블클릭합니다. [한국어 사용 안내](training/capture_windows/README_KR.md).
+이 창은 데이터 수집 도구이며 AI 판정/최종 검사 HMI가 아닙니다.
 
 Dataset 수집용 CLI와 기록 형식은 [Proxy Capture Workflow](training/datasets/proxy/README.md), 선택한 제품의 검사 기준과 촬영 순서는 [이어폰 케이스 안내](training/datasets/proxy/earbud_case_v0/README.md)에 있습니다. 준비 결과와 실제 수집량은 [STATUS](docs/STATUS.md)에서 구분합니다. 과거 CAMERA_SMOKE 3장은 정식 Dataset에 포함하지 않습니다.
 
