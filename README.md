@@ -9,7 +9,8 @@
 - Completed planning task: `PLAN-REVISION-001` (DONE / VERIFIED)
 - Latest implementation task: `WINDOWS-CAPTURE-001` — Windows 공통 촬영 화면 (검증 상태는 아래 STATUS 참조)
 - Completed implementation tasks: `V0-T01`, `V0-T02`, `V0-T03`, `V0-T04` (DONE / VERIFIED)
-- Next action: Windows 노트북 + USB 카메라 → 열린 이어폰 케이스 첫 정상 사진 촬영·검토. T05는 TODO / NOT STARTED.
+- Actual Windows capture: HCAM01L 실제 네 상태 각1장 저장·검증, 해제/재연결과 기존 수량 복원 확인. 첫 촬영 흐름4/4 완료.
+- Next action: 첫 사진 검토 → 카메라 높이/각도·조명·구도 보완 → 학습용 수집 계획. 현재4장은 충분한 학습 데이터가 아니다. T05는 TODO / NOT STARTED.
 
 공통 계약은 [docs/contracts.md](docs/contracts.md), 최신 실행 상태는 [docs/STATUS.md](docs/STATUS.md)를 참조합니다. 실제 Camera/Detector Adapter와 Runtime 실행 앱은 아직 구현하지 않았습니다.
 

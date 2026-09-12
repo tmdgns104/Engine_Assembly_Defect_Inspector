@@ -7,7 +7,7 @@
 | V0-T03 | Core Contracts / Camera + Detector Interfaces | V0 | DONE / VERIFIED | V0-T04 |
 | V0-T04 | Proxy Inspection Dataset Plan + Capture Tool | V0 | DONE / VERIFIED | HUMAN-CAPTURE-001; collect/review formal images before T05 |
 | HUMAN-CAPTURE-001-PREP | 검사 기준 설정 / 이어폰 첫 촬영 준비 | V0 | DONE / VERIFIED | HUMAN-CAPTURE-001: 현재 장치 확인 → 첫 정상 사진 |
-| WINDOWS-CAPTURE-001 | Windows 공통 USB 카메라 촬영 화면 | V0 수집 도구 | DONE / VERIFIED (소프트웨어) | HUMAN-CAPTURE-001: Windows 첫 정상 사진·실기기 확인 |
+| WINDOWS-CAPTURE-001 | Windows 공통 USB 카메라 촬영 화면 | V0 수집 도구 | DONE / VERIFIED; 실제 네 상태4장 검증 | HUMAN-CAPTURE-001: 촬영 품질·환경과 학습용 수집 계획 검토 |
 | V0-T05 | Labeling + Dataset Validation | V0 | TODO | V0-T06 |
 | V0-T06 | Grouped Train / Val / Test Split | V0 | TODO | V0-T07 |
 | V0-T07 | Baseline Training | V0 | TODO | V0-T08 |
@@ -29,4 +29,4 @@ Notes:
 - PLAN-REVISION-001 applies to all tasks.
 - Task filenames are aligned to purpose by this audit.
 - V0-T02 GPU smoke, V0-T03 core contracts and V0-T04 capture workflow verified. T04 hardware evidence is USER-EXECUTED / VERIFIED.
-- 제품 준비: [HUMAN-CAPTURE-001-PREP](human-capture-001-prep.md). 현재 촬영 도구: [WINDOWS-CAPTURE-001](windows-capture-001.md). 다음은 Windows 노트북 + USB 카메라에서 첫 정상 사진 촬영·검토다. 수집 수량·완료 근거는 [STATUS](../docs/STATUS.md) 참조. V0-T05 이후는 TODO이며 자동 시작하지 않는다.
+- 제품 준비: [HUMAN-CAPTURE-001-PREP](human-capture-001-prep.md). 현재 촬영 도구: [WINDOWS-CAPTURE-001](windows-capture-001.md). Windows 노트북 + USB 카메라의 첫 네 상태4장 검증은 완료했으며 다음은 촬영 품질/조건과 학습용 수집 계획 검토다. 수집 수량·완료 근거는 [STATUS](../docs/STATUS.md) 참조. V0-T05 이후는 TODO이며 자동 시작하지 않는다.

@@ -1,4 +1,6 @@
 WINDOWS-CAPTURE-001
+Historical software verification below. Subsequent actual USB camera observations:
+docs/verification/WINDOWS-CAPTURE-001-HARDWARE.json (2026-09-13).
 Date: 2026-09-13 (Windows PC)
 Baseline: 7cdc739c9ffba33a0ea67fea7ddac5af12572e7b
 Result: SOFTWARE_VERIFIED / ACTUAL_USB_CAMERA_USER_EXECUTION_PENDING

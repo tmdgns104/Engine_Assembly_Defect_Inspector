@@ -1,7 +1,7 @@
 # WINDOWS-CAPTURE-001 — Windows 공통 데이터 촬영 화면
 
-Status: DONE / VERIFIED (소프트웨어 구현·자동 테스트·합성 입력 GUI 확인)
-Actual USB Camera: USER_EXECUTION_PENDING
+Status: DONE / VERIFIED (구현·자동 테스트·실제 USB 촬영 흐름 확인)
+Actual USB Camera: LIVE_PREVIEW_AND_4_CAPTURES_VERIFIED / FIRST_FOUR_STATES_4_OF_4
 Baseline: 7cdc739c9ffba33a0ea67fea7ddac5af12572e7b
 
 ## 요구와 구조
@@ -21,7 +21,7 @@ Baseline: 7cdc739c9ffba33a0ea67fea7ddac5af12572e7b
 - 추가 테스트: backend선택/해제, 연결·읽기 실패/멈춤, stale/중복 차단, session/episode 전환, 네 상태와 다른 제품, 저장 실패/복구, 원본 보존, 기존 verifier, 실제 Tk 창 모의 입력.
 - 기존 전체 unittest + 새 테스트, 가능한 GUI 직접 열기/시각 확인, 보호 파일/패키지·Git ignore 검증. 검증 뒤 선택 commit/push. 전역 Skill/Hook 구조 변경 없음.
 
-## 결과 / Evidence
+## 선행 소프트웨어 검증 / Evidence (3dfecee 기준)
 - 전체 92/92 PASS: 기존56개 + 새 카메라/저장 테스트29개 + Tk 화면 테스트7개. 기존 테스트/저장기/검증기/프로필/schema 무수정.
 - 실제 Tk 창을 열어 초기 화면과 합성 입력 preview·저장·수량 화면을 확인했다. 합성 저장은 임시 경로의 sample이며 정식 Dataset에 포함하지 않는다.
 - 실행 도구를 프로젝트 외부 현재 경로에서 확인: `--help` 종료0, 잘못된 프로필 종료1 유지. 시작 시 실제 카메라를 열지 않는다.
@@ -30,3 +30,11 @@ Baseline: 7cdc739c9ffba33a0ea67fea7ddac5af12572e7b
 - 사용자는 USB 카메라가 노트북에 연결되어 있다고 알렸다. 후보 선택·실제 영상 수신·장치 해제·실제 PNG 저장은 아직 검증하지 않았다. 모의 성공과 구분한다.
 - 다음 사람 작업: `scripts/start_capture_windows.cmd` 실행 → 외부 USB 화면 확인 → 새 촬영 묶음 → 양쪽 이어폰이 있는 정상 배치 → 한 장 저장·사진 검토.
 - V0-T05는 TODO / NOT STARTED. 라벨링·분할·학습·최종 검사 HMI는 시작하지 않았다.
+
+## 후속 실기기 실행 — 2026-09-13
+- 사용자에게 직접 진행을 요청받아 실제 창에서 HCAM01L 후보2/DSHOW를 연결했다. 1280×720/MJPG 수신, FPS 보고값은 미확인이다. 번호는 현재 열거 결과이며 재연결 후 다시 확인한다.
+- 사용자가 배치를 준비하고 Codex가 GUI를 조작했다. NORMAL/MISSING_LEFT/MISSING_RIGHT/MISSING_BOTH 각1장, 한 session의 E0001~E0004로 저장했다. L/R은 사용자 실물 기준이며 영상 좌우로 임의 결정하지 않았다.
+- 원본4장 시각 확인 및 기존 verifier의 PNG reload/크기/metadata/SHA256 성공. source_kind=camera, schema v2, 중복 capture_id 없음. case는 모든 상태에서 제거 목록에 없었다. 실물 사진은 Git 제외 경로에 보존한다.
+- Evidence: `docs/verification/WINDOWS-CAPTURE-001-HARDWARE.json`. 선행 합성92개 테스트 결과와 실제 카메라 관측을 구분한다. 후속 실행은 코드/환경 변경이 없어 전체 unittest를 반복하지 않았다.
+- GUI 연결 해제 후 미연결/저장 비활성 상태와 작업 프로세스 종료를 확인했다. 같은 후보2/DSHOW 재연결 후 실제 프레임을 다시 수신했다. 기존 묶음을 GUI로 열어 네 상태 각1장 수량이 복원된 것을 확인했다. 추가 촬영 계속은 선택하지 않고 열람 상태로 두었다.
+- 첫 네 상태 확인4/4 완료. 조명·선명도·구도에 대한 최종 품질 승인은 별도다. 상태별1장으로 학습하지 않는다. 다음은 카메라 고정/기준 조명 및 허용 물체 위치·방향 범위를 정하고 균형 있게 수집할 계획을 검토하는 단계다.

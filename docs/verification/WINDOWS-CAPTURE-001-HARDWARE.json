@@ -1,0 +1,138 @@
+{
+  "verification_schema_version": 1,
+  "observed_at": "2026-09-12T17:23:05.668725+00:00",
+  "execution": "Windows PC",
+  "implementation_commit": "3dfecee2759ac3e77d35fccb9547ffcbfc5ce99d",
+  "camera_name_observation": "HCAM01L; Windows PnP and DirectShow enumeration; index is not persistent identity",
+  "camera_settings": {
+    "index": 2,
+    "backend": "DSHOW",
+    "device_name": null,
+    "requested_width": 1280,
+    "requested_height": 720,
+    "width": 1280,
+    "height": 720,
+    "fps_reported": null,
+    "fourcc_reported": "MJPG"
+  },
+  "camera_settings_source": "session-info.json",
+  "operator": "Human physical placement/readiness; Codex GUI connection/state selection/save at user request",
+  "gui_live_preview": "VERIFIED",
+  "gui_save_completion": "VERIFIED",
+  "hardware_disconnect": "VERIFIED; GUI disconnected, save disabled, capture worker exited without forced termination notice",
+  "hardware_reconnect": "VERIFIED; same index2/DSHOW, live 1280x720/MJPG received again",
+  "session_counts_reopen": "VERIFIED via CollectionSession.open and actual GUI; each of four scenario counts restored to1; continuation not enabled",
+  "verification": {
+    "status": "verified",
+    "session_id": "S20260912T171113_B362774D",
+    "captures": 4,
+    "images": [
+      {
+        "capture_id": "S20260912T171113_B362774D_E0001_20260912T171121853403Z_1395972fdd04",
+        "image_path": "S20260912T171113_B362774D/S20260912T171113_B362774D_E0001/images/S20260912T171113_B362774D_E0001_20260912T171121853403Z_1395972fdd04.png",
+        "width": 1280,
+        "height": 720,
+        "bytes": 909803,
+        "sha256": "aacb6a2c97bab2fdf31b0951ebade863e62c663ab88ee2dbf8040514aad8501d",
+        "scenario": "NORMAL",
+        "episode_id": "S20260912T171113_B362774D_E0001",
+        "captured_at": "2026-09-12T17:11:21.853403+00:00",
+        "object_configuration": {
+          "objects_expected": [
+            "earbud_left",
+            "earbud_right",
+            "case"
+          ],
+          "objects_removed": [],
+          "unexpected_object": false
+        }
+      },
+      {
+        "capture_id": "S20260912T171113_B362774D_E0002_20260912T171346154941Z_c7448fc76c84",
+        "image_path": "S20260912T171113_B362774D/S20260912T171113_B362774D_E0002/images/S20260912T171113_B362774D_E0002_20260912T171346154941Z_c7448fc76c84.png",
+        "width": 1280,
+        "height": 720,
+        "bytes": 927190,
+        "sha256": "df137e0b60beab7a8c1bbe444268de5b4f0b248bc0974495dbf2e34a2e69b8cf",
+        "scenario": "MISSING_LEFT",
+        "episode_id": "S20260912T171113_B362774D_E0002",
+        "captured_at": "2026-09-12T17:13:46.154941+00:00",
+        "object_configuration": {
+          "objects_expected": [
+            "earbud_left",
+            "earbud_right",
+            "case"
+          ],
+          "objects_removed": [
+            "earbud_left"
+          ],
+          "unexpected_object": false
+        }
+      },
+      {
+        "capture_id": "S20260912T171113_B362774D_E0003_20260912T171453305834Z_5f9cf914fa87",
+        "image_path": "S20260912T171113_B362774D/S20260912T171113_B362774D_E0003/images/S20260912T171113_B362774D_E0003_20260912T171453305834Z_5f9cf914fa87.png",
+        "width": 1280,
+        "height": 720,
+        "bytes": 936483,
+        "sha256": "8da512a769b1fd6e9300a268db29ece7c6f2683e9cb4b9efd7ca9d2491049b02",
+        "scenario": "MISSING_RIGHT",
+        "episode_id": "S20260912T171113_B362774D_E0003",
+        "captured_at": "2026-09-12T17:14:53.305834+00:00",
+        "object_configuration": {
+          "objects_expected": [
+            "earbud_left",
+            "earbud_right",
+            "case"
+          ],
+          "objects_removed": [
+            "earbud_right"
+          ],
+          "unexpected_object": false
+        }
+      },
+      {
+        "capture_id": "S20260912T171113_B362774D_E0004_20260912T172017410492Z_aca4bd42f7bd",
+        "image_path": "S20260912T171113_B362774D/S20260912T171113_B362774D_E0004/images/S20260912T171113_B362774D_E0004_20260912T172017410492Z_aca4bd42f7bd.png",
+        "width": 1280,
+        "height": 720,
+        "bytes": 915425,
+        "sha256": "62be1f2cc4e2f115f808da3eebca38f5acbe41fa30b858629da46c0cf7c79983",
+        "scenario": "MISSING_BOTH",
+        "episode_id": "S20260912T171113_B362774D_E0004",
+        "captured_at": "2026-09-12T17:20:17.410492+00:00",
+        "object_configuration": {
+          "objects_expected": [
+            "earbud_left",
+            "earbud_right",
+            "case"
+          ],
+          "objects_removed": [
+            "earbud_left",
+            "earbud_right"
+          ],
+          "unexpected_object": false
+        }
+      }
+    ],
+    "schema_version": 2,
+    "product_id": "earbud_case_v0",
+    "profile_version": 1,
+    "profile_sha256": "6632278de34d08c71232b21d03a3cdf89c5f848c9e0629da316a03e6a60fadc0",
+    "source_counts": {
+      "camera": 4
+    },
+    "scenario_counts": {
+      "NORMAL": 1,
+      "MISSING_LEFT": 1,
+      "MISSING_RIGHT": 1,
+      "MISSING_BOTH": 1
+    },
+    "record_semantics": "capture_intent_not_inspection_result"
+  },
+  "unique_capture_ids": 4,
+  "unique_episode_ids": 4,
+  "scope": "Initial framing/storage workflow only; no labeling, split, training or model evaluation",
+  "raw_images_git": "IGNORED; not committed",
+  "visual_original_review": "All4 original PNGs opened: case and declared earbud presence/absence visible; noise and soft edges observed; final dataset quality acceptance pending"
+}
