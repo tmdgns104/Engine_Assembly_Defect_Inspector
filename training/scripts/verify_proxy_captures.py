@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import hashlib
 import json
 import os
@@ -45,7 +46,15 @@ def verify_session(output_root: Path, session_id: str) -> dict:
                        "bytes": len(data), "sha256": digest})
     if set(session.glob("*/images/*.png")) != {root / row["image_path"] for row in records}:
         raise capture.CaptureError("Orphan PNG files or manifest/image set mismatch")
-    return {"status": "verified", "session_id": session_id, "captures": len(images), "images": images}
+    profile = records[0].get("profile_snapshot")
+    return {"status": "verified", "session_id": session_id, "captures": len(images), "images": images,
+            "schema_version": records[0]["schema_version"],
+            "product_id": profile["product_id"] if profile is not None else None,
+            "profile_version": profile["profile_version"] if profile is not None else None,
+            "profile_sha256": records[0].get("profile_sha256"),
+            "source_counts": dict(Counter(row["source_kind"] for row in records)),
+            "scenario_counts": dict(Counter(row["scenario"] for row in records)),
+            "record_semantics": "capture_intent_not_inspection_result"}
 
 
 def main(argv=None) -> int:

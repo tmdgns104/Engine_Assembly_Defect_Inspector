@@ -19,6 +19,7 @@ import sys
 import uuid
 
 
+# Frozen v1 defaults: product-specific names belong in JSON profiles.
 OBJECTS = ["OBJ_A", "OBJ_B", "OBJ_C"]
 SCENARIOS = (
     "NORMAL", "MISSING_A", "MISSING_B", "MISSING_C", "EXTRA_OBJECT",
@@ -34,6 +35,9 @@ FIELDS = {
     "width", "height", "image_path", "image_bytes", "image_sha256", "notes",
 }
 EPISODE_FIELDS = ("scenario", "object_configuration", "source_kind", "device", "camera_source", "width", "height")
+PROFILE_FIELDS = {"profile_schema_version", "product_id", "profile_version", "objects", "scenarios"}
+V2_FIELDS = FIELDS | {"profile_snapshot", "profile_sha256"}
+OBJECT_PATTERN = r"[A-Za-z][A-Za-z0-9_-]{0,63}"
 
 
 class CaptureError(RuntimeError):
@@ -51,7 +55,79 @@ def validate_ids(session_id: str, episode_id: str) -> None:
         raise ValueError("episode_id must start with session_id plus underscore")
 
 
-def object_configuration(scenario: str) -> dict:
+def unique_json_object(pairs: list) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def validate_profile(profile: dict) -> None:
+    """Validate collection intent only; no detector outputs or runtime recipe."""
+    if not isinstance(profile, dict) or set(profile) != PROFILE_FIELDS:
+        raise ValueError("profile fields do not match profile schema version 1")
+    if type(profile["profile_schema_version"]) is not int or profile["profile_schema_version"] != 1:
+        raise ValueError("unsupported profile_schema_version")
+    if type(profile["profile_version"]) is not int or profile["profile_version"] <= 0:
+        raise ValueError("profile_version must be a positive integer")
+    if not isinstance(profile["product_id"], str) or not re.fullmatch(OBJECT_PATTERN, profile["product_id"]):
+        raise ValueError("product_id must be a portable ASCII identifier")
+    objects = profile["objects"]
+    if not isinstance(objects, list) or not objects or any(
+        not isinstance(name, str) or not re.fullmatch(OBJECT_PATTERN, name) for name in objects
+    ):
+        raise ValueError("objects must be a nonempty list of class identifiers")
+    if len(set(objects)) != len(objects):
+        raise ValueError("duplicate object in profile")
+    scenarios = profile["scenarios"]
+    if not isinstance(scenarios, dict) or "NORMAL" not in scenarios:
+        raise ValueError("profile scenarios must define NORMAL")
+    for name, settings in scenarios.items():
+        if not isinstance(name, str) or not re.fullmatch(ID_PATTERN, name):
+            raise ValueError("scenario must be an uppercase ASCII identifier")
+        if name == "CAMERA_SMOKE":
+            raise ValueError("CAMERA_SMOKE is reserved; cannot redefine its meaning")
+        if not isinstance(settings, dict) or set(settings) != {"objects_removed", "unexpected_object"}:
+            raise ValueError(f"invalid scenario settings: {name}")
+        removed = settings["objects_removed"]
+        if not isinstance(removed, list) or any(not isinstance(item, str) or item not in objects for item in removed):
+            raise ValueError(f"objects_removed contains an undefined object: {name}")
+        if len(set(removed)) != len(removed):
+            raise ValueError(f"duplicate removed object: {name}")
+        if type(settings["unexpected_object"]) is not bool:
+            raise ValueError("unexpected_object must be a bool")
+        if name == "NORMAL" and (removed or settings["unexpected_object"]):
+            raise ValueError("NORMAL must have no removed or unexpected objects")
+
+
+def load_profile(path: Path) -> dict:
+    profile = json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=unique_json_object)
+    validate_profile(profile)
+    return profile
+
+
+def profile_digest(profile: dict) -> str:
+    """SHA256 of sorted, compact UTF-8 JSON; whitespace in the source is irrelevant."""
+    validate_profile(profile)
+    data = json.dumps(profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
+def object_configuration(scenario: str, profile: dict | None = None) -> dict:
+    if not isinstance(scenario, str):
+        raise ValueError("scenario must be a string")
+    if profile is not None:
+        validate_profile(profile)
+        if scenario == "CAMERA_SMOKE":
+            return {"objects_expected": [], "objects_removed": [], "unexpected_object": False}
+        if scenario not in profile["scenarios"]:
+            raise ValueError(f"unknown scenario in profile: {scenario}")
+        settings = profile["scenarios"][scenario]
+        return {"objects_expected": list(profile["objects"]),
+                "objects_removed": list(settings["objects_removed"]),
+                "unexpected_object": settings["unexpected_object"]}
     if scenario not in SCENARIOS:
         raise ValueError(f"unknown scenario: {scenario}")
     removed = ["OBJ_" + scenario[-1]] if scenario.startswith("MISSING_") else []
@@ -71,33 +147,45 @@ def utc_time(value: datetime) -> datetime:
 def make_record(*, session_id: str, episode_id: str, scenario: str,
                 captured_at: datetime, width: int, height: int, device: str,
                 camera_source: str, source_kind: str, image_png: bytes,
-                notes: str = "") -> dict:
+                notes: str = "", profile: dict | None = None) -> dict:
     """Create intent metadata, never an annotation or a verified object-presence claim."""
     validate_ids(session_id, episode_id)
     captured_at = utc_time(captured_at)
     capture_id = episode_id + "_" + captured_at.strftime("%Y%m%dT%H%M%S%fZ") + "_" + uuid.uuid4().hex[:12]
     record = {
-        "schema_version": 1, "capture_id": capture_id, "session_id": session_id,
+        "schema_version": 1 if profile is None else 2, "capture_id": capture_id, "session_id": session_id,
         "episode_id": episode_id, "scenario": scenario,
-        "captured_at": captured_at.isoformat(), "object_configuration": object_configuration(scenario),
+        "captured_at": captured_at.isoformat(), "object_configuration": object_configuration(scenario, profile),
         "device": device, "camera_source": camera_source, "source_kind": source_kind,
         "width": width, "height": height,
         "image_path": f"{session_id}/{episode_id}/images/{capture_id}.png",
         "image_bytes": len(image_png), "image_sha256": hashlib.sha256(image_png).hexdigest(),
         "notes": notes,
     }
+    if profile is not None:
+        # Detach nested lists/dicts so later caller edits cannot reinterpret this capture.
+        record["profile_snapshot"] = json.loads(json.dumps(profile, allow_nan=False))
+        record["profile_sha256"] = profile_digest(record["profile_snapshot"])
     validate_record(record)
     return record
 
 
 def validate_record(record: dict) -> None:
     """Normative executable schema; unknown keys (including labels) are rejected."""
-    if not isinstance(record, dict) or set(record) != FIELDS:
-        raise ValueError("manifest fields do not match schema version 1")
-    if type(record["schema_version"]) is not int or record["schema_version"] != 1:
+    if not isinstance(record, dict):
+        raise ValueError("manifest row must be an object")
+    version = record.get("schema_version")
+    if type(version) is not int or version not in (1, 2):
         raise ValueError("unsupported schema_version")
+    if set(record) != (FIELDS if version == 1 else V2_FIELDS):
+        raise ValueError(f"manifest fields do not match schema version {version}")
+    profile = None
+    if version == 2:
+        profile = record["profile_snapshot"]
+        if record["profile_sha256"] != profile_digest(profile):
+            raise ValueError("profile_sha256 does not match profile_snapshot")
     validate_ids(record["session_id"], record["episode_id"])
-    config = object_configuration(record["scenario"])
+    config = object_configuration(record["scenario"], profile)
     if record["object_configuration"] != config:
         raise ValueError("object_configuration must match the declared scenario")
     if type(record["object_configuration"].get("unexpected_object")) is not bool:
@@ -169,12 +257,14 @@ def read_manifest(path: Path) -> list[dict]:
             if not line.endswith("\n"):
                 raise CaptureError(f"Incomplete manifest line: {path}; preserve and inspect before retry")
             try:
-                record = json.loads(line)
+                record = json.loads(line, object_pairs_hook=unique_json_object)
                 validate_record(record)
             except ValueError as exc:
                 raise CaptureError(f"Invalid manifest row {line_number} in {path}: {exc}") from exc
             if record["capture_id"] in seen:
                 raise CaptureError(f"Duplicate capture_id already in manifest: {path}")
+            if records and profile_identity(records[0]) != profile_identity(record):
+                raise CaptureError("Session profile changed; use a new session_id")
             settings = [record[key] for key in EPISODE_FIELDS]
             episode = record["episode_id"]
             if episode in episode_settings and episode_settings[episode] != settings:
@@ -183,6 +273,10 @@ def read_manifest(path: Path) -> list[dict]:
             records.append(record)
             seen.add(record["capture_id"])
     return records
+
+
+def profile_identity(record: dict) -> tuple:
+    return record["schema_version"], record.get("profile_sha256")
 
 
 def append_manifest(path: Path, record: dict) -> None:
@@ -212,6 +306,8 @@ def save_capture(output_root: Path, record: dict, image_png: bytes) -> Path:
     session.mkdir(parents=True, exist_ok=True)
     with session_lock(session):
         records = read_manifest(manifest)
+        if records and profile_identity(records[0]) != profile_identity(record):
+            raise CaptureError("Session profile changed; use a new session_id")
         recorded_paths = set()
         for previous in records:
             if previous["session_id"] != record["session_id"]:
@@ -283,9 +379,10 @@ def parser() -> argparse.ArgumentParser:
     command.add_argument("--output-root", type=Path, required=True)
     command.add_argument("--session-id", required=True)
     command.add_argument("--episode-id", required=True)
-    command.add_argument("--scenario", choices=SCENARIOS, required=True)
+    command.add_argument("--profile", type=Path, help="Collection JSON profile; omitted = legacy v1 OBJ_A/B/C")
+    command.add_argument("--scenario", required=True, help="Scenario defined by selected profile, or CAMERA_SMOKE")
     source = command.add_mutually_exclusive_group(required=True)
-    source.add_argument("--camera", help="Verified Linux V4L2 node, for example /dev/video0")
+    source.add_argument("--camera", help="Currently verified Linux V4L2 node; enumerate before use")
     source.add_argument("--sample", type=Path, help="Existing test image; marked sample, not formal pilot data")
     command.add_argument("--width", type=int, default=640)
     command.add_argument("--height", type=int, default=480)
@@ -304,6 +401,8 @@ def main(argv=None) -> int:
         return 1
     try:
         validate_ids(args.session_id, args.episode_id)
+        profile = load_profile(args.profile) if args.profile is not None else None
+        object_configuration(args.scenario, profile)  # Reject bad intent before opening a source.
         if args.width <= 0 or args.height <= 0 or args.fps <= 0:
             raise ValueError("width, height and fps must be positive")
         frame, timestamp, source_kind, source_name = read_source(args)
@@ -318,7 +417,7 @@ def main(argv=None) -> int:
                              scenario=args.scenario, captured_at=timestamp,
                              width=int(frame.shape[1]), height=int(frame.shape[0]),
                              device=socket.gethostname(), camera_source=source_name,
-                             source_kind=source_kind, image_png=image_png, notes=args.notes)
+                             source_kind=source_kind, image_png=image_png, notes=args.notes, profile=profile)
         output = save_capture(args.output_root, record, image_png)
         print(json.dumps({"status": "saved", "image": str(output), "metadata": record}, ensure_ascii=False))
         return 0

@@ -1,34 +1,276 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Proxy Capture Metadata v1",
-  "description": "Structural schema. capture_proxy.validate_record additionally enforces scenario configuration, canonical UTC and ID/path correlation.",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["schema_version", "capture_id", "session_id", "episode_id", "scenario", "captured_at", "object_configuration", "device", "camera_source", "source_kind", "width", "height", "image_path", "image_bytes", "image_sha256", "notes"],
-  "properties": {
-    "schema_version": {"const": 1, "type": "integer"},
-    "capture_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]*_[0-9]{8}T[0-9]{12}Z_[0-9a-f]{12}$"},
-    "session_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]{0,31}$"},
-    "episode_id": {"type": "string", "pattern": "^[A-Z][A-Z0-9_-]{0,79}$"},
-    "scenario": {"enum": ["NORMAL", "MISSING_A", "MISSING_B", "MISSING_C", "EXTRA_OBJECT", "POSITION_SHIFT", "OCCLUSION", "BLUR", "LOW_EXPOSURE", "CAMERA_SMOKE"]},
-    "captured_at": {"type": "string", "format": "date-time", "pattern": "\\+00:00$"},
-    "object_configuration": {
-      "type": "object", "additionalProperties": false,
-      "required": ["objects_expected", "objects_removed", "unexpected_object"],
+  "title": "Proxy Capture Metadata v1 / v2",
+  "description": "v1 remains compatible. v2 embeds collection profile and canonical SHA256. capture_proxy.validate_record is normative for cross-field checks; read_manifest enforces stable session profile and episode settings.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/v1"
+    },
+    {
+      "$ref": "#/$defs/v2"
+    }
+  ],
+  "$defs": {
+    "v1": {
+      "title": "Proxy Capture Metadata v1",
+      "description": "Structural schema. capture_proxy.validate_record additionally enforces scenario configuration, canonical UTC and ID/path correlation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "capture_id",
+        "session_id",
+        "episode_id",
+        "scenario",
+        "captured_at",
+        "object_configuration",
+        "device",
+        "camera_source",
+        "source_kind",
+        "width",
+        "height",
+        "image_path",
+        "image_bytes",
+        "image_sha256",
+        "notes"
+      ],
       "properties": {
-        "objects_expected": {"enum": [[], ["OBJ_A", "OBJ_B", "OBJ_C"]]},
-        "objects_removed": {"type": "array", "maxItems": 1, "uniqueItems": true, "items": {"enum": ["OBJ_A", "OBJ_B", "OBJ_C"]}},
-        "unexpected_object": {"type": "boolean"}
+        "schema_version": {
+          "const": 1,
+          "type": "integer"
+        },
+        "capture_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]*_[0-9]{8}T[0-9]{12}Z_[0-9a-f]{12}$"
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]{0,31}$"
+        },
+        "episode_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]{0,79}$"
+        },
+        "scenario": {
+          "enum": [
+            "NORMAL",
+            "MISSING_A",
+            "MISSING_B",
+            "MISSING_C",
+            "EXTRA_OBJECT",
+            "POSITION_SHIFT",
+            "OCCLUSION",
+            "BLUR",
+            "LOW_EXPOSURE",
+            "CAMERA_SMOKE"
+          ]
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "\\+00:00$"
+        },
+        "object_configuration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "objects_expected",
+            "objects_removed",
+            "unexpected_object"
+          ],
+          "properties": {
+            "objects_expected": {
+              "enum": [
+                [],
+                [
+                  "OBJ_A",
+                  "OBJ_B",
+                  "OBJ_C"
+                ]
+              ]
+            },
+            "objects_removed": {
+              "type": "array",
+              "maxItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "OBJ_A",
+                  "OBJ_B",
+                  "OBJ_C"
+                ]
+              }
+            },
+            "unexpected_object": {
+              "type": "boolean"
+            }
+          }
+        },
+        "device": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "camera_source": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "source_kind": {
+          "enum": [
+            "camera",
+            "sample"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "image_path": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/images/[A-Z0-9_a-f-]+\\.png$"
+        },
+        "image_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "image_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
-    "device": {"type": "string", "pattern": "\\S"},
-    "camera_source": {"type": "string", "pattern": "\\S"},
-    "source_kind": {"enum": ["camera", "sample"]},
-    "width": {"type": "integer", "minimum": 1},
-    "height": {"type": "integer", "minimum": 1},
-    "image_path": {"type": "string", "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/images/[A-Z0-9_a-f-]+\\.png$"},
-    "image_bytes": {"type": "integer", "minimum": 1},
-    "image_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "notes": {"type": "string"}
+    "v2": {
+      "title": "Proxy Capture Metadata v2",
+      "description": "Structural schema. capture_proxy.validate_record additionally enforces scenario configuration, canonical UTC and ID/path correlation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "capture_id",
+        "session_id",
+        "episode_id",
+        "scenario",
+        "captured_at",
+        "object_configuration",
+        "device",
+        "camera_source",
+        "source_kind",
+        "width",
+        "height",
+        "image_path",
+        "image_bytes",
+        "image_sha256",
+        "notes",
+        "profile_snapshot",
+        "profile_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 2,
+          "type": "integer"
+        },
+        "capture_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]*_[0-9]{8}T[0-9]{12}Z_[0-9a-f]{12}$"
+        },
+        "session_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]{0,31}$"
+        },
+        "episode_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]{0,79}$"
+        },
+        "scenario": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]{0,31}$"
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "\\+00:00$"
+        },
+        "object_configuration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "objects_expected",
+            "objects_removed",
+            "unexpected_object"
+          ],
+          "properties": {
+            "objects_expected": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              }
+            },
+            "objects_removed": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+              }
+            },
+            "unexpected_object": {
+              "type": "boolean"
+            }
+          }
+        },
+        "device": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "camera_source": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "source_kind": {
+          "enum": [
+            "camera",
+            "sample"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "image_path": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/images/[A-Z0-9_a-f-]+\\.png$"
+        },
+        "image_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "image_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "profile_snapshot": {
+          "$ref": "profile-schema.json"
+        },
+        "profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
   }
 }

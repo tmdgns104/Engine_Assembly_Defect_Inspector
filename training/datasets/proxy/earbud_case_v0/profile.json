@@ -1,0 +1,12 @@
+{
+  "profile_schema_version": 1,
+  "product_id": "earbud_case_v0",
+  "profile_version": 1,
+  "objects": ["earbud_left", "earbud_right", "case"],
+  "scenarios": {
+    "NORMAL": {"objects_removed": [], "unexpected_object": false},
+    "MISSING_LEFT": {"objects_removed": ["earbud_left"], "unexpected_object": false},
+    "MISSING_RIGHT": {"objects_removed": ["earbud_right"], "unexpected_object": false},
+    "MISSING_BOTH": {"objects_removed": ["earbud_left", "earbud_right"], "unexpected_object": false}
+  }
+}

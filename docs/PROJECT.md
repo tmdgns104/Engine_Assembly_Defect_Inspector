@@ -41,4 +41,4 @@ V0는 실제 구현 가능한 상태가 되어야 하며, 단순 문서 정리�
 - `V0-T02`는 기존 Windows PC GPU smoke 결과 검증과 기록을 마쳐 DONE / VERIFIED.
 - `V0-T03` 공통 Runtime 계약과 인터페이스는 DONE / VERIFIED이며, 실제 Adapter는 아직 구현하지 않았다.
 - `V0-T04`는 수집 도구·계획·metadata와 사용자 실행 Jetson 실기기 smoke 3장 검증을 완료해 DONE / VERIFIED다.
-- 정식 Pilot은 0/81장, NOT STARTED다. 다음은 HUMAN-CAPTURE-001의 물체 선택·배치 및 S001 첫 촬영이며 V0-T05는 TODO / NOT STARTED로 유지한다. 현재 근거는 `docs/STATUS.md`를 참조한다.
+- Proxy 제품은 열린 케이스 안의 이어폰 `earbud_case_v0`로 선택했다. 촬영 준비와 실제 수집 상태는 `docs/STATUS.md`, 검사 명세는 `training/datasets/proxy/earbud_case_v0/README.md`를 참조한다. 전체 수집량은 첫 네 장 검토 뒤 정하며 V0-T05는 실제 촬영·사진 검토 전까지 미시작이다.

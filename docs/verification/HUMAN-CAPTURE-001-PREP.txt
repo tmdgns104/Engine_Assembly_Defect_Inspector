@@ -1,0 +1,96 @@
+HUMAN-CAPTURE-001-PREP — 검증 근거
+관측 시각: 2026-09-12T14:43:16.924654+00:00
+실행 위치: Windows / D:\OneDevice_Team_project
+기준 HEAD: d41bdd5e33b8ef3911dc0413924c0754e8b12835 + 이번 변경 작업 트리
+Python: 3.13.5, OpenCV: 5.0.0; 기존 .venv, 추가 설치 없음
+
+실행: .venv\Scripts\python.exe -m unittest discover -s tests -v
+결과: 56/56 성공, exit_code=0 (기존 40개 무수정 + 추가 16개)
+수정 전 전체 테스트: 40/40 성공.
+
+검증한 준비 수용 기준:
+- 네 상태 제거 목록: NORMAL=[], LEFT=[earbud_left], RIGHT=[earbud_right], BOTH=[earbud_left,earbud_right]. case 유지.
+- 정의 밖 객체/시나리오, 잘못된 설정/중복 JSON, NORMAL 변경 및 CAMERA_SMOKE 재정의 거부.
+- v2 설정 사본·해시, 원본 설정 변경/삭제 이후의 독립 검증, 사본 변조 및 세션 내 설정 변경 거부.
+- v1/CAMERA_SMOKE, 파일명/중복/잠금/episode, 저장 실패/재로드/크기/해시 회귀 검증.
+- 네 부품 가상 제품의 설정 읽기→저장→검증 성공. 실제 엔진 사양/검증 아님.
+- -S 프로세스의 profile 읽기 성공: 제품 설정에 외부 패키지 불필요.
+- profile 및 capture JSON 구조 파싱/필드 목록/참조 확인. v1 schema 정의는 기준 HEAD와 동일.
+- JSON Schema 외부 엔진 검증은 미실행(미설치). CLI의 규범 실행 검증기와 교차 필드 테스트는 실행 성공.
+- 기존 로컬 data/proxy/smoke/T04_WINDOWS_CHECK/captures/SAMPLE_T04/manifest.jsonl의 v1 sample 3장 재로드·해시 검증 성공. 과거 사용자 Jetson smoke와 구분.
+- 보호 파일 229개 바이트 해시 일치: CAD/FOV/사용자 사진, 기존 테스트, 기존 Task/Evidence, Runtime 계약 및 모델 등 시작 시 기록 범위.
+- .gitignore의 원본 데이터/환경/모델 제외 유지. 신규 합성 이미지는 테스트 임시 폴더에서만 생성.
+
+제품 profile 정규 JSON SHA256: 6632278de34d08c71232b21d03a3cdf89c5f848c9e0629da316a03e6a60fadc0
+실제 촬영: 이번 0장; 로컬 정식 raw PNG/manifest 0개. 첫 네 장 촬영/사진 검토 미실행.
+UNVERIFIED: 현재 Jetson 카메라 모델/노드/포맷, 실제 촬영 품질, 검사 판정 실행.
+미실행: Jetson 접속, 라벨링/분할/학습/튜닝/모델 평가/변환/배포, Detector/Decision/DB/HMI 구현, PLC 제어.
+V0-T05 미시작. 준비 Task 성공은 V0 전체 완료나 데이터/AI 성능 PASS가 아님.
+
+전체 unittest 출력 (의도적인 오류 주입 메시지 포함):
+test_four_scenarios_preserve_case_and_actual_lr (test_capture_profiles.CaptureProfileTests.test_four_scenarios_preserve_case_and_actual_lr) ... ok
+test_invalid_cli_intent_does_not_open_camera_or_save (test_capture_profiles.CaptureProfileTests.test_invalid_cli_intent_does_not_open_camera_or_save) ... CAPTURE_ERROR: unknown scenario in profile: MISSING_A
+CAPTURE_ERROR: [Errno 2] No such file or directory: 'TEMP_DIRECTORY\\tmpocmreffp\\missing.json'
+ok
+test_invalid_profiles_rejected (test_capture_profiles.CaptureProfileTests.test_invalid_profiles_rejected) ... ok
+test_load_profile_without_optional_packages (test_capture_profiles.CaptureProfileTests.test_load_profile_without_optional_packages) ... ok
+test_loader_rejects_malformed_and_duplicate_json (test_capture_profiles.CaptureProfileTests.test_loader_rejects_malformed_and_duplicate_json) ... ok
+test_manifest_verifier_rejects_changed_profile_snapshot (test_capture_profiles.CaptureProfileTests.test_manifest_verifier_rejects_changed_profile_snapshot) ... ok
+test_past_record_survives_profile_mutation_and_file_removal (test_capture_profiles.CaptureProfileTests.test_past_record_survives_profile_mutation_and_file_removal) ... ok
+test_profile_change_requires_new_session_and_preserves_old_files (test_capture_profiles.CaptureProfileTests.test_profile_change_requires_new_session_and_preserves_old_files) ... ok
+test_profile_hash_is_canonical_and_tampering_rejected (test_capture_profiles.CaptureProfileTests.test_profile_hash_is_canonical_and_tampering_rejected) ... ok
+test_profile_sample_cli_and_verifier_work_without_original_profile (test_capture_profiles.CaptureProfileTests.test_profile_sample_cli_and_verifier_work_without_original_profile) ... ok
+test_published_schema_inventory_covers_both_record_formats (test_capture_profiles.CaptureProfileTests.test_published_schema_inventory_covers_both_record_formats) ... ok
+test_smoke_and_legacy_records_remain_distinct (test_capture_profiles.CaptureProfileTests.test_smoke_and_legacy_records_remain_distinct) ... ok
+test_undefined_scenario_and_object_claims_rejected (test_capture_profiles.CaptureProfileTests.test_undefined_scenario_and_object_claims_rejected) ... ok
+test_v2_duplicate_lock_and_episode_guards_preserve_files (test_capture_profiles.CaptureProfileTests.test_v2_duplicate_lock_and_episode_guards_preserve_files) ... ok
+test_v2_verification_rejects_hash_size_and_dimension_errors (test_capture_profiles.CaptureProfileTests.test_v2_verification_rejects_hash_size_and_dimension_errors) ... ok
+test_virtual_four_part_product_uses_same_collection_path (test_capture_profiles.CaptureProfileTests.test_virtual_four_part_product_uses_same_collection_path) ... ok
+test_backend_objects_are_rejected_in_serializable_fields (test_contracts.ContractTests.test_backend_objects_are_rejected_in_serializable_fields) ... ok
+test_bounding_box_rejects_invalid_coordinates (test_contracts.ContractTests.test_bounding_box_rejects_invalid_coordinates) ... ok
+test_bounding_box_uses_original_image_xyxy_pixel_edges (test_contracts.ContractTests.test_bounding_box_uses_original_image_xyxy_pixel_edges) ... ok
+test_contract_import_and_json_work_without_site_packages (test_contracts.ContractTests.test_contract_import_and_json_work_without_site_packages) ... ok
+test_detection_confidence_range_and_identity (test_contracts.ContractTests.test_detection_confidence_range_and_identity) ... ok
+test_detection_result_rejects_invalid_optional_metadata (test_contracts.ContractTests.test_detection_result_rejects_invalid_optional_metadata) ... ok
+test_detection_result_serializes_nested_contracts (test_contracts.ContractTests.test_detection_result_serializes_nested_contracts) ... ok
+test_dummy_camera_detector_pipeline_satisfies_interfaces (test_contracts.ContractTests.test_dummy_camera_detector_pipeline_satisfies_interfaces) ... ok
+test_empty_detection_is_valid_observation_without_inspection_status (test_contracts.ContractTests.test_empty_detection_is_valid_observation_without_inspection_status) ... ok
+test_frame_metadata_does_not_touch_or_serialize_image (test_contracts.ContractTests.test_frame_metadata_does_not_touch_or_serialize_image) ... ok
+test_frame_rejects_missing_payload_and_invalid_metadata (test_contracts.ContractTests.test_frame_rejects_missing_payload_and_invalid_metadata) ... ok
+test_frozen_contracts_and_detached_json_collections (test_contracts.ContractTests.test_frozen_contracts_and_detached_json_collections) ... ok
+test_inspection_result_json_and_request_correlation (test_contracts.ContractTests.test_inspection_result_json_and_request_correlation) ... ok
+test_manual_and_plc_requests_share_one_serialization_contract (test_contracts.ContractTests.test_manual_and_plc_requests_share_one_serialization_contract) ... ok
+test_naive_timestamps_are_rejected_at_each_entry_point (test_contracts.ContractTests.test_naive_timestamps_are_rejected_at_each_entry_point) ... ok
+test_reasons_support_common_codes_and_future_domain_strings (test_contracts.ContractTests.test_reasons_support_common_codes_and_future_domain_strings) ... ok
+test_result_status_has_exactly_four_string_values (test_contracts.ContractTests.test_result_status_has_exactly_four_string_values) ... ok
+test_result_structural_guards_do_not_implement_decision_engine (test_contracts.ContractTests.test_result_structural_guards_do_not_implement_decision_engine) ... ok
+test_timestamps_are_normalized_to_utc_and_iso8601 (test_contracts.ContractTests.test_timestamps_are_normalized_to_utc_and_iso8601) ... ok
+test_bad_sample_returns_clear_nonzero_error (test_proxy_capture.ProxyCaptureTests.test_bad_sample_returns_clear_nonzero_error) ... ok
+test_camera_branch_negotiates_format_reads_one_saved_frame_and_releases (test_proxy_capture.ProxyCaptureTests.test_camera_branch_negotiates_format_reads_one_saved_frame_and_releases) ... {"backend": "V4L2", "fourcc": "YUYV", "fps_reported": 30}
+ok
+test_camera_open_or_read_failure_releases_without_output (test_proxy_capture.ProxyCaptureTests.test_camera_open_or_read_failure_releases_without_output) ... ok
+test_capture_ids_unique_even_for_same_timestamp (test_proxy_capture.ProxyCaptureTests.test_capture_ids_unique_even_for_same_timestamp) ... ok
+test_duplicate_preserves_image_and_manifest (test_proxy_capture.ProxyCaptureTests.test_duplicate_preserves_image_and_manifest) ... ok
+test_episode_cannot_silently_change_scenario_or_source (test_proxy_capture.ProxyCaptureTests.test_episode_cannot_silently_change_scenario_or_source) ... ok
+test_invalid_metadata_is_rejected (test_proxy_capture.ProxyCaptureTests.test_invalid_metadata_is_rejected) ... ok
+test_lock_contention_does_not_remove_existing_lock (test_proxy_capture.ProxyCaptureTests.test_lock_contention_does_not_remove_existing_lock) ... ok
+test_manifest_failure_is_not_reported_as_success_and_preserves_recovery (test_proxy_capture.ProxyCaptureTests.test_manifest_failure_is_not_reported_as_success_and_preserves_recovery) ... ok
+test_manifest_reader_rejects_preexisting_episode_inconsistency (test_proxy_capture.ProxyCaptureTests.test_manifest_reader_rejects_preexisting_episode_inconsistency) ... ok
+test_metadata_json_roundtrip_and_no_labels (test_proxy_capture.ProxyCaptureTests.test_metadata_json_roundtrip_and_no_labels) ... ok
+test_missing_recorded_image_blocks_append (test_proxy_capture.ProxyCaptureTests.test_missing_recorded_image_blocks_append) ... ok
+test_orphan_or_truncated_manifest_stops_next_writer (test_proxy_capture.ProxyCaptureTests.test_orphan_or_truncated_manifest_stops_next_writer) ... ok
+test_output_created_and_two_manifest_records_appended (test_proxy_capture.ProxyCaptureTests.test_output_created_and_two_manifest_records_appended) ... ok
+test_payload_hash_mismatch_rejected_before_writes (test_proxy_capture.ProxyCaptureTests.test_payload_hash_mismatch_rejected_before_writes) ... ok
+test_portable_session_and_episode_ids (test_proxy_capture.ProxyCaptureTests.test_portable_session_and_episode_ids) ... ok
+test_sample_cli_writes_decodable_png_without_camera (test_proxy_capture.ProxyCaptureTests.test_sample_cli_writes_decodable_png_without_camera) ... ok
+test_scenario_configuration_and_smoke_separation (test_proxy_capture.ProxyCaptureTests.test_scenario_configuration_and_smoke_separation) ... ok
+test_utc_timestamp_and_naive_rejection (test_proxy_capture.ProxyCaptureTests.test_utc_timestamp_and_naive_rejection) ... ok
+test_verifier_rejects_undecodable_bytes_even_with_matching_hash (test_proxy_capture.ProxyCaptureTests.test_verifier_rejects_undecodable_bytes_even_with_matching_hash) ... [ WARN:0@1.469] global grfmt_png.cpp:834 cv::PngDecoder::read_chunk user chunk data is too large
+[ERROR:0@1.469] global grfmt_png.cpp:297 cv::PngDecoder::readHeader IHDR chunk shall be first. This data may be broken or malformed.
+ok
+test_verifier_reloads_all_images_and_detects_corruption (test_proxy_capture.ProxyCaptureTests.test_verifier_reloads_all_images_and_detects_corruption) ... ok
+
+----------------------------------------------------------------------
+Ran 56 tests in 1.592s
+
+OK

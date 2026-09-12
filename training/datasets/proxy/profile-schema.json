@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Collection Profile v1",
+  "description": "Collection intent only. Executable validator also checks removed objects are defined and NORMAL is unchanged.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile_schema_version",
+    "product_id",
+    "profile_version",
+    "objects",
+    "scenarios"
+  ],
+  "properties": {
+    "profile_schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "product_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+    },
+    "profile_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "objects": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+      }
+    },
+    "scenarios": {
+      "type": "object",
+      "required": [
+        "NORMAL"
+      ],
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{0,31}$",
+        "not": {
+          "const": "CAMERA_SMOKE"
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "objects_removed",
+          "unexpected_object"
+        ],
+        "properties": {
+          "objects_removed": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"
+            }
+          },
+          "unexpected_object": {
+            "type": "boolean"
+          }
+        }
+      },
+      "properties": {
+        "NORMAL": {
+          "const": {
+            "objects_removed": [],
+            "unexpected_object": false
+          }
+        }
+      }
+    }
+  }
+}
