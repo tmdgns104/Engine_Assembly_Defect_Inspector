@@ -11,6 +11,7 @@ from PIL import Image, ImageTk
 from training.scripts import capture_proxy as capture
 from .camera import CameraClient, CameraSettings
 from .session import CollectionSession, load_display
+from .guide import GuidedRound, default_guide, load_guide
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROFILE = PROJECT_ROOT/'training/datasets/proxy/earbud_case_v0/profile.json'
@@ -34,6 +35,8 @@ class CaptureApp:
         self.profile = None
         self.scenario_keys = []
         self.labels = {}
+        self.guide = None
+        self.guide_config = None
         self.busy_controls = []
         self.camera_controls = []
         self._build()
@@ -152,9 +155,10 @@ class CaptureApp:
             bg='#17212d', fg='#dce8f3', font=('맑은 고딕', -20))
         self.preview.place(x=0, y=0, relwidth=1, relheight=1)
         self.save_button = ttk.Button(right, text='한 장 저장', style='Save.TButton', command=self.save)
-        self.save_button.grid(row=2, column=0, sticky='ew', pady=10)
+        self.save_button.grid(row=3, column=0, sticky='ew', pady=6)
+        self.build_guide_panel(right)
         footer = ttk.Frame(right)
-        footer.grid(row=3, column=0, sticky='ew')
+        footer.grid(row=4, column=0, sticky='ew')
         self.recent_label = tk.Label(footer, text='최근 저장 사진 없음', width=23, height=5,
                                      bg='#e0e7ee', fg='#405269')
         self.recent_label.pack(side='left', padx=(0, 12))
@@ -171,6 +175,120 @@ class CaptureApp:
         status_label.bind('<Configure>', lambda e: status_label.configure(wraplength=max(200, e.width-40)))
         body.pack(fill='both', expand=True)
 
+    def build_guide_panel(self, right):
+        panel = ttk.LabelFrame(right, text='촬영 도우미 · 사람이 배치하고 원본을 확인합니다', padding=8)
+        panel.grid(row=2, column=0, sticky='ew', pady=(8, 0))
+        panel.columnconfigure(0, weight=1)
+        row = ttk.Frame(panel)
+        row.grid(row=0, column=0, sticky='ew')
+        self.guide_condition = ttk.Combobox(row, state='readonly', width=28)
+        self.guide_condition.pack(side='left', fill='x', expand=True)
+        self.guide_condition.bind('<<ComboboxSelected>>', lambda e: self.refresh_guide())
+        self.guide_start = ttk.Button(row, text='새 안내 촬영', command=self.start_guide)
+        self.guide_start.pack(side='left', padx=(8, 0))
+        self.guide_title = tk.StringVar()
+        ttk.Label(panel, textvariable=self.guide_title, font=('맑은 고딕', -15, 'bold')).grid(
+            row=1, column=0, sticky='w', pady=(6, 2))
+        self.guide_text = tk.StringVar()
+        instructions = ttk.Label(panel, textvariable=self.guide_text, wraplength=760, justify='left')
+        instructions.grid(row=2, column=0, sticky='ew')
+        instructions.bind('<Configure>', lambda e: instructions.configure(wraplength=max(250, e.width-10)))
+        actions = ttk.Frame(panel)
+        actions.grid(row=3, column=0, sticky='ew', pady=(5, 0))
+        self.guide_ready = ttk.Button(actions, text='안내대로 준비했어요', command=self.prepare_guide)
+        self.guide_ready.pack(side='left')
+        self.guide_accept = ttk.Button(actions, text='원본 확인 · 다음 상태', command=lambda: self.review_guide(True))
+        self.guide_accept.pack(side='left', padx=5)
+        self.guide_reject = ttk.Button(actions, text='다시 촬영', command=lambda: self.review_guide(False))
+        self.guide_reject.pack(side='left')
+        row = ttk.Frame(panel)
+        row.grid(row=4, column=0, sticky='ew', pady=(4, 0))
+        ttk.Label(row, text='재촬영 이유 / 검토 메모').pack(side='left')
+        self.guide_note = tk.StringVar()
+        self.guide_note_entry = ttk.Entry(row, textvariable=self.guide_note)
+        self.guide_note_entry.pack(side='left', fill='x', expand=True, padx=(6, 0))
+        self.busy_controls.append((self.guide_note_entry, 'normal'))
+
+    def set_guide_choices(self):
+        values = [c['label'] for c in self.guide_config['conditions']] if self.guide_config else []
+        self.guide_condition.configure(values=values)
+        self.guide_condition.set(values[0] if values else '')
+
+    def refresh_guide(self):
+        guide = self.guide
+        if guide is None:
+            self.guide_title.set('촬영 조건 선택 → 조건 기록 → 새 안내 촬영')
+            if self.guide_config:
+                condition = self.guide_config['conditions'][max(0, self.guide_condition.current())]
+                self.guide_text.set(self.guide_config['setup']+'\n'+condition['instruction'])
+            else:
+                self.guide_text.set('제품 설정을 선택하세요. 기존 기록은 그대로 보존됩니다.')
+            return
+        if guide.complete:
+            self.guide_title.set(f'사람 검토 {guide.index}/{len(guide.config["steps"])} · 이 조건 완료')
+            self.guide_text.set(guide.config['completion_message'])
+        elif guide.pending_record:
+            self.guide_title.set(f'{guide.index+1}/{len(guide.config["steps"])} · 저장됨 / 사람 검토 대기')
+            self.guide_text.set('「최근 저장 사진 보기」로 원본을 확인하세요.\n'+guide.config['review_checks']+
+                '\n문제가 있으면 이유를 적고 「다시 촬영」. 원본은 삭제하지 않습니다.')
+        else:
+            scenario = guide.step['scenario']
+            self.scenario_combo.current(self.scenario_keys.index(scenario))
+            readiness = '준비 확인됨 · 한 장 저장을 누르세요' if guide.prepared else '실제 배치 후 준비 확인'
+            self.guide_title.set(f'{guide.index+1}/{len(guide.config["steps"])} · {self.labels.get(scenario, scenario)} · {readiness}')
+            self.guide_text.set(guide.condition['instruction']+'\n'+guide.step['instruction'])
+
+    def start_guide(self):
+        if self.pending is not None or self.closing:
+            return
+        def action():
+            if not self.conditions.get().strip():
+                raise capture.CaptureError('왼쪽 조건란에 실제 조명·높이·물체 방향을 먼저 기록하세요. 안내문은 실측 기록이 아닙니다.')
+            if self.guide and not self.guide.complete:
+                raise capture.CaptureError('현재 안내를 먼저 마치세요. 중단하려면 수동 새 묶음으로 전환하세요. 원본과 진행 기록은 보존됩니다.')
+            frame = self.camera.snapshot()
+            config, profile = self.guide_config, self.profile
+            condition_id = config['conditions'][self.guide_condition.current()]['id']
+            conditions, kind = self.conditions.get(), self.camera.source_kind
+            def create():
+                session = CollectionSession.create(self.output_root, profile, frame, conditions, source_kind=kind)
+                return GuidedRound.create(session, config, condition_id)
+            def done(guide):
+                self.scenario_combo.current(self.scenario_keys.index(guide.step['scenario']))
+                self.finish_session(guide.session)
+                self.guide = guide
+                guide.select_step()
+                self.guide_note.set('')
+                self.refresh_session()
+                self.refresh_guide()
+                self.message.set('새 안내 촬영 시작. 안내대로 실제 준비한 뒤 준비 확인을 누르세요. 자동 촬영하지 않습니다.')
+            self.job(create, done)
+        self.guard(action)
+
+    def prepare_guide(self):
+        if self.pending is not None or self.closing or not self.guide:
+            return
+        def action():
+            frame = self.camera.snapshot()
+            self.session.can_continue(self.profile, frame, self.conditions.get(), self.camera.source_kind)
+            if self.session_stream != frame.stream_id:
+                raise capture.CaptureError('연결/촬영 묶음을 다시 확인하세요.')
+            self.guide.prepare()
+            self.refresh_guide()
+            self.message.set('사람의 준비 확인을 받았습니다. 최신 프레임 수신 후 한 장 저장을 누르세요.')
+        self.guard(action)
+
+    def review_guide(self, accepted):
+        if self.pending is not None or self.closing or not self.guide:
+            return
+        guide, note = self.guide, self.guide_note.get()
+        def done(_):
+            self.guide_note.set('')
+            self.refresh_session()
+            self.refresh_guide()
+            self.message.set('사람 검토 기록 완료. '+('다음 안내를 확인하세요.' if accepted else '원본은 보존했습니다. 준비 확인 후 다시 찍으세요.'))
+        self.job(lambda: guide.review(accepted, note), done)
+
     def button(self, parent, text, command):
         button = ttk.Button(parent, text=text, command=command)
         button.pack(fill='x', pady=3)
@@ -180,7 +298,10 @@ class CaptureApp:
     def load_product(self, path):
         profile = capture.load_profile(path)
         name, labels = load_display(path, profile)
+        config = load_guide(path, profile)
         self.profile, self.labels = profile, labels
+        self.guide_config = config
+        self.set_guide_choices()
         self.product_text.set(f"{name}\n{profile['product_id']} · 설정 v{profile['profile_version']}")
         self.scenario_keys = list(profile['scenarios'])
         self.scenario_combo.configure(values=[f'{labels[k]} ({k})' for k in self.scenario_keys])
@@ -190,12 +311,14 @@ class CaptureApp:
 
     def clear_session(self):
         self.session, self.session_stream = None, None
+        self.guide = None
         self.recent_label.configure(image='', text='최근 저장 사진 없음', width=23, height=5)
         self.recent_photo = None
         self.last_text.set('원본 PNG와 촬영 기록은 검증 후 완료 표시됩니다.')
         self.session_text.set('새 촬영 묶음을 만들거나 기존 묶음을 여세요.')
         self.episode_text.set('배치: —')
         self.refresh_counts()
+        self.refresh_guide()
 
     def choose_product(self):
         path = filedialog.askopenfilename(title='제품 profile.json 선택', initialdir=PROJECT_ROOT/'training/datasets/proxy',
@@ -223,6 +346,9 @@ class CaptureApp:
     def disconnect(self):
         self.camera.disconnect()
         self.session_stream = None
+        if self.guide:
+            self.guide.prepared = False
+            self.refresh_guide()
         self.message.set('카메라 해제 중입니다. 재연결 후 새 묶음 또는 기존 묶음을 다시 확인하세요.')
 
     def job(self, operation, done):
@@ -247,11 +373,13 @@ class CaptureApp:
         self.guard(action)
 
     def finish_session(self, session):
+        self.guide = None
         self.session = session
         self.session_stream = self.camera.latest.stream_id if self.camera.latest is not None else None
         session.set_scenario(self.selected_scenario())
         self.refresh_session()
         self.message.set('새 촬영 묶음 준비 완료. 실제 배치와 상태를 확인한 뒤 한 장 저장을 누르세요.')
+        self.refresh_guide()
 
     def open_session(self):
         path = filedialog.askdirectory(title='촬영 묶음 폴더 선택 (manifest.jsonl이 있는 폴더)', initialdir=self.output_root)
@@ -263,20 +391,35 @@ class CaptureApp:
     def finish_open(self, session):
         self.session = session
         self.session_stream = None
+        self.guide = None
         if session.profile is not None:
             matching = self.profile is not None and capture.profile_digest(self.profile) == capture.profile_digest(session.profile)
             self.profile = session.profile
             if not matching:
                 self.labels = {k: k for k in session.profile['scenarios']}
+                self.guide_config = default_guide(session.profile)
             self.product_text.set(f"{session.profile['product_id']} · 저장된 설정 사본")
             self.scenario_keys = list(session.profile['scenarios'])
         else:
             self.profile = None
+            self.guide_config = None
             self.scenario_keys = list(capture.SCENARIOS)
             self.labels = {k: k for k in self.scenario_keys}
             self.product_text.set('기존 schema v1 · 검증/열람 전용')
         self.scenario_combo.configure(values=[f'{self.labels[k]} ({k})' for k in self.scenario_keys])
         self.scenario_combo.current(0)
+        guide_error = None
+        try:
+            self.guide = GuidedRound.open(session)
+            if self.guide:
+                self.guide_config = self.guide.config
+        except Exception as exc:
+            session.failed = True
+            guide_error = exc
+        self.set_guide_choices()
+        if self.guide:
+            self.guide_condition.current(next(i for i, c in enumerate(self.guide.config['conditions'])
+                                              if c['id'] == self.guide.condition['id']))
         if session.info:
             self.conditions.set(session.info['conditions'])
             frame = self.guard(self.camera.snapshot)
@@ -291,14 +434,23 @@ class CaptureApp:
                 except Exception as exc:
                     self.message.set(f'검증/열람 완료. 계속 촬영 불가: {exc}')
         session.set_scenario(self.selected_scenario())
+        if self.guide:
+            self.guide.select_step()
         self.refresh_session()
         self.show_recent()
+        self.refresh_guide()
         if self.session_stream is not None:
             self.message.set('기존 기록 검증 완료. 새 물체 배치로 이어서 촬영합니다.')
         else:
             self.message.set('기존 기록 검증/수량 복원 완료. 새 묶음으로 촬영하거나 연결·조건을 확인하고 다시 여세요.')
+        if guide_error:
+            self.message.set(f'안내 기록 복원 실패. 저장 차단 / 원본 보존: {session.folder}. {guide_error}')
 
     def change_scenario(self, event=None):
+        if self.guide:
+            self.refresh_guide()
+            self.message.set('안내 순서대로 촬영하세요. 자유 선택은 수동 새 묶음에서 가능합니다.')
+            return
         if self.session:
             self.guard(lambda: self.session.set_scenario(self.selected_scenario()))
             self.refresh_session()
@@ -306,8 +458,14 @@ class CaptureApp:
 
     def new_episode(self):
         if self.session:
+            if self.guide:
+                if self.guide.pending_record or self.guide.complete:
+                    self.message.set('현재 사진 검토를 먼저 마치거나 새 안내 촬영을 시작하세요.')
+                    return
+                self.guide.prepared = False
             self.guard(self.session.new_episode)
             self.refresh_session()
+            self.refresh_guide()
             self.message.set('새 배치로 구분했습니다. 실제 재배치 후 한 장 저장을 누르세요.')
         else:
             self.message.set('촬영 묶음을 먼저 만드세요.')
@@ -335,14 +493,18 @@ class CaptureApp:
                 raise capture.CaptureError('연결이 바뀌었습니다. 묶음을 새로 만들거나 기존 조건을 확인하고 다시 여세요.')
             self.session.can_continue(self.profile, frame, self.conditions.get(), self.camera.source_kind)
             session = self.session
+            saver = self.guide if self.guide else session
             self.message.set('한 장 저장 중… PNG·기록·재로드·해시를 확인합니다.')
-            self.job(lambda: session.save(frame), self.saved)
+            self.job(lambda: saver.save(frame), self.saved)
         self.guard(action)
 
     def saved(self, path):
         self.refresh_session()
         self.show_recent()
         self.message.set(f'저장 완료 · 원본 PNG 및 기록 검증 성공: {path}')
+        self.refresh_guide()
+        if self.guide:
+            self.message.set(f'저장 완료 · 파일 검증 성공 / 사람 품질 검토 대기: {path}')
 
     def show_recent(self):
         if self.session and self.session.last_path:
@@ -374,8 +536,20 @@ class CaptureApp:
         self.disconnect_button.configure(state='normal' if not busy and self.camera.process is not None else 'disabled')
         fresh = self.camera.state == 'connected' and self.camera.latest is not None and self.camera.latest.fresh()
         ready = self.session is not None and not self.session.failed and not self.session.read_only
-        self.save_button.configure(state='normal' if fresh and ready and not busy and self.session_stream is not None else 'disabled')
+        guide = self.guide
+        guide_ready = guide is None or (guide.prepared and not guide.pending_record and not guide.complete)
+        self.save_button.configure(state='normal' if fresh and ready and guide_ready and not busy and self.session_stream is not None else 'disabled')
         self.new_button.configure(state='normal' if fresh and self.profile is not None and not busy else 'disabled')
+        choose = not busy and (guide is None or guide.complete)
+        self.guide_condition.configure(state='readonly' if choose and self.guide_config else 'disabled')
+        self.guide_start.configure(state='normal' if choose and fresh and self.guide_config else 'disabled')
+        preparing = guide and not guide.pending_record and not guide.complete
+        self.guide_ready.configure(state='normal' if preparing and ready and fresh and not busy and self.session_stream else 'disabled')
+        reviewing = guide and guide.pending_record and ready and not busy
+        self.guide_accept.configure(state='normal' if reviewing else 'disabled')
+        self.guide_reject.configure(state='normal' if reviewing else 'disabled')
+        if guide:
+            self.scenario_combo.configure(state='disabled')
 
     def tick(self):
         self.camera.poll()
@@ -383,6 +557,7 @@ class CaptureApp:
             future, done = self.pending, self.on_done
             self.pending = self.on_done = None
             self.guard(lambda: done(future.result()))
+            self.refresh_guide()
         if self.closing:
             if self.pending is None and self.camera.process is None:
                 self.executor.shutdown(wait=False)
@@ -414,6 +589,9 @@ class CaptureApp:
             self.last_preview_token = None
             if self.camera.state in ('error', 'disconnected'):
                 self.session_stream = None
+                if self.guide and self.guide.prepared:
+                    self.guide.prepared = False
+                    self.refresh_guide()
         self.update_controls()
         self.root.after(50, self.tick)
 

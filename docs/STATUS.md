@@ -5,13 +5,15 @@ Completed:
 V0-T01, PLAN-REVISION-001, PLAN-AUDIT-001, V0-T02, V0-T03, V0-T04
 HUMAN-CAPTURE-001-PREP: DONE / VERIFIED (촬영 준비 범위)
 WINDOWS-CAPTURE-001: DONE / VERIFIED (소프트웨어 + 최초 실제 USB 촬영 흐름)
+WINDOWS-CAPTURE-002: DONE / VERIFIED (제품별 안내 촬영 소프트웨어)
 
 Current Task:
-WINDOWS-CAPTURE-001 — Windows 노트북 USB 카메라 촬영 화면
+WINDOWS-CAPTURE-002 — 제품별 배치·조명 안내와 사람 검토 게이트
 
 State:
-DONE / VERIFIED — HCAM01L 실제 연결·미리보기·네 상태4장 저장·해제/재연결·기존 수량 복원 검증 완료.
-학습용 데이터 준비 완료를 뜻하지 않는다. 촬영 환경/품질과 확대 수집 계획 검토가 다음 단계다.
+DONE / VERIFIED — 제품별 안내, 준비 확인, 저장 후 사람 검토, 재촬영 원본 보존, 진행 복원 구현.
+111/111 자동 테스트 및 실제 Tk 창의 합성 입력 흐름 확인. 새 안내에 따른 실물 촬영은 사용자 실행 대기.
+학습용 데이터 준비 완료를 뜻하지 않는다. 기존 WINDOWS-CAPTURE-001의 실제 네 장 검증은 보존한다.
 
 Product Selection:
 완료: earbud_case_v0 — 열린 케이스 안의 실제 L/R 이어폰
@@ -21,6 +23,8 @@ JSON profile 선택, v1 호환 + v2 설정 사본/해시, 네 시나리오 지�
 Windows 촬영 창: 제품/상태 선택, DSHOW/MSMF 후보 선택, 실시간 미리보기,
 원본 PNG 한 장 저장, 묶음/배치 관리, 기존 기록 검증·수량 복원.
 Windows 전체 92/92 테스트 성공 (기존 56개 보존 + 추가 36개).
+후속 안내 기능: capture-guide.json, 조건별 새 묶음, 모든 상태의 단계 안내, 준비/원본 검토 게이트.
+새 전체 테스트 111/111 (원래 92개 + 안내 기능 19개). 검토 기록은 버전 있는 별도 JSONL이며 기존 manifest는 유지한다.
 실제 Tk 창의 합성 입력 검증 이후, HCAM01L / DSHOW 후보2 / 1280×720 / MJPG 영상 수신과 PNG 저장을 확인했다.
 장치 보고 FPS는 미확인(null)이다. 후보 번호는 현재 열거 결과이며 영구 장치 identity가 아니다.
 실행: scripts/start_capture_windows.cmd (기존 프로젝트 .venv, 추가 설치 없음).
@@ -43,11 +47,14 @@ TODO / NOT STARTED — 실제 촬영과 사진 검토 전 시작하지 않음
 
 Next Task:
 HUMAN-CAPTURE-001 — Windows 노트북 + USB 카메라
-첫 네 장을 검토하고 조명·카메라 고정·구도 및 추가 수집 규모를 결정한다.
+기존 네 장을 참고해 조명·카메라 고정·구도를 정하고 앱의 「기준 구도·조명 확인 → 새 안내 촬영」으로 진행한다.
+실제 조건을 기록하고, 배치 준비 확인 → 한 장 저장 → 원본 검토를 사람이 수행한다. 필요할 때 다음 조건을 선택한다.
 카메라 높이/각도와 기준 조명을 먼저 정하고, 각 허용 조명·물체 위치/방향 조건마다 네 상태를 고르게 수집한다.
 같은 배치의 burst로 수량을 채우지 않으며 실제 상태와 환경 변화가 뒤섞이지 않게 session/episode를 보존한다. T05는 자동 시작하지 않는다.
 
 Evidence / Boundaries:
+- 안내 촬영 계약: tasks/windows-capture-002.md; 검증: docs/verification/WINDOWS-CAPTURE-002.txt.
+- 기존 실제 PNG 4장과 manifest/session-info 총6개 파일 SHA256 일치. 이 사진은 안내 완료 건수로 소급 집계하지 않는다.
 - 현재 촬영 화면 계약: tasks/windows-capture-001.md; 사용 안내: training/capture_windows/README_KR.md.
 - 현재 검증: docs/verification/WINDOWS-CAPTURE-001.txt. 92/92 PASS, 보호 tracked 파일 150개 해시 일치, 설치 패키지 42개 버전 유지.
 - 후속 실기기 검증: docs/verification/WINDOWS-CAPTURE-001-HARDWARE.json. 실제4장과 state/episode/크기/SHA256 연결, 재연결/GUI 수량 복원 확인. 단순 장치 목록 인식과 실제 프레임 수신·저장을 구분한다.

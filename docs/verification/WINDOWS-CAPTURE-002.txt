@@ -1,0 +1,61 @@
+WINDOWS-CAPTURE-002 — 제품별 안내 촬영
+Date (local): 2026-09-13
+Location: Windows PC / D:\OneDevice_Team_project
+Baseline: 8536ab470cb4583a67d86ba844f36459ca164649
+Software result: VERIFIED
+New guided physical capture: USER ACTION REQUIRED / NOT EXECUTED
+
+Reuse / boundaries:
+Existing CameraClient and CollectionSession.save -> make_record -> save_capture -> verify_session.
+capture_proxy.py, verify_proxy_captures.py, camera.py, session.py and profile/manifest schemas unchanged.
+Product guide JSON is separate from ground-truth profile.json. No AI prediction or image-quality classifier.
+No new dependency, Jetson, CAD, labeling, split, training, model, DB, HMI, PLC or global Skill/Hook changes.
+V0-T05: TODO / NOT STARTED, preserved.
+
+Automatic verification:
+Command: .venv\Scripts\python.exe -X utf8 -m unittest discover -s tests -v
+Total 111 / PASS 111 / FAIL 0 / SKIP 0
+Final run: 11.654 seconds, exit 0.
+Original 92 retained; added 11 guide/domain tests + 8 actual-Tk tests with injected sample camera.
+All synthetic files are temporary or under ignored runs/windows-capture-002; no real camera opened by tests.
+
+Verified cases:
+- Profile-configured complete state sequence and generic fictional product without earbud-only code.
+- Physical preparation required; frames received before confirmation blocked; original PNG pixels preserved.
+- One pending save only; verified PNG -> pending human review -> accepted next state / rejected retry.
+- NORMAL/MISSING_LEFT/MISSING_RIGHT/MISSING_BOTH removal lists correct, case retained.
+- Rejected PNG retained, reason required, same physical episode retained unless user rearranges.
+- One condition per new session; prior manual photos never retroactively counted as guided captures.
+- Frozen guide config/hash/profile/session binding restored; readiness is never persisted/restored.
+- Termination after verified save but before UI notification restores pending review without recapture.
+- Corrupt/partial/mismatched guide or review data blocks progress; no deletion/automatic repair.
+- Storage/review fsync failures preserve originals and do not claim a new successful step.
+- Disconnect/rearrangement resets readiness; changed conditions prevent save in previous session.
+- Camera cleanup and all original v1/v2/backend/stale-frame/overwrite tests retained.
+
+Visual verification:
+Opened actual Windows Tk window with injected synthetic camera (no device input).
+Observed readable setup instructions, guide condition selector, disabled save before readiness,
+enabled save after readiness, pending-review state and next MISSING_LEFT physical instructions.
+One synthetic 1280x720 PNG verified with existing verifier; one synthetic review accepted.
+Synthetic session: runs/windows-capture-002/gui-synthetic/S20260912T181429_CFDCB6A8
+source_kind=sample. This is not human image-quality acceptance or a real dataset capture.
+Test fixture closed normally after inspection.
+Existing production window was closed normally to release its camera, then the unchanged launcher
+opened the updated app. Explicit DSHOW candidate2 / 1280x720 reconnected; live MJPG preview and
+the guide panel were observed together. FPS remained unreported. No guided session or new real PNG
+was created. Current physical setup/lighting quality was not accepted on the user's behalf.
+
+Preservation:
+Original session: data/proxy/raw/S20260912T171113_B362774D
+4 PNG + manifest.jsonl + session-info.json: 6/6 SHA256 unchanged.
+Original verify_session: captures=4. GuidedRound.open returns None for this prior manual session.
+Raw data and runs ignored; unrelated existing untracked optical CAD work and user photos preserved.
+git diff --check: PASS.
+
+Limitations:
+Guide is deterministic human instructions, not proof of physical preparation/lighting/angle/quality.
+No fixed sufficient training count; each condition round only checks all product states once.
+Saved counts include retained rejected images. Review decisions must inform later dataset review.
+No automatic label/split/training or rejection deletion is performed.
+Actual new guided lighting/pose sessions and their dataset quality remain unverified.
