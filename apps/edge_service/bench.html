@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jetson 이어폰 BENCH</title>
+<style>
+body{font:16px system-ui;background:#111827;color:#e5e7eb;margin:24px auto;max-width:1400px;padding:0 20px}h1{font-size:25px}small{color:#aebbd0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{background:#1f2937;padding:18px;border-radius:12px}img{width:100%;min-height:160px;object-fit:contain;background:#080e18}button{padding:12px 18px;margin:10px 8px 10px 0;border:0;border-radius:7px;background:#60a5fa;color:#101827;font-weight:700;font-size:16px}button:disabled{opacity:.35}#verdict{font-size:25px;font-weight:bold}#reason{line-height:1.7}label{display:block;padding:15px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.warning{color:#fcd34d;line-height:1.6}.badge{background:#334155;padding:6px 10px;border-radius:6px}details{margin-top:12px}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+</style>
+<h1>이어폰 검사 · Jetson BENCH</h1><p><span class="badge">실제 USB · Jetson GPU 추론</span> <span id="state">연결 중</span></p>
+<div class="grid"><section class="card"><h2>현재 카메라 미리보기</h2><img id="preview" alt="Jetson USB 실시간 영상"><p id="camera"></p></section>
+<section class="card"><h2>마지막 저장 검사 결과</h2><img id="result" alt="아직 저장 검사 결과 없음"><p id="verdict">미검사</p><p id="reason"></p><small id="time"></small><pre id="detections"></pre></section></div>
+<label><input id="visible" type="checkbox"> 케이스가 열려 있고 두 자리가 보이며 손을 뗐습니다.</label>
+<button id="inspect" disabled>검사하기</button><button id="calibrate" disabled>정상 기준 자리 촬영</button><button id="confirm" hidden>보라색 기준 자리 확인 완료</button>
+<p id="message" role="status"></p><p class="warning" id="limits"></p>
+<p>초록색: 실제 검출 · 보라색: 확인할 검사 자리(검출 박스가 아님). 케이스/카메라 위치를 바꾸면 기준을 다시 확인하세요.</p>
+<details><summary>모델·장치·저장 기록</summary><pre id="metadata"></pre></details>
+<script>
+const token='__TOKEN__', $=id=>document.getElementById(id);let current=null,lastResult='',sending=false;
+async function post(path,body){sending=true;try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Bench-Token':token},body:JSON.stringify(body)});const v=await r.json();if(!r.ok)throw Error(v.error);$('message').textContent='요청을 처리하고 있습니다.';if(path!='/api/confirm-calibration')$('visible').checked=false;return v}catch(e){$('message').textContent=e.message}finally{sending=false;poll()}}
+$('inspect').onclick=()=>post('/api/inspect',{visibility_confirmed:$('visible').checked});
+$('calibrate').onclick=()=>post('/api/calibrate',{visibility_confirmed:$('visible').checked});
+$('confirm').onclick=()=>post('/api/confirm-calibration',{request_id:current.calibration_candidate.request_id});
+$('visible').onchange=()=>updateButtons();
+function updateButtons(){const ready=current&&current.state==='READY'&&!sending;$('inspect').disabled=!(ready&&current.calibration_confirmed&&$('visible').checked);$('calibrate').disabled=!(ready&&$('visible').checked);$('confirm').hidden=!(ready&&current.calibration_candidate&&!current.calibration_confirmed)}
+async function poll(){try{const r=await fetch('/api/status');current=await r.json();$('state').textContent=current.state+(current.error?' · '+current.error:'');$('camera').textContent=current.camera_current?'현재 영상 수신 중':'현재 영상 없음 / 마지막 결과는 과거 검사 기록입니다.';if(current.camera_current)$('preview').src='/preview.jpg?t='+Date.now();else $('preview').removeAttribute('src');$('limits').textContent=current.limitations;$('metadata').textContent=JSON.stringify({backend:current.backend,model_sha256:current.model_sha256,config_sha256:current.config_sha256,calibration_confirmed:current.calibration_confirmed},null,2);const v=current.last_result;if(v){$('verdict').textContent=({PASS:'정상',FAIL:'불량',REVIEW:'재확인',ERROR:'시스템 오류'})[v.status];$('verdict').style.color=({PASS:'#86efac',FAIL:'#fca5a5',REVIEW:'#fde68a',ERROR:'#fb923c'})[v.status];$('reason').textContent=v.reason;$('time').textContent=(v.completed_at?new Date(v.completed_at).toLocaleString():'')+' · '+(v.storage_success?'파일 저장 완료':'검사 저장 완료 아님');$('detections').textContent=(v.observations?.at(-1)?.detections||[]).map(d=>d.class_name+' '+d.confidence.toFixed(3)).join('\n');if(v.request_id!==lastResult){lastResult=v.request_id;if(v.storage_success)$('result').src='/result.jpg?t='+lastResult;else $('result').removeAttribute('src');$('message').textContent='';}}updateButtons()}catch(e){$('state').textContent='연결 끊김';$('preview').removeAttribute('src');$('inspect').disabled=true;$('calibrate').disabled=true;$('confirm').hidden=true}}
+poll();setInterval(poll,700);
+</script></html>

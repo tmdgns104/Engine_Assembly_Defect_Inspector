@@ -1,0 +1,23 @@
+{
+  "task": "GitHub latest checkpoint publication",
+  "repository": "tmdgns104/Engine_Assembly_Defect_Inspector",
+  "branch": "master",
+  "visibility_observed": "PUBLIC",
+  "authorization": "2026-09-14 explicit user request to update GitHub",
+  "verification": {
+    "full_suite": "PASS",
+    "tests": 185,
+    "seconds": 50.302,
+    "command": ".venv/Scripts/python.exe -B -X utf8 -m unittest discover -s tests -v",
+    "after_test_directory_portability_fix": {"tests": 11, "seconds": 0.200, "result": "PASS"},
+    "credential_pattern_findings": 0,
+    "reachable_history_objects_examined": 537,
+    "historical_archives": 0,
+    "audit_scope": "Selected new/changed text files and reachable historical text blobs; heuristic credential patterns, file types and sizes. Not a proof of absence of all sensitive data.",
+    "protected_raw_or_sealed_paths_opened": 0
+  },
+  "included": ["capture fixes", "label conversion and grouped split", "baseline training/evaluation code and verified text evidence", "ROI preparation/config and actual run metadata", "Jetson GPU BENCH adapters/app/config/tests", "current task/status"],
+  "preserved_locally_excluded": ["raw photos", "model binaries", "generated overlays", "runtime logs and inspection records", "SSH keys", "unrelated CAD edits and archives", "temporary ROI scripts", "copied baseline reports inside ROI experiment", "historical MODEL_SELECTION with unverified model/Fast settings"],
+  "live_acceptance": "Jetson GPU four-image smoke and USB preview verified; user calibration/live four-state/disconnect tests remain pending",
+  "publication_receipt": "Use Git commit history and remote master SHA verification; this file records pre-publication checks."
+}

@@ -1,0 +1,63 @@
+{
+  "status": "PASS",
+  "recorded_at": "2026-09-13T11:12:23.617589+00:00",
+  "event_count": 812,
+  "last_event_sha256": "96be4185d20bd6e7b3b563a34b3c0388a4cb2364a50557292ec00fb29d5f490b",
+  "source_export": "data\\proxy\\raw\\collections\\C2709B20787804587\\exports\\EXPORT6F74307E8E314691",
+  "raw_png_count": 222,
+  "session_count": 49,
+  "main_accepted": 180,
+  "pending": 0,
+  "retained_retake": 28,
+  "train_images": 120,
+  "validation_images": 60,
+  "b03_conditions": {
+    "BASE": 20,
+    "DIM": 20,
+    "OPPOSITE": 20
+  },
+  "b03_scenarios": {
+    "NORMAL": 15,
+    "MISSING_LEFT": 15,
+    "MISSING_RIGHT": 15,
+    "MISSING_BOTH": 15
+  },
+  "b03_accepted_batches": 15,
+  "rounds_started": [
+    {
+      "round_id": "B01",
+      "origin_group_id": "OG1023298FB0FC4631",
+      "purpose": "train_candidate",
+      "independence_human_declared": false,
+      "independence_verified": false,
+      "setup_id": "SETUP084A2BC557524A14"
+    },
+    {
+      "round_id": "B02",
+      "origin_group_id": "OG1023298FB0FC4631",
+      "purpose": "train_candidate",
+      "independence_human_declared": false,
+      "independence_verified": false,
+      "setup_id": "SETUP084A2BC557524A14"
+    },
+    {
+      "round_id": "B03",
+      "origin_group_id": "OG697C8F89699D4572",
+      "purpose": "validation_candidate",
+      "independence_human_declared": true,
+      "independence_verified": false,
+      "setup_id": "SETUP084A2BC557524A14"
+    }
+  ],
+  "exact_hash_overlap": 0,
+  "origin_group_overlap": 0,
+  "reviewed_train_output_pairs_verified": 120,
+  "b03_box_reviewed": 0,
+  "dataset_yaml_created": false,
+  "real_data_training_started": false,
+  "limitations": [
+    "Physical independence is human declared, not automatically proven.",
+    "B03 capture review does not approve detection boxes.",
+    "Existing T02 smoke artifacts are not training on this real dataset."
+  ]
+}

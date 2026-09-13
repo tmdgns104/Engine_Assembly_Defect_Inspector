@@ -6,6 +6,7 @@ import tempfile
 from threading import Event
 import time
 import tkinter as tk
+from tkinter import ttk
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -15,6 +16,7 @@ import numpy as np
 
 from training.capture_windows.wizard import Collection
 from training.capture_windows.wizard_app import WizardApp
+from training.capture_windows.wizard_views import progress_window
 from test_dataset_wizard import wizard_frame
 
 
@@ -79,9 +81,9 @@ class WizardWindowTests(unittest.TestCase):
         self.app = self.root = None
         gc.collect()
 
-    def configure(self):
+    def configure(self, lamp=False):
         self.camera.connect()
-        col = Collection.create(self.app.output_root, self.app.profile, self.app.guide, self.app.plan, False, 'sample')
+        col = Collection.create(self.app.output_root, self.app.profile, self.app.guide, self.app.plan, lamp, 'sample')
         col.new_setup(self.camera.snapshot(), [.3, .25, .35, .4], 'screen_left_is_physical_left')
         self.app.collection = col
         self.app.roi = [.3, .25, .35, .4]
@@ -91,11 +93,114 @@ class WizardWindowTests(unittest.TestCase):
         return col
 
     def photograph(self):
+        if self.app.lighting_window:
+            self.app.lighting_window.confirmed.set(True)  # Synthetic physical-preparation input.
+            self.app.lighting_window.confirm()
         self.camera.seed += 1
         count = len(self.app.collection.attempts)
         self.app.ready()
         self.app.ready()  # duplicate readiness cannot arm another image
         self.pump(lambda: not self.app.future and not self.app.gate and len(self.app.collection.attempts) == count+1)
+
+    def advance_synthetic(self, predicate):
+        """Build bounded sample-only fixtures without touching physical devices."""
+        col = self.app.collection
+        for sequence in range(1, 50):
+            action = col.next_action()
+            if predicate(action):
+                return action
+            kind = action['kind']
+            if kind in ('reference', 'capture'):
+                frame = wizard_frame(sequence)
+                col.save_prepared(col.prepare(frame, now=time.monotonic()-2), frame)
+            elif kind == 'setup_review':
+                col.confirm_setup(True)
+            elif kind == 'review':
+                col.accept_batch(action['block']['block_id'], True)
+            elif kind == 'round':
+                col.begin_round(False)
+            elif kind == 'quality':
+                col.acknowledge_quality(action['attempt']['attempt_id'], True)
+            else:
+                self.fail(f'Unexpected fixture action: {kind}')
+        self.fail('Synthetic fixture exceeded bound')
+
+    def test_confirmed_block_reopens_without_acceptance_and_retake_preserves_history(self):
+        col = self.configure()
+        self.advance_synthetic(lambda a: a['kind'] == 'capture' and a['block']['phase'] == 'main'
+                               and a['block']['placement_id'] == 'LEFT')
+        block_id = 'main_B01_BASE_CENTER'
+        ids = list(col.accepted[block_id].values())
+        paths = [col.folder/'sessions'/col.attempts[aid]['record']['image_path'] for aid in ids]
+        originals = [p.read_bytes() for p in paths]
+        self.app.paused = True
+        count = len(col.log.events)
+        progress = progress_window(self.app)
+        tree = next(w for w in progress.winfo_children() if isinstance(w, ttk.Treeview))
+        row = next(i for i in tree.get_children() if tree.item(i, 'values')[:4] == ('main', 'B01', 'BASE', 'CENTER'))
+        tree.selection_set(row)
+        controls = next(w for w in progress.winfo_children() if isinstance(w, ttk.Frame))
+        next(w for w in controls.winfo_children() if isinstance(w, ttk.Button)).invoke()
+        review = self.app.review_window
+        self.assertEqual(review.ids, ids)
+        self.assertEqual(len(col.log.events), count)
+        self.assertIn('disabled', review.accept_button.state())
+        review.confirmed.set(True)
+        review.accept()
+        self.assertEqual(len(col.log.events), count)
+        review.selected[0].set(True)
+        review.reason.set('조명 조건 불일치')
+        review.retake()
+        self.pump(lambda: not self.app.future)
+        self.assertNotIn(block_id, col.accepted)
+        self.assertEqual(col.next_action()['scenario'], 'NORMAL')
+        self.assertEqual(col.summary()['main_accepted'], 0)
+        self.assertEqual(col.summary()['pending'], 3)
+        self.assertEqual([p.read_bytes() for p in paths], originals)
+        self.assertEqual(col.log.events[-1]['type'], 'attempt_rejected')
+        folder = col.folder
+        col.close()
+        self.app.collection = Collection.open(folder)
+        self.assertNotIn(block_id, self.app.collection.accepted)
+        self.assertEqual(self.app.collection.attempts[ids[0]]['rejection_reason'], '조명 조건 불일치')
+
+    def test_lighting_confirmation_never_captures_and_repeats_on_change_or_resume(self):
+        col = self.configure(lamp=True)
+        self.advance_synthetic(lambda a: a['kind'] == 'capture')
+        self.app.refresh()
+        lighting = self.app.lighting_window
+        self.assertIsNotNone(lighting)
+        count = len(col.attempts)
+        self.app.ready()
+        lighting.confirm()
+        self.assertIs(self.app.lighting_window, lighting)
+        self.assertIsNone(self.app.gate)
+        lighting.confirmed.set(True)
+        lighting.confirm()
+        self.assertIsNone(self.app.lighting_window)
+        self.assertEqual(len(col.attempts), count)
+        self.assertIsNone(self.app.gate)
+        action = col.next_action()
+        self.assertFalse(self.app.needs_lighting(action))
+        self.advance_synthetic(lambda a: a['kind'] == 'capture' and a['block']['condition_id'] == 'DIM')
+        self.app.refresh()
+        self.assertIsNotNone(self.app.lighting_window)
+        self.assertIn('밝기를 조금 낮추거나', '\n'.join(
+            w.cget('text') for w in self.app.lighting_window.window.winfo_children() if isinstance(w, ttk.Label)))
+        count = len(col.attempts)
+        self.app.ready()
+        self.assertIsNone(self.app.gate)
+        self.app.lighting_window.confirmed.set(True)
+        self.app.lighting_window.confirm()
+        self.assertEqual(len(col.attempts), count)
+        self.app.pause()
+        self.app.paused = False
+        self.app.refresh()
+        self.assertIsNotNone(self.app.lighting_window)
+        self.app.lighting_window.cancel()
+        self.assertTrue(self.app.paused)
+        self.assertEqual(len(col.attempts), count)
+        self.assertIsNone(self.app.gate)
 
     def test_initial_start_has_no_camera_access_and_advanced_is_closed(self):
         self.root.update()

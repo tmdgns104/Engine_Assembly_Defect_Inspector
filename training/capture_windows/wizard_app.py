@@ -22,7 +22,7 @@ from .session import connection_matches, load_display
 from .wizard import Collection
 from .wizard_plan import expand_plan, load_plan, target_roi
 from .wizard_quality import CaptureGate, WARNING_TEXT, overlay
-from .wizard_views import ReviewWindow, progress_window
+from .wizard_views import LightingWindow, ReviewWindow, progress_window
 from .wizard_store import WriterLock
 
 
@@ -35,6 +35,7 @@ class WizardApp:
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='wizard-storage')
         self.future = self.on_done = self.gate = self.ticket = None
         self.review_window = None
+        self.lighting_window = self.lighting_key = None
         self.paused, self.closing, self.closed, self.manual_requested = True, False, False, False
         self.space_down, self.resume_verified = False, False
         self.roi, self.drag_start, self.preview_box = None, None, None
@@ -404,10 +405,15 @@ class WizardApp:
         return 'break'
 
     def ready(self):
-        if self.paused or self.future or self.gate or self.review_window or self.closing or not self.resume_verified:
+        if (self.paused or self.future or self.gate or self.review_window or self.lighting_window
+                or self.closing or not self.resume_verified):
             return
         def action():
-            if self.collection.next_action()['kind'] not in ('reference', 'capture'):
+            next_action = self.collection.next_action()
+            if next_action['kind'] not in ('reference', 'capture'):
+                return
+            if self.needs_lighting(next_action):
+                self.show_lighting(next_action)
                 return
             frame = self.camera.snapshot()
             self.ticket = self.collection.prepare(frame)
@@ -419,6 +425,9 @@ class WizardApp:
         self.guard(action)
 
     def pause(self):
+        if self.lighting_window:
+            self.lighting_window.close()
+        self.lighting_key = None
         if self.gate:
             self.gate.cancel()
         self.gate, self.ticket, self.paused = None, None, True
@@ -433,6 +442,33 @@ class WizardApp:
         action = self.collection.next_action()
         if action['kind'] in ('review', 'setup_review'):
             self.review_window = ReviewWindow(self, action)
+
+    def show_saved_review(self, block_id):
+        """Reopen a confirmed block without adding another human acceptance."""
+        if (self.future or self.gate or self.review_window or self.lighting_window or self.closing
+                or not self.collection or self.collection.failed):
+            self.message.set('촬영·저장·검토가 끝난 뒤 다시 여세요.')
+            return False
+        if block_id not in self.collection.accepted:
+            self.message.set('이미 사람 확인을 마친 묶음의 행을 선택하세요.')
+            return False
+        block = self.collection.block_by_id[block_id]
+        self.review_window = ReviewWindow(self, {'kind': 'review', 'block': block, 'historical': True})
+        return True
+
+    def lighting_context(self, action):
+        block = action['block']
+        return (str(self.collection.folder), self.collection.setup_id,
+                block['phase'], block['round_id'], block['condition_id'])
+
+    def needs_lighting(self, action):
+        return action['kind'] == 'capture' and self.lighting_key != self.lighting_context(action)
+
+    def show_lighting(self, action):
+        condition = next(c for c in self.collection.effective['conditions']
+                         if c['id'] == action['block']['condition_id'])
+        self.lighting_window = LightingWindow(self, condition, self.lighting_context(action))
+        self.ready_button.configure(state='disabled')
 
     def quality_dialog(self, action):
         a = action['attempt']
@@ -492,7 +528,7 @@ class WizardApp:
     def refresh(self):
         if self.closed:
             return
-        busy = bool(self.future or self.gate or self.closing)
+        busy = bool(self.future or self.gate or self.closing or self.lighting_window)
         self.start_button.configure(state='disabled' if busy else 'normal')
         action = self.collection.next_action() if self.collection and not self.future else {'kind': 'working'}
         kind = action['kind']
@@ -539,6 +575,9 @@ class WizardApp:
             self.title.set(titles.get(kind, '진행 기록 확인'))
             self.instruction.set('다음은 사진 속 부품 위치를 표시하는 라벨링입니다. 모델 학습과 정확도 평가는 아직 하지 않았습니다.'
                                  if summary['complete'] else '저장과 사람 확인은 별도입니다. 안내창을 닫았다면 시작 / 이어하기를 누르세요. 생략 조건은 고급 설정에서 다시 안내할 수 있습니다.')
+        if not self.paused and not busy and not self.review_window and self.needs_lighting(action):
+            self.show_lighting(action)
+            return
         key = (kind, action.get('role_id'), action.get('block', {}).get('block_id'), action.get('attempt', {}).get('attempt_id'))
         if not self.paused and not busy and key != self.last_action_key:
             self.last_action_key = key

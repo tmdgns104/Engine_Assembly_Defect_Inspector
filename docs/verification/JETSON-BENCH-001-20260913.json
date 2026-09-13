@@ -1,0 +1,122 @@
+{
+  "task": "JETSON-BENCH-001",
+  "status": "IN_PROGRESS_AWAITING_HUMAN_LIVE_TEST",
+  "environment": {
+    "hostname": "jetson-07",
+    "machine": "aarch64",
+    "python": "3.10.12",
+    "l4t": "36.4.7",
+    "torch": "2.8.0",
+    "cuda_build": "12.6",
+    "ultralytics": "8.4.118",
+    "opencv": "4.8.0",
+    "tensorrt_installed_unused": "10.3.0"
+  },
+  "backend": "PyTorch CUDA",
+  "device": "cuda:0",
+  "deployment_hashes_match": {
+    "best.pt": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+    "src/contracts/enums.py": "a0d0051f8318e8382a5f337d6b383278392753303455e34450eef338c1f279f2",
+    "src/vision/pytorch_detector.py": "6ac0c30d3e9ae9f7a48728433916db4668bd4e1870420127fecd2e03ada27e1c",
+    "src/camera/gstreamer_camera.py": "73c353c25d84e89408a2c8d8e911d1f0673ab31cc79faf6f9d0ce34d005658f4",
+    "src/decision/bench.py": "f126194cb16cf77346552afacc80025f857765e1b4a579b886cbd7dbc7a3318e",
+    "apps/edge_service/bench.py": "6a9295c06ea5dbee338e25b0aecded9ca6286ba7d2277b826c65d158d62974eb",
+    "apps/edge_service/bench.html": "f2ed76bee579eb299071935bd156d36304bff4c4d2316dae98b2734ce28cc301",
+    "config/earbud_bench.json": "1ac7acfd9b5ac7580b957636277827f90b40f093de04fbc581ca904c52b56629"
+  },
+  "onnx_parity": "NOT_RUN_PT_PATH",
+  "b03_smoke": [
+    {
+      "scenario": "NORMAL",
+      "expected": [
+        "case",
+        "earbud_left",
+        "earbud_right"
+      ],
+      "actual": [
+        "case",
+        "earbud_left",
+        "earbud_right"
+      ],
+      "pass": true,
+      "capture_id": "S20260913T105513_310760CD_E0001_20260913T105513044578Z_959de408cf35"
+    },
+    {
+      "scenario": "MISSING_LEFT",
+      "expected": [
+        "case",
+        "earbud_right"
+      ],
+      "actual": [
+        "case",
+        "earbud_right"
+      ],
+      "pass": true,
+      "capture_id": "S20260913T105513_310760CD_E0002_20260913T105601091459Z_7cd22c7c723b"
+    },
+    {
+      "scenario": "MISSING_RIGHT",
+      "expected": [
+        "case",
+        "earbud_left"
+      ],
+      "actual": [
+        "case",
+        "earbud_left"
+      ],
+      "pass": true,
+      "capture_id": "S20260913T105513_310760CD_E0003_20260913T105612982175Z_600660995f59"
+    },
+    {
+      "scenario": "MISSING_BOTH",
+      "expected": [
+        "case"
+      ],
+      "actual": [
+        "case"
+      ],
+      "pass": true,
+      "capture_id": "S20260913T105513_310760CD_E0004_20260913T105621701009Z_645e5af4f2d1"
+    }
+  ],
+  "model_startup_ms": 5467.882243000531,
+  "smoke_predict_ms_including_first_call_initialization": [
+    5888.438840000163,
+    58.60984099945199,
+    51.75499600045441,
+    57.46361199999228
+  ],
+  "timing_scope": "4 smoke images; not a latency benchmark. First prediction is cold; remaining 3 are warm.",
+  "camera": {
+    "timestamp_frames": 12,
+    "increasing_pts": true,
+    "min_age_seconds": 0.034935144,
+    "max_age_seconds": 0.046719419,
+    "sensor_exposure_timestamp_verified": false,
+    "pipeline": "v4l2src device=\"/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index0\" do-timestamp=false ! image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR ! appsink name=frames max-buffers=1 drop=true sync=false"
+  },
+  "automatic_tests": {
+    "windows_contracts": 19,
+    "jetson_contracts": 19,
+    "windows_bench": 11,
+    "jetson_bench": 11,
+    "result": "PASS"
+  },
+  "http_status_and_preview": "PASS",
+  "browser_human_review": "PENDING",
+  "live_four_states": "NOT_RUN",
+  "physical_camera_disconnect": "NOT_RUN",
+  "duplicate_http_live_request": "NOT_RUN",
+  "file_db_scope": "PNG/JSON implementation; DB not implemented",
+  "target_root": "/home/jetson/oned_device_bench/releases/bench_v001",
+  "browser_url": "http://127.0.0.1:8767",
+  "bind": "Jetson 127.0.0.1 via SSH tunnel",
+  "excluded": [
+    "B04",
+    "retraining",
+    "ROI tuning",
+    "MES",
+    "PLC",
+    "engine hardware verification"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "label_schema_version": 1,
+  "product_id": "earbud_case_v0",
+  "status": "DRAFT_AWAITING_HUMAN_BOX_REVIEW",
+  "geometry": "visible_axis_aligned_rectangle_pixels",
+  "classes": [
+    {"id": 0, "name": "earbud_left", "display": "L 이어폰", "instruction": "실제 L 이어폰의 보이는 외곽을 감쌉니다. 빈자리나 케이스를 포함하지 않습니다."},
+    {"id": 1, "name": "earbud_right", "display": "R 이어폰", "instruction": "실제 R 이어폰의 보이는 외곽을 감쌉니다. 화면 좌우만으로 실물 종류를 새로 추정하지 않습니다."},
+    {"id": 2, "name": "case", "display": "열린 케이스 전체", "instruction": "열린 뚜껑과 케이스 본체의 보이는 외곽 전체를 감쌉니다. 그림자는 포함하지 않습니다."}
+  ],
+  "review_rules": [
+    "사각형은 보이는 부품 외곽에 맞춥니다. 보이지 않는 영역을 상상해 늘리지 않습니다.",
+    "제거된 이어폰의 빈자리에는 이어폰 사각형을 그리지 않습니다.",
+    "케이스 사각형과 이어폰 사각형이 겹치는 것은 허용됩니다.",
+    "가림·흐림·반사로 부품 종류나 경계를 판단하기 어려우면 needs_review로 남깁니다.",
+    "촬영 상태 확인과 부품 위치 라벨 확인은 별개입니다. 미라벨/미검토 사진은 학습 가능한 것으로 처리하지 않습니다.",
+    "수집 화면의 안내 영역은 위치 라벨이나 실제 mm 측정값이 아닙니다."
+  ]
+}

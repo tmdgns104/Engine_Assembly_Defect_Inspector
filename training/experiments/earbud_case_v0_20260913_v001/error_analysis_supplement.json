@@ -1,0 +1,74 @@
+{
+  "paired_confidence": {
+    "BASE": {
+      "pairs": 40,
+      "opposite_lower": 36,
+      "mean_difference": -0.022798605263233185
+    },
+    "DIM": {
+      "pairs": 40,
+      "opposite_lower": 36,
+      "mean_difference": -0.023479723930358888
+    }
+  },
+  "input_object_sizes": {
+    "earbud_left": {
+      "width_at_640_min_median_max": [
+        44.0,
+        47.0,
+        53.0
+      ],
+      "height_at_640_min_median_max": [
+        44.499999995999985,
+        56.249999999999986,
+        61.999999992
+      ]
+    },
+    "earbud_right": {
+      "width_at_640_min_median_max": [
+        51.5,
+        55.249999999999986,
+        58.0
+      ],
+      "height_at_640_min_median_max": [
+        50.00000000399996,
+        61.749999990000006,
+        66.499999992
+      ]
+    },
+    "case": {
+      "width_at_640_min_median_max": [
+        147.99999999999997,
+        153.5,
+        168.0
+      ],
+      "height_at_640_min_median_max": [
+        146.00000001600006,
+        151.74999999,
+        165.99999999600004
+      ]
+    }
+  },
+  "roi_proposal": {
+    "selected_from": "train label envelope only; margin48 original pixels, proposed not executed",
+    "train_envelope_xyxy": [
+      335.0,
+      216.999999972,
+      815.0,
+      579.000000024
+    ],
+    "fixed_roi_xyxy": [
+      287,
+      168,
+      863,
+      628
+    ],
+    "roi_size": [
+      576,
+      460
+    ],
+    "val_objects_outside": 0,
+    "validation_use": "Coverage audit only; do not adjust this ROI using val errors or per-image ground truth.",
+    "scale_gain_vs_full_frame": 2.2222222222222223
+  }
+}

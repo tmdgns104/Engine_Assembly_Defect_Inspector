@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "report_links_checked": 11,
+  "actual_training_args_match_frozen_config": true,
+  "source_sha256": {
+    "training/scripts/build_grouped_dataset.py": "bff2b2c244d3f8f373dc9fa53962bee95260bc1a43637231d742f4fb8c7a516b",
+    "training/scripts/train_baseline.py": "931defa28c225c10c827aa02153257cd5616b5bcb3a121fd33a59da41ddc2bb4",
+    "training/scripts/evaluate_baseline.py": "2e7ca465e739116b06c69eadb854efcad54f45db1dea948d2ef6e5070d745f29",
+    "tests/test_grouped_dataset.py": "803f9b952a27386c40bb18fa377ca0fe3c6ea4701bc85fd6e494e461cde44be8",
+    "tests/test_baseline_matching.py": "8ee89f9ac7e428be71344e4447217f141ea97190d0d3a0ce8f2d0c793272f371"
+  },
+  "report_sha256": "204b5bb9ce6026d592a3cec60064e283abf1b47d229cfee028f31c689f0a276e",
+  "generated_images_excluded_from_git": true,
+  "primary_evidence": "docs/verification/PROXY-DATASET-TRAIN-001-BASELINE-20260913.json"
+}

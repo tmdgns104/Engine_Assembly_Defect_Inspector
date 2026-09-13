@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "scope": "B03 saved-prediction analysis only; no new inference/training",
+  "images": 60,
+  "objects": 120,
+  "independent_vectorized_iou_pairs": 120,
+  "group_count_and_weighted_mean_checks": "PASS",
+  "top10_order_and_identity": "PASS",
+  "focused_tests": 4,
+  "source_files_unchanged": 126,
+  "visually_inspected_images": 18,
+  "visually_inspected_objects": 19,
+  "review_pages": 7,
+  "review_copy_hashes": "PASS",
+  "new_training_runs": 0,
+  "new_inference_runs": 0,
+  "label_changes": 0,
+  "B04_image_access": 0,
+  "artifacts_sha256": {
+    "training\\experiments\\earbud_case_v0_20260913_v001\\ERROR_ANALYSIS.md": "9b6b0631b7aa5b0bdae9530f3f94a93709194cfffc7f531d8dd3f09f70f84e24",
+    "training\\experiments\\earbud_case_v0_20260913_v001\\error_analysis_detailed.json": "7ec8ea1090e7051a9a554ecb3f6184a1bfb4c9bdbf1665de498a5d8428a3787c",
+    "training\\experiments\\earbud_case_v0_20260913_v001\\error_analysis_supplement.json": "0d1546807a7bf6e9187389a62045716fe49d121ebdb92289ebc8c9712967e8dd",
+    "training\\scripts\\analyze_saved_validation.py": "a9a3b3b6587fbc41d09f17975cf1e98e970239737699f551a4eb35349150ee65",
+    "tests\\test_saved_validation_analysis.py": "49d900ece27bb67b5d871e18949c3a2fac7d386eca229b60e5025210ded1097e"
+  },
+  "limits": "Single B03 acquisition group; associations not causal proof. Candidate preprocessing/GPU costs unmeasured; model capacity not compared."
+}

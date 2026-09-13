@@ -22,6 +22,20 @@ runs/
 /datasets/
 .cache/
 
+# Generated baseline plots, predictions and checkpoints (metadata stays reviewable)
+/training/experiments/*/baseline/
+/training/experiments/*/b03_predictions/
+/training/experiments/*/b03_validation/
+/training/experiments/*/validation_predictions/
+/training/experiments/*/error_review_*/
+/training/experiments/*/roi_crop/
+/training/scripts/_tmp_*.py
+
+# Other exported model formats stay local, including future experiment folders.
+*.onnx
+*.engine
+*.safetensors
+
 # Runtime state
 journal/*.db
 *.log

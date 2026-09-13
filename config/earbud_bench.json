@@ -1,0 +1,32 @@
+{
+  "product_id": "earbud_case_v0",
+  "version": "bench_v001",
+  "model_sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+  "classes": ["earbud_left", "earbud_right", "case"],
+  "reference_class": "case",
+  "reference_min_confidence": 0.80,
+  "detection_confidence": 0.25,
+  "presence_confidence": 0.80,
+  "nms_iou": 0.70,
+  "frames_per_inspection": 3,
+  "frame_spacing_seconds": 0.15,
+  "frame_max_age_seconds": 0.35,
+  "inspection_timeout_seconds": 15,
+  "min_reference_iou": 0.65,
+  "min_box_slot_overlap": 0.65,
+  "min_blur_variance": 25,
+  "min_mean_brightness": 35,
+  "max_mean_brightness": 225,
+  "slots": [
+    {"id": "L", "class_name": "earbud_left", "display": "L 이어폰", "expected_count": 1},
+    {"id": "R", "class_name": "earbud_right", "display": "R 이어폰", "expected_count": 1}
+  ],
+  "camera": {
+    "device": "/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index0",
+    "width": 1280,
+    "height": 720,
+    "format": "MJPG",
+    "fps": 30
+  },
+  "limitations": "BENCH 전용. 사용자가 열린 케이스·두 자리 가시성·손 제거를 확인해야 합니다. 반복 미검출만으로 가림을 식별하지 못하며 손·닫힌 뚜껑 자동 인식은 검증하지 않았습니다. 점수는 관측 confidence이며 제품 정상 확률이 아닙니다."
+}

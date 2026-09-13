@@ -1,0 +1,120 @@
+{
+  "task": "V0-T05",
+  "status": "PASS_FOR_B01_B02_LABEL_APPROVAL_AND_YOLO_CANDIDATES",
+  "recorded_at": "2026-09-13T10:32:21.975537+00:00",
+  "human_approval": {
+    "status": "PASS",
+    "recorded_at": "2026-09-13T10:26:52.459507+00:00",
+    "confirmed_images": 120,
+    "objects": 240,
+    "held_images": 0,
+    "class_counts": {
+      "0": 60,
+      "1": 60,
+      "2": 120
+    },
+    "only_approved_status_fields_changed": true,
+    "protected_files_unchanged": 368,
+    "source_project_sha256": "c3ae6b5c0a9cbacad59aee1a6ce54d2fdea1e160b2fb17aff4e72033404bfd14",
+    "reviewed_project_sha256": "00af88b5c442b4208a88368381472775a985ac2fee122f1605f8ee736e7cd119",
+    "human_review_record_sha256": "f9396950dc72509ecd0666ccd1882cc3fc514dce9d6124d2a0e8e37867a528d2",
+    "actual_user_review_time": "UNRECORDED; recorded_at is the recording time, not an invented per-image review time."
+  },
+  "conversion": {
+    "status": "PASS",
+    "recorded_at": "2026-09-13T10:27:08.986258+00:00",
+    "input_images": 120,
+    "converted_images": 120,
+    "withheld_images": 0,
+    "objects": 240,
+    "class_counts": {
+      "0": 60,
+      "1": 60,
+      "2": 120
+    },
+    "yolo_decimal_places": 10,
+    "maximum_roundtrip_error_pixels": 4.800006081495667e-08,
+    "roundtrip_tolerance_pixels": "max(1e-6, max(image_width, image_height) * 1e-10)",
+    "checks": {
+      "source_and_working_hashes_preserved": true,
+      "input_hashes_preserved": true,
+      "actual_output_pairs_and_hashes": true,
+      "class_geometry_and_roundtrip": true,
+      "whole_image_review_gate": true,
+      "provenance_round_origin_preserved": true
+    },
+    "origin_groups": [
+      "OG1023298FB0FC4631"
+    ],
+    "dataset_split_ready": false,
+    "semantic_acceptance_basis": "Human review record; geometry verification does not establish semantic accuracy."
+  },
+  "independent_output_audit": {
+    "status": "PASS",
+    "recorded_at": "2026-09-13T10:28:41.700114+00:00",
+    "reviewed_images": 120,
+    "withheld_images": 0,
+    "converted_images": 120,
+    "objects": 240,
+    "class_counts": {
+      "0": 60,
+      "1": 60,
+      "2": 120
+    },
+    "maximum_reverse_corner_error_pixels": 4.800006081495667e-08,
+    "pixel_tolerance": 1e-06,
+    "original_dimensions": [
+      1280,
+      720
+    ],
+    "protected_files_unchanged": 368,
+    "raw_pngs_preserved": 162,
+    "event_chain_verified": 599,
+    "round_counts": {
+      "B01": 60,
+      "B02": 60
+    },
+    "origin_group_counts": {
+      "OG1023298FB0FC4631": 120
+    },
+    "checks": [
+      "Saved approval scope/hash and confirmed status match all actual IDs.",
+      "VIA rectangles unchanged from approved pending draft.",
+      "Output PNG/raw/working hashes match, labels/classes/counts match.",
+      "Independent corner reconstruction from actual YOLO text passes.",
+      "Complete provenance rows and origin groups retained; no sealed-test input.",
+      "Initial/pending projects, original records/photos and historical notes preserved."
+    ],
+    "semantic_acceptance": "Explicit user approval; no claim that geometric checks prove semantic accuracy."
+  },
+  "tests": {
+    "command": ".\\.venv\\Scripts\\python.exe -B -X utf8 -m unittest discover -s tests -p test_via_to_yolo.py -v",
+    "passed": 16,
+    "failed": 0,
+    "seconds": 0.463,
+    "exit_code": 0,
+    "scope": "Synthetic converter fixtures only; no real capture/model/GPU execution.",
+    "earlier_invocation_error": "tests.test_via_to_yolo module import failed; tests is not a package. Correct discovery then executed all 16 tests."
+  },
+  "artifacts": {
+    "training\\outputs\\labeling\\B01_B02_20260913\\project_draft_all120_v001.json": "c3ae6b5c0a9cbacad59aee1a6ce54d2fdea1e160b2fb17aff4e72033404bfd14",
+    "training\\outputs\\labeling\\B01_B02_20260913\\project_reviewed_all120_v001.json": "00af88b5c442b4208a88368381472775a985ac2fee122f1605f8ee736e7cd119",
+    "training\\outputs\\labeling\\B01_B02_20260913\\human_review_all120_v001.json": "f9396950dc72509ecd0666ccd1882cc3fc514dce9d6124d2a0e8e37867a528d2",
+    "training\\outputs\\yolo\\B01_B02_reviewed_20260913_v001\\candidate_manifest.json": "ec443253362e5f29db5b7703b6f0ff3600a393140f713b354374cb7d3d422b58",
+    "training\\outputs\\yolo\\B01_B02_reviewed_20260913_v001\\conversion_validation.json": "4c3be2b6bfb5abf00ad3a14fa6b44c9fff03d6364b2f3af624c3f8bc8e7211c5",
+    "training\\outputs\\yolo\\B01_B02_reviewed_20260913_v001\\independent_audit.json": "b1a72b9d6fd72447aa9710bd46cd4d235a1782fcdfc1d4e96af4c27602587504",
+    "training\\outputs\\yolo\\B01_B02_reviewed_20260913_v001\\dataset_readiness.json": "f822281a75f6484d89df6c9b4c8fd51d374a8418351dd3933052a9c8f480dd12",
+    "training\\scripts\\via_to_yolo.py": "a028fcad47439670a74cebe8812befe8f3a2f9d5dacf80ea9d089192cb9422f8",
+    "tests\\test_via_to_yolo.py": "2ef12239d86a519a6dfc8cbdf99f4e59d537b1b5cd1594625b39dab406643ec1"
+  },
+  "next_step": "B03 existing-plan real physical re-preparation; planned 60, captured/reviewed labels 0.",
+  "boundaries": {
+    "B01_B02_origin_preserved": true,
+    "B03_started": false,
+    "B04_test_reserved": true,
+    "dataset_yaml_created": false,
+    "training_started": false,
+    "browser_accessed": false,
+    "model_settings_verified": false
+  }
+}

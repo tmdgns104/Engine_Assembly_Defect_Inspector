@@ -6,6 +6,47 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 
 
+class LightingWindow:
+    """Separate physical lighting preparation from permission to photograph."""
+
+    def __init__(self, app, condition, key):
+        self.app, self.key = app, key
+        self.window = tk.Toplevel(app.root)
+        self.window.title('촬영 전 조명 준비 확인')
+        self.window.transient(app.root)
+        self.window.grab_set()
+        self.window.protocol('WM_DELETE_WINDOW', self.cancel)
+        self.confirmed = tk.BooleanVar(value=False)
+        ttk.Label(self.window, text='지금은 조명을 준비할 차례입니다',
+                  font=('맑은 고딕', -25, 'bold'), padding=18).pack(anchor='w')
+        ttk.Label(self.window, text=condition['label'], font=('맑은 고딕', -22, 'bold'),
+                  padding=(18, 0)).pack(anchor='w')
+        ttk.Label(self.window, text=condition['instruction'], wraplength=560,
+                  font=('맑은 고딕', -22), padding=18).pack(fill='x')
+        ttk.Checkbutton(self.window, text='위 안내대로 실제 조명을 준비했습니다.',
+                        variable=self.confirmed).pack(anchor='w', padx=18, pady=10)
+        ttk.Label(self.window, text='조명 확인 후 물체 배치를 안내합니다. 이 버튼은 사진을 찍지 않습니다.',
+                  padding=18, wraplength=560).pack(fill='x')
+        ttk.Button(self.window, text='조명 준비 확인 · 물체 배치로', command=self.confirm).pack(fill='x', padx=18, pady=12)
+
+    def confirm(self):
+        if not self.confirmed.get():
+            self.app.message.set('실제 조명을 준비한 뒤 조명 확인에 체크하세요.')
+            return
+        self.app.lighting_key = self.key
+        self.close()
+        self.app.refresh()
+
+    def close(self):
+        self.window.destroy()
+        self.confirmed = None
+        self.app.lighting_window = None
+
+    def cancel(self):
+        self.close()
+        self.app.pause()
+
+
 class ReviewWindow:
     def __init__(self, app, action):
         self.app, self.action = app, action
@@ -27,6 +68,9 @@ class ReviewWindow:
         self.ids = [col.current[role] for role in roles]
         header = ('기준 사진: 정상과 빈자리가 모두 보이는지 확인하세요.' if is_setup else
                   '각 사진의 실제 상태를 비교하세요. 사진을 누르면 크게 볼 수 있습니다.')
+        if action.get('historical'):
+            block = action['block']
+            header = f"확정 묶음 재검토 · {block['round_id']} / {block['condition_id']} / {block['placement_id']}"
         ttk.Label(self.window, text=header, font=('맑은 고딕', -20, 'bold'), wraplength=1000).pack(fill='x', padx=18, pady=10)
         ttk.Label(self.window, text=col.guide['review_checks'], wraplength=1000).pack(fill='x', padx=18)
         # Scrollable grid supports products with a different number of states.
@@ -80,9 +124,13 @@ class ReviewWindow:
         ttk.Button(row, text='선택한 사진 재촬영', command=self.retake).pack(side='right')
         check = ('두 기준 사진에서 검사 영역·양쪽 자리·실물 L/R 대응을 직접 확인했습니다.' if is_setup else
                  '모든 사진의 실제 상태·품질·같은 배치 유지를 직접 확인했습니다.')
-        ttk.Checkbutton(bottom, text=check, variable=self.confirmed).pack(anchor='w', pady=8)
+        confirmation = ttk.Checkbutton(bottom, text=check, variable=self.confirmed)
+        confirmation.pack(anchor='w', pady=8)
         self.accept_button = ttk.Button(bottom, text='묶음 확인 완료 · 계속', command=self.accept)
         self.accept_button.pack(fill='x')
+        if action.get('historical'):
+            confirmation.configure(state='disabled')
+            self.accept_button.configure(text='이미 확정한 묶음 · 문제가 있는 사진만 재촬영 선택', state='disabled')
 
     def expand(self, path):
         view = tk.Toplevel(self.window)
@@ -99,6 +147,8 @@ class ReviewWindow:
         label.pack()
 
     def accept(self):
+        if self.action.get('historical'):
+            return
         if not self.confirmed.get():
             self.app.message.set('사진을 직접 비교하고 확인 체크를 표시하세요. 자동 확정하지 않습니다.')
             return
@@ -138,6 +188,9 @@ def progress_window(app):
     window = tk.Toplevel(app.root)
     window.title('수집 현황 · 저장과 사람 확정은 다릅니다')
     window.geometry('1080x640')
+    controls = ttk.Frame(window, padding=8)
+    controls.pack(side='bottom', fill='x')
+    ttk.Label(controls, text='확정한 묶음의 행을 선택하면 원본을 다시 비교하고 재촬영할 수 있습니다.').pack(side='left')
     columns = ('phase', 'round', 'light', 'placement', 'state', 'target', 'saved', 'accepted', 'pending', 'held', 'retake', 'missing', 'skip')
     labels = ('단계', '회차', '조명', '배치', '상태', '목표', '저장', '확정', '검토 대기', '보류', '재촬영', '미수집', '생략 사유')
     tree = ttk.Treeview(window, columns=columns, show='headings')
@@ -148,9 +201,22 @@ def progress_window(app):
     scroll.pack(side='right', fill='y')
     tree.configure(yscrollcommand=scroll.set)
     tree.pack(fill='both', expand=True)
+    row_blocks = {}
     for block in summary['by_condition']:
         for state in block['states']:
             values = [block[k] for k in ('phase', 'round_id', 'condition_id', 'placement_id')]
             values += [app.label(state['scenario'])]+[state[k] for k in ('target', 'saved', 'accepted', 'pending', 'held', 'retained_retake', 'missing', 'skip_reason')]
-            tree.insert('', 'end', values=[v if v is not None else '' for v in values])
+            row = tree.insert('', 'end', values=[v if v is not None else '' for v in values])
+            row_blocks[row] = block['block_id']
+
+    def reopen_selected():
+        selected = tree.selection()
+        if not selected:
+            app.message.set('다시 검토할 확정 묶음의 행을 먼저 선택하세요.')
+            return
+        if app.show_saved_review(row_blocks[selected[0]]):
+            window.destroy()
+
+    ttk.Button(controls, text='선택한 확정 묶음 다시 검토', command=reopen_selected).pack(side='right')
     ttk.Label(window, text=f"원본 해시 중복 묶음 {len(summary['exact_duplicate_groups'])}개 · 원본은 삭제하지 않습니다.").pack(fill='x', padx=12, pady=8)
+    return window

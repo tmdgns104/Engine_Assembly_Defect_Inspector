@@ -1,0 +1,114 @@
+{
+  "status": "PASS",
+  "recorded_at": "2026-09-13T12:36:37.629923+00:00",
+  "training_process_exit_code": 0,
+  "completed_epochs": 100,
+  "baseline_run_count": 1,
+  "counts": {
+    "train": 120,
+    "val": 60,
+    "test": 0
+  },
+  "metrics": {
+    "metrics/precision(B)": 0.9981466083381244,
+    "metrics/recall(B)": 1.0,
+    "metrics/mAP50(B)": 0.995,
+    "metrics/mAP50-95(B)": 0.8334960746626895,
+    "fitness": 0.8334960746626895
+  },
+  "training_wall_seconds_including_setup_and_final_validation": 313.4217387000099,
+  "epoch_loop_seconds_csv": 300.78,
+  "training_device": "cuda:0",
+  "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+  "checkpoints": {
+    "best.pt": {
+      "path": "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\baseline\\weights\\best.pt",
+      "sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+      "reload_device": "cuda:0"
+    },
+    "last.pt": {
+      "path": "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\baseline\\weights\\last.pt",
+      "sha256": "fe986a06957ee95c3d34a5be0528a85e4429d0eb8445e62a9ea382d24e0a2295",
+      "reload_device": "cuda:0"
+    }
+  },
+  "protected_files_unchanged": 978,
+  "focused_checks": {
+    "grouped_dataset": {
+      "tests": 8,
+      "status": "PASS"
+    },
+    "error_matching": {
+      "tests": 4,
+      "status": "PASS"
+    }
+  },
+  "prediction_images": 60,
+  "fixed_threshold_counts": {
+    "tp": 120,
+    "fp": 0,
+    "fn": 0
+  },
+  "lowest_matched_iou_examples": [
+    [
+      0.758721606109445,
+      "0002.png",
+      "BASE",
+      1,
+      "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\b03_predictions\\C2709B20787804587__S20260913T105513_310760CD_E0002_20260913T105601091459Z_7cd22c7c723b.jpg"
+    ],
+    [
+      0.7657935041928138,
+      "0010.png",
+      "BASE",
+      1,
+      "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\b03_predictions\\C2709B20787804587__S20260913T105745_CF4D21B9_E0002_20260913T105755153518Z_21325ac1a71b.jpg"
+    ],
+    [
+      0.7735022811433546,
+      "0055.png",
+      "OPPOSITE",
+      0,
+      "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\b03_predictions\\C2709B20787804587__S20260913T110759_54DCC4CC_E0003_20260913T110819973830Z_6200c4d60a69.jpg"
+    ],
+    [
+      0.7961387904773812,
+      "0039.png",
+      "DIM",
+      0,
+      "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\b03_predictions\\C2709B20787804587__S20260913T110359_D06CD21B_E0003_20260913T110418843640Z_bcd375903efc.jpg"
+    ],
+    [
+      0.8031193749638145,
+      "0011.png",
+      "BASE",
+      0,
+      "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\b03_predictions\\C2709B20787804587__S20260913T105745_CF4D21B9_E0003_20260913T105805730031Z_724004eeec70.jpg"
+    ],
+    [
+      0.8079833323242922,
+      "0053.png",
+      "OPPOSITE",
+      1,
+      "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\b03_predictions\\C2709B20787804587__S20260913T110759_54DCC4CC_E0001_20260913T110759701988Z_74adb68529a6.jpg"
+    ]
+  ],
+  "artifacts_sha256": {
+    "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\baseline_result.json": "61c0b54f747a396c5a741c8ef3a0a09233d0e971546a99c768f67b3a5ac8697e",
+    "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\validation_error_analysis.json": "fccacbe54d9da20b8f3fb03edd77c6fff4cfd44ab9a0e0cae84d7fcadcc27045",
+    "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\baseline\\args.yaml": "9218d367b6132254001e1236b710a2e0ed549d776b5d7d57bbf166e19af57a88",
+    "D:\\OneDevice_Team_project\\training\\experiments\\earbud_case_v0_20260913_v001\\baseline\\results.csv": "f27fb8cdffc343e170fcbbc0b4a9bb5cb154068892b4cbaf21068705a627f318",
+    "D:\\OneDevice_Team_project\\training\\baseline_config.yaml": "6c4c6fbe55a9729d282444ef0ebfd8108bada5947a50f3b6a363a49aa867840d",
+    "D:\\OneDevice_Team_project\\training\\outputs\\earbud_baseline_20260913_v001.log": "abf521729f96b31fa78625a6e29fcd62867b78e0f7e501f6d57f24211c713992",
+    "D:\\OneDevice_Team_project\\training\\outputs\\labeling\\B03_20260913\\human_review_all60_v001.json": "364726848a88a124a8c8b887802e500992c84256dc622e153f9663cefed29ab6",
+    "D:\\OneDevice_Team_project\\training\\outputs\\labeling\\B03_20260913\\project_reviewed_all60_v001.json": "42445d8d5b329c3388c8070d8f2a7d532f7a78835c5454201960222638ff59c3",
+    "D:\\OneDevice_Team_project\\training\\outputs\\yolo\\B03_reviewed_20260913_v001\\conversion_validation.json": "3bd636869023f9cf31d22eef4b638db619777c616f5456287b53ea0d35e02bcb",
+    "D:\\OneDevice_Team_project\\training\\outputs\\datasets\\earbud_case_v0_B01_B03_20260913_v001\\dataset_integrity.json": "a0c6404d5f009e1c34d965afdc5e4fa15486bdfba538f77a00aa1d9645b67364"
+  },
+  "limits": [
+    "Single B03 validation acquisition group; B04 final test remains reserved.",
+    "No external-environment generalization, engine-part performance, Jetson deployment or end-to-end inspection/DB completion claim.",
+    "Requested Codex model/reasoning/Fast settings were not independently verified.",
+    "Seed/deterministic flags set; bitwise reproducibility across environments not measured."
+  ]
+}

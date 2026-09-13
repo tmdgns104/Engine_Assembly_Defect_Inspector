@@ -1,6 +1,13 @@
 """Backend-neutral names shared by inspection callers and results."""
 
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:  # JetPack's Python 3.10; keep identical string/JSON behavior.
+    from enum import Enum
+
+    class StrEnum(str, Enum):
+        def __str__(self) -> str:
+            return self.value
 
 
 class ResultStatus(StrEnum):

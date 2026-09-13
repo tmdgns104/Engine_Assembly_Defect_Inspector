@@ -1,0 +1,30 @@
+{
+  "status": "PASS_DRAFT_STRUCTURE_AND_PROVENANCE",
+  "recorded_at": "2026-09-13T11:24:18.750682+00:00",
+  "draft": "training\\outputs\\labeling\\B03_20260913\\project_draft_all60_v003.json",
+  "draft_sha256": "1ec9e399e7810dadfd4e1ba45ead74f8b0e127e0d80c57e07524c32668cf42aa",
+  "images": 60,
+  "objects": 120,
+  "class_counts": {
+    "0": 30,
+    "1": 30,
+    "2": 60
+  },
+  "human_label_reviewed": 0,
+  "pending": 60,
+  "geometry_and_schema": "PASS",
+  "source_working_hashes": "PASS",
+  "protected_files_unchanged": 978,
+  "source_visual_inspection": "60 actual PNGs viewed via hashed source inspection crops in v001",
+  "overlay_visual_inspection": "v001 all 60; v002 changed 11 through seven sheets; v003 changed 2 through sheet 0009-0012; unchanged overlays hash-equal",
+  "review_folder": "training\\outputs\\labeling\\B03_20260913\\review_all60_v003",
+  "original_capture_audit": "docs/verification/PROXY-DATASET-TRAIN-001-B03-CAPTURE-20260913.json",
+  "b03_yolo_conversion": false,
+  "dataset_yaml_created": false,
+  "real_data_training_started": false,
+  "limitations": [
+    "Human capture review is not approval of these boxes.",
+    "Dark stems and reflective boundaries remain subject to human label review.",
+    "No performance result on B03 or final test B04 exists."
+  ]
+}
