@@ -1,0 +1,49 @@
+{
+  "verification_schema_version": 1,
+  "task": "DATASET-WIZARD-001",
+  "verified_at": "2026-09-13T01:30:06.501177+00:00",
+  "baseline": "60e5fb1d3a9b07d87e0c0c87d028ad73d3d5dcf1",
+  "execution": "Windows PC",
+  "test_command": ".venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+  "tests": {
+    "total": 130,
+    "passed": 130,
+    "failed": 0,
+    "skipped": 0,
+    "existing": 111,
+    "added": 19
+  },
+  "test_log_sha256": "721844cde08ad198e02ab0cf31273bdc42e1ade589f6aaa94055f3778b968e5c",
+  "protected_files": {
+    "count": 149,
+    "changed": []
+  },
+  "packages": {
+    "count": 42,
+    "changed": false
+  },
+  "existing_real_images": 4,
+  "new_real_images": 0,
+  "gui": {
+    "existing_cmd_launcher": "PASS: scripts/start_capture_windows.cmd opened the default wizard; no camera opened",
+    "visible_window": "VERIFIED_WITH_SYNTHETIC_INPUT",
+    "readiness_to_next_instruction": "PASS",
+    "batch_comparison_expand_controls": "PASS",
+    "four_retake_controls_visible": "PASS"
+  },
+  "hardware": "UNVERIFIED_THIS_TASK; previous WINDOWS-CAPTURE-001 evidence preserved",
+  "human_collection": "USER_ACTION_REQUIRED",
+  "new_plan_main_accepted": 0,
+  "tracked_raw_images_or_ml_binaries": [],
+  "no_jetson_cad_training_labeling_or_packages_changed": true,
+  "source_sha256": {
+    "training/capture_windows/wizard.py": "140bb62a7a8012b0f441d88522cd06ee9062ed34ff1bedd46f64234072255858",
+    "training/capture_windows/wizard_app.py": "4d00dfb107826f5908a2e30121c24e051f968a2b3cba2e79721601a1bae6c30e",
+    "training/capture_windows/wizard_plan.py": "41b6387b0742e789c6296ba15f4da8b8843ef1b71d06c8c6241d610f6374a574",
+    "training/capture_windows/wizard_quality.py": "7dc06b649354d2e94c3efb2dcfec298561f53b8c8ae14c8721fe34a43d4f25fb",
+    "training/capture_windows/wizard_store.py": "658ca627b9fba3f679875108c9a6456598fc593550e257519d9a17bb0aa9a5a7",
+    "training/capture_windows/wizard_views.py": "5c1c916c023cf898c1974958fad64a5f4345968811ff195d4596e6c15bd18d15",
+    "training/capture_windows/__main__.py": "b567d46dd7b7ba0f913bdbc499ff1277894ab36a5b82af3b93525033cf85e369",
+    "training/datasets/proxy/earbud_case_v0/collection-plan.json": "109565f3462df1e1ffefb85b96a705fc1ac1fcf1ae32ff1f7fc92326429426cc"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "collection_plan_schema_version": 1,
+  "plan_id": "EARBUD_PILOT_COLLECTION",
+  "plan_version": 1,
+  "product_id": "earbud_case_v0",
+  "rounds": [
+    {"id": "B01", "label": "촬영 회차 1", "purpose": "train_candidate"},
+    {"id": "B02", "label": "촬영 회차 2", "purpose": "train_candidate"},
+    {"id": "B03", "label": "촬영 회차 3", "purpose": "validation_candidate"},
+    {"id": "B04", "label": "촬영 회차 4", "purpose": "test_reserved"}
+  ],
+  "conditions": [
+    {"id": "BASE", "label": "기준 조명", "instruction": "처음 확인한 고른 조명으로 돌아오세요. 스탠드가 있다면 케이스 왼쪽에서 비추고, 카메라는 그대로 두세요.", "requires_lamp": false, "lamp_xy": [-0.8, -0.5]},
+    {"id": "DIM", "label": "조금 어두움", "instruction": "스탠드 밝기를 조금 낮추거나 케이스에서 조금 멀리 두세요. 양쪽 자리가 여전히 보여야 합니다. 전구를 덮지 마세요.", "requires_lamp": true, "lamp_xy": [-1, -0.8]},
+    {"id": "OPPOSITE", "label": "반대쪽 조명", "instruction": "스탠드를 케이스 오른쪽으로 옮기세요. 카메라와 케이스 방향은 유지하세요. 케이블을 당기지 마세요.", "requires_lamp": true, "lamp_xy": [0.8, -0.5]}
+  ],
+  "placements": [
+    {"id": "CENTER", "label": "중앙", "instruction": "노란 기준 윤곽 안에 케이스를 놓으세요. 카메라는 그대로 두세요.", "dx": 0, "dy": 0, "angle_deg": 0},
+    {"id": "LEFT", "label": "조금 왼쪽", "instruction": "처음 기준 위치보다 왼쪽의 노란 윤곽에 케이스를 맞추세요.", "dx": -0.2, "dy": 0, "angle_deg": 0},
+    {"id": "RIGHT", "label": "조금 오른쪽", "instruction": "처음 기준 위치보다 오른쪽의 노란 윤곽에 케이스를 맞추세요.", "dx": 0.2, "dy": 0, "angle_deg": 0},
+    {"id": "CW", "label": "시계 방향", "instruction": "처음 방향에서 시계 방향으로 조금 돌려 노란 윤곽에 맞추세요. 약 10도 목표이며 실측값은 아닙니다.", "dx": 0, "dy": 0, "angle_deg": 10},
+    {"id": "CCW", "label": "반시계 방향", "instruction": "처음 방향에서 반시계 방향으로 조금 돌려 노란 윤곽에 맞추세요. 이전 방향에서 누적 회전하지 마세요.", "dx": 0, "dy": 0, "angle_deg": -10}
+  ],
+  "state_order": ["NORMAL", "MISSING_LEFT", "MISSING_RIGHT", "MISSING_BOTH"],
+  "references": ["NORMAL", "MISSING_BOTH"],
+  "quality": {"version": 1, "settle_seconds": 1.2, "timeout_seconds": 8, "stable_frames": 3, "motion_mae": 5,
+    "blur_variance": 20, "dark_mean": 28, "bright_fraction": 0.18, "similar_hash_distance": 2}
+}

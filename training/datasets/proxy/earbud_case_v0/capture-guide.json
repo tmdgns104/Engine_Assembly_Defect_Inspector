@@ -9,7 +9,7 @@
   ],
   "steps": [
     {"scenario": "NORMAL", "instruction": "열린 케이스의 실제 왼쪽·오른쪽 자리에 이어폰을 모두 넣으세요. 케이스와 카메라를 고정하고 손을 빼세요."},
-    {"scenario": "MISSING_LEFT", "instruction": "실제 왼쪽(L) 이어폰만 빼세요. 오른쪽 이어폰과 케이스 위치·뚜껑 각도는 유지하고 손을 빼세요. 영상의 좌우로 L/R을 정하지 마세요."},
+    {"scenario": "MISSING_LEFT", "instruction": "실제 왼쪽(L) 자리는 비우고 오른쪽(R) 자리에는 이어폰을 넣으세요. 케이스 위치·뚜껑 각도는 유지하고 손을 빼세요. 영상의 좌우로 L/R을 정하지 마세요."},
     {"scenario": "MISSING_RIGHT", "instruction": "왼쪽(L) 이어폰을 원래 자리에 돌려놓고 실제 오른쪽(R)만 빼세요. 케이스와 조명을 유지하고 손을 빼세요."},
     {"scenario": "MISSING_BOTH", "instruction": "양쪽 이어폰을 모두 빼고 열린 케이스는 그대로 두세요. 케이스 위치·뚜껑 각도와 조명을 유지하고 손을 빼세요."}
   ],
