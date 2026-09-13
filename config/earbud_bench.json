@@ -8,6 +8,7 @@
   "detection_confidence": 0.25,
   "presence_confidence": 0.80,
   "nms_iou": 0.70,
+  "preprocessing": {"size": [640, 640], "dtype": "float32"},
   "frames_per_inspection": 3,
   "frame_spacing_seconds": 0.15,
   "frame_max_age_seconds": 0.35,

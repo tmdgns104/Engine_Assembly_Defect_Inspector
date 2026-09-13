@@ -1,0 +1,104 @@
+{
+  "status": "IMPLEMENTED_HUMAN_ACCEPTANCE_PENDING",
+  "app_release": "app_v005",
+  "hardware_backend": {
+    "backend": "pytorch",
+    "device": "cuda:0",
+    "gpu": "Orin",
+    "hostname": "jetson-07",
+    "input_shape": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "camera_pipeline": "v4l2src device=\"/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index0\" do-timestamp=false ! image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! videoconvert ! video/x-raw,format=BGR ! appsink name=frames max-buffers=1 drop=true sync=false",
+    "load_self_test_ms": 8482.859428000666
+  },
+  "package_sha256": "a461349449314af8a2b0f83bc3a323eb3c9dc4226b9c05669ea89ecf1ef5030a",
+  "model_sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+  "actual_live_reference_diagnostics": 5,
+  "actual_product_inspections": 0,
+  "decisions": {
+    "REVIEW": 5
+  },
+  "pc_assets_hash_verified": 20,
+  "pc_sync_pending": 0,
+  "real_pc_outage_recovery": {
+    "offline_live_requests": 3,
+    "recovered_without_duplicate_inspections": true
+  },
+  "real_duplicate_pc_event": {
+    "event_id": "42e518377c604f8e814deca2c25b8218",
+    "event_ack": true,
+    "duplicate": true,
+    "asset_ack": false
+  },
+  "actual_same_baseline_package_reactivation": "PASS",
+  "actual_service_and_children_stop": "PASS_AFTER_LIFESPAN_FIX",
+  "fixed_failures": [
+    "terminated multiprocessing.Event lock blocked recovery; raw flags and manager-owned queues replaced it",
+    "SIGTERM path left camera worker when cleanup followed uvicorn.run; ASGI lifespan cleanup now confirms children exit",
+    "target kernel lacks /proc/PID/task/PID/children; stop script uses ps --ppid"
+  ],
+  "tests": {
+    "windows_full": {
+      "count": 218,
+      "passed": true,
+      "log": "runs/inspection_app_v1/windows_full_tests_v3.log"
+    },
+    "windows_postchange_focused": {
+      "inspection": 14,
+      "mock_and_service": 5,
+      "passed": true
+    },
+    "jetson_final_release_focused": {
+      "count": 27,
+      "passed": true
+    },
+    "html_javascript_syntax": "PASS",
+    "browser_visual_acceptance": "PENDING_USER"
+  },
+  "timing": {
+    "scope": "three live camera reference diagnostics during PC outage; no visible product acceptance",
+    "n": 3,
+    "errors": 0,
+    "client_clock_request_to_observed_result_ms": {
+      "p50": 1347.2670000046492,
+      "p95_linear": 1486.059419985395
+    },
+    "mean_three_frame_inference_ms": 242.63330133362615,
+    "durable_result_events": [
+      {
+        "clock": "edge_monotonic",
+        "inspection_id": "cfd0717eecd2447caaca5ab8c7fbba31",
+        "request_to_durable_result_ms": 1321.6560970013234,
+        "source_mode": "live"
+      }
+    ],
+    "p95_production_acceptance": "NOT_ESTABLISHED"
+  },
+  "pending": [
+    "human calibration for current package",
+    "normal/missing-left/missing-right/missing-both physical image+decision+DB+screen acceptance",
+    "physical USB disconnect",
+    "human-visible browser rendering",
+    "real-camera Mock cycle with per-product human preparation"
+  ],
+  "not_run": [
+    "B04",
+    "training/tuning",
+    "ONNX parity/TensorRT",
+    "actual engine",
+    "actual PLC/motor"
+  ],
+  "urls": {
+    "edge": "http://127.0.0.1:8768",
+    "pc": "http://127.0.0.1:8769"
+  },
+  "data_roots": {
+    "edge": "/home/jetson/oned_device_bench/data/app_v1",
+    "pc": "D:/OneDevice_Team_project/runs/inspection_app_v1/pc"
+  },
+  "model_fast_settings": "NOT_VERIFIED"
+}

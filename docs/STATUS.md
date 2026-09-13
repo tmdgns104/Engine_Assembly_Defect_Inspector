@@ -1,6 +1,13 @@
 Current Phase:
 V0 Proxy Inspection System — 진행 중, 전체 완료 아님
 
+Latest Checkpoint (2026-09-14, INSPECTION-APP-V1):
+현재 Task는 tasks/inspection-app-v1.md. CODEX_INSPECTION_APP_V1_KO.md의 공통 앱 범위로 DB/PC/Mock 제어를 구현했으며, 아래 과거 BENCH의 DB 제외/8767 실행 표기는 당시 기록이다. 현재 Jetson 릴리스 app_v005, 검사 화면 http://127.0.0.1:8768, Windows PC 조회 http://127.0.0.1:8769. 기존 bench_v001은 소스·모델·기록을 보존하고 종료했다.
+제품 패키지 hash/schema/클래스/전처리/Recipe/촬영 검증, 같은 클래스 다중 슬롯·수량의 유일 배정, 별도 GPU/카메라 Worker 프로세스, Service 단일 SQLite writer와 PNG→commit→게시, 이력/asset 조회, 패키지 활성화/실패 복원, PC outbox·별도 DB·독립 이미지 ACK, Mock 요청/결과/종료 ACK·복구를 연결했다. Engine 모델/실물 슬롯은 미준비 비활성이다.
+실제 Jetson cuda:0/Orin/입력[1,3,640,640], 기존 best.pt SHA256 49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1 유지. 격리 app_v1 환경은 기존 사용자 torch2.8.0과 시스템 OpenCV4.8.0을 그대로 사용하며 FastAPI/uvicorn만 별도 설치했다. 실제 USB 기준 진단5건은 대상 부재로 전부 REVIEW, PNG15장+overlay5장·SQLite5행·PC20자산 해시 일치. 생산 검사0건이다. 사람 가시성을 자동 승인하지 않았다.
+PC 실제 중단 중3건을 Edge에 보관하고 재연결 후 중복 없이 수집, outbox/이미지 대기0. 동일 Baseline 패키지 실제 재활성화·세션 변경·기존 이력 유지 확인. Service 종료 뒤 자식 Worker가 남던 실패를 보존하고 ASGI lifespan 정리로 수정, 부모/자식 종료와 재시작 확인. 실제 Windows 전체218개 PASS, 마지막 변경 관련14개 및5개 PASS, 최종 Jetson27개 PASS, 릴리스45파일 해시 일치·SQLite integrity ok/FK 위반0. 가상 시간/가짜 Worker 시험은 실물 시험과 구분한다.
+남은 수용: 브라우저 실제 표시, 현재 패키지 기준 자리 사람 확인, 정상/L누락/R누락/양쪽누락의 사진·판정·DB·화면, 물리 USB 단절, 사람 준비 후 실제 카메라 Mock 사이클. 모두 대기이며 전체 완료로 표시하지 않는다. B04/재학습/ONNX·TensorRT/실 엔진/실 PLC·모터는 미실행. 실행 안내 apps/edge_service/INSPECTION_APP.md, 증거 docs/verification/INSPECTION-APP-V1-20260914.json 및 runs/inspection_app_v1/.
+
 GitHub publication verification (2026-09-14):
 사용자 요청에 따라 촬영 도구 보완/라벨 변환/그룹 분리/Baseline·오류 분석/Jetson BENCH 코드와 검증 기록을 기존 master에 동기화한다. 전체 자동 테스트185개 PASS(50.302초), 새 checkout 임시 폴더 준비 보완 후 관련11개 PASS. 원본 사진·가중치·ONNX/engine·임시 분석·무관한 미커밋 CAD 작업은 게시하지 않는다. ROI 폴더의 복사된 Baseline 보고서와 미검증 환경 설정 주장이 있는 과거 MODEL_SELECTION 문서는 로컬에 보존하며 배포 선택 근거로 게시하지 않는다. 현재 BENCH Baseline 선택은 최신 사용자 지시를 따른다. 실제 실물4상태 검증은 아래와 같이 대기 상태다.
 

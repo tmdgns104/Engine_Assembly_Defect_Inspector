@@ -1,0 +1,16 @@
+{
+  "classes": [
+    {
+      "id": 0,
+      "name": "earbud_left"
+    },
+    {
+      "id": 1,
+      "name": "earbud_right"
+    },
+    {
+      "id": 2,
+      "name": "case"
+    }
+  ]
+}

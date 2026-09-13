@@ -39,3 +39,8 @@ runs/
 # Runtime state
 journal/*.db
 *.log
+*.token
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+/deployment/products/*/*/self_test.png

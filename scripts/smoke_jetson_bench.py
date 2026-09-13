@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--staging", type=Path, required=True)
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--config", type=Path, default=Path("config/earbud_bench.json"))
     args = parser.parse_args()
     if platform.machine() != "aarch64" or not Path("/etc/nv_tegra_release").exists():
         raise RuntimeError("This evidence runner requires an actual Jetson")
@@ -26,7 +27,8 @@ def main():
     names = [manifest["classes"][str(i)] for i in range(len(manifest["classes"]))]
     args.output.mkdir(parents=True, exist_ok=False)
     initialized = time.perf_counter()
-    detector = PyTorchDetector(args.model, manifest["model_sha256"], names)
+    config = json.loads(args.config.read_text())
+    detector = PyTorchDetector(args.model, manifest["model_sha256"], names, preprocessing=config["preprocessing"])
     startup_ms = (time.perf_counter() - initialized) * 1000
     results = []
     for item in manifest["images"]:

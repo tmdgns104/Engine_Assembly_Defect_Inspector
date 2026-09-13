@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "recipe_id": "earbud-open-top",
+  "version": "app_v001",
+  "coordinate_space": "normalized_image",
+  "alignment_mode": "human_fixed_reference",
+  "visibility_mode": "human_per_request",
+  "rule": "presence_count",
+  "reference_class": "case",
+  "presence_confidence": 0.8,
+  "reference_confidence": 0.8,
+  "slot_overlap": 0.65,
+  "reference_iou": 0.65,
+  "observation_count": 3,
+  "required_views": [
+    "top"
+  ],
+  "orientation_verified": false,
+  "slots": [
+    {
+      "id": "L",
+      "display": "L 이어폰",
+      "allowed_classes": [
+        "earbud_left"
+      ],
+      "expected_count": 1,
+      "region": [
+        0.4787443161010742,
+        0.40055626763237845,
+        0.5598648071289063,
+        0.5570361667209202
+      ]
+    },
+    {
+      "id": "R",
+      "display": "R 이어폰",
+      "allowed_classes": [
+        "earbud_right"
+      ],
+      "expected_count": 1,
+      "region": [
+        0.5708641052246094,
+        0.3945109049479167,
+        0.6589162826538086,
+        0.5539508395724826
+      ]
+    }
+  ],
+  "region_provenance": {
+    "legacy_reference_request_id": "b1b330721fef4a76af32062b742424cd",
+    "note": "Seed regions from preserved BENCH reference; package calibration still requires human confirmation"
+  }
+}

@@ -8,7 +8,7 @@ from src.contracts import BoundingBox, Detection, DetectionResult, DetectorError
 
 
 class PyTorchDetector:
-    def __init__(self, model_path, expected_sha256, class_names, confidence=0.25, nms_iou=0.7):
+    def __init__(self, model_path, expected_sha256, class_names, confidence=0.25, nms_iou=0.7, preprocessing=None):
         import torch
         from ultralytics import YOLO
 
@@ -19,10 +19,15 @@ class PyTorchDetector:
         if not torch.cuda.is_available():
             raise DetectorError("CUDA_REQUIRED; CPU fallback is disabled")
         self.model = YOLO(str(model_path)).to("cuda:0")
+        if self.model.task != "detect":
+            raise DetectorError("MODEL_TASK_MISMATCH")
         if self.model.names != dict(enumerate(class_names)):
             raise DetectorError("MODEL_CLASSES_MISMATCH")
         self.confidence = confidence
         self.nms_iou = nms_iou
+        if preprocessing is None:
+            raise DetectorError("Explicit preprocessing configuration is required")
+        self.preprocessing = preprocessing
         self.input_shape = None
         self.model.model.register_forward_pre_hook(self._observe_input)
         self.device = str(next(self.model.model.parameters()).device)
@@ -36,7 +41,7 @@ class PyTorchDetector:
         try:
             self.torch.cuda.synchronize()
             start = time.perf_counter()
-            result = self.model.predict(frame.image, imgsz=640, rect=False, device=0,
+            result = self.model.predict(frame.image, imgsz=self.preprocessing["size"], rect=False, device=0,
                                         half=False, conf=self.confidence, iou=self.nms_iou,
                                         augment=False, verbose=False)[0]
             self.torch.cuda.synchronize()

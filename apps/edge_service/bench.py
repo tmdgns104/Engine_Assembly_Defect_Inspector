@@ -126,14 +126,8 @@ class BenchWorker(threading.Thread):
         return frame, dict(camera.frame_info)
 
     def _quality(self, image):
-        import cv2
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        brightness = float(gray.mean())
-        sharpness = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-        valid = (self.config["min_mean_brightness"] <= brightness <= self.config["max_mean_brightness"]
-                 and sharpness >= self.config["min_blur_variance"])
-        return {"valid": valid, "mean_brightness": brightness, "laplacian_variance": sharpness,
-                "scope": "global image quality only; not slot occlusion verification"}
+        from src.quality.image import assess_image
+        return assess_image(image, self.config)
 
     def _execute(self, job, camera, detector):
         import cv2
@@ -213,7 +207,7 @@ class BenchWorker(threading.Thread):
             from src.vision.pytorch_detector import PyTorchDetector
             detector = (self.detector_factory or PyTorchDetector)(
                 self.model_path, self.config["model_sha256"], self.config["classes"],
-                self.config["detection_confidence"], self.config["nms_iou"])
+                self.config["detection_confidence"], self.config["nms_iou"], self.config["preprocessing"])
             camera = (self.camera_factory or GStreamerCamera)(self.config["camera"])
             with self.lock:
                 self.backend.update(device=detector.device, gpu=detector.torch.cuda.get_device_name(0),
