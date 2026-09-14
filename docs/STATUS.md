@@ -1,6 +1,22 @@
 Current Phase:
 V0 Proxy Inspection System — 진행 중, 전체 완료 아님
 
+Latest Physical Normal Inspection (2026-09-14):
+사용자가 기준 진단 a7908d3c586f422c9648cbfc97feffac의 보라색 L/R 후보를 명시 승인했다. 별도 Jetson calibration 행 ce3a0337df5243109093e7eae9104ce7의 confirmed=true 및 좌표/기준 사진 연결을 직접 SQLite로 확인했다. 기존 기준 진단 REVIEW와 미승인 당시 후보 원문은 그대로 보존된다.
+현재 정상 배치의 신규 제품 검사5031fbaf16a94877b5b6aa46f9e90c03: PASS / 모든 필수 자리와 수량 확인, L/R PRESENT, 결함/미확인0. 새 관측3회와 신규 원본3장+overlay1장, 승인 좌표 고정 사용 확인. Jetson 원장1행과 API 결과 일치, PC 같은 ID1행·결과 본문 일치, 원본/overlay4자산 SHA256 일치·양측 ACKED, 완료/저장시간 이벤트2개 PC 수신·ACKED. 기존9진단 행 해시와 기준 진단 원문 보존. Edge integrity ok/FK위반0.
+검사 이력 API에서 같은 ID의 inspect/PASS를 확인했으나 브라우저 실제 이력 표시는 사용자 확인 대기다. 정상 실물 제품 검사1건 검증이며 전체 네 상태 수용 완료가 아니다. 다음은 화면 이력 확인 후 L 누락 한 행동 안내. 기대 normal/PASS는 별도 acceptance_context에만 기록했고 검사 입력에 넣지 않았다. 실 PLC/엔진 시험 아님. Evidence: runs/inspection_app_v1/physical_acceptance/5031fbaf16a94877b5b6aa46f9e90c03/verification.json.
+
+Latest Physical Reference (2026-09-14):
+사용자가 정상 케이스 중앙 배치와 두 자리 가시성·손 제거를 확인했다. app_v007에서 새 기준 진단 a7908d3c586f422c9648cbfc97feffac을 실행해 현재 좌표의 L/R 후보 생성, REVIEW/사람 자리 확인 대기를 확인했다. 원본3장+overlay1장 저장/해시 확인, PC 동일 ID 행과4자산 해시 일치. 상태 기대값은 별도 acceptance_context에만 저장했고 판정 입력에 전달하지 않았다. 후보 confirmed=false, 실제 기준 자리 승인은 아직 받지 않았으며 제품 검사도 시작하지 않았다. 원본/후보 사진을 열어 확인했으며 다음은 사용자 보라색 EXPECTED L/R 자리 확인이다. Evidence: runs/inspection_app_v1/physical_acceptance/a7908d3c586f422c9648cbfc97feffac/.
+
+Latest Checkpoint (2026-09-14, CALIBRATION-FIX):
+현재 실행 릴리스 app_v007. tasks/inspection-app-v1.md의 기준 등록 수정 범위는 구현·배포 완료, 실물 기준 자리 승인 및 네 상태 수용은 대기다. 검사 화면 http://127.0.0.1:8768 새로고침 후 재개한다.
+화면 기록 c92f305afc9348df9ee030d2ec217a95의 실제 원본/관측3회를 확인했다. L/R·case 검출과 품질은 유효했으나 app_v005 reference_proposal이 과거 fixed region과 먼저 비교하여 L/R 모두 배정0이었다. 실행 Jetson 소스와 Windows HEAD878b956의 해시 일치를 확인했다. 실제 활성 패키지 경로는 app_v003의 불변 app_v001이며 manifest/model/recipe hash는 화면 기록과 같고 변경하지 않았다.
+기준 등록만 현재 검출 좌표에서 후보를 생성하고 클래스·수량·품질·연속 관측을 검증한다. 동일 클래스 다중 자리 대응은 임의 배정하지 않고 한국어로 자리 지정 필요를 알린다. 후보와 일반 검사 overlay는 결과 calibration_used의 동일 정규화 좌표를 쓴다. 승인 기록은 제품/패키지/촬영/설비 설정 hash/cell/기준 inspection/frame에 연결된다. 새 기준 촬영을 시작하면 이전 승인으로 검사하지 않으며 재시작 후에도 새 승인까지 차단한다. 사람 확인 자동 승인0.
+최종 Windows227개 PASS(48.312초), 최종 Jetson 변경 관련14개 PASS(10.011초), 이전 동일 코드 journal/package17개 PASS. Jetson TestClient는 httpx 부재로 UNVERIFIED; Windows API 시험 및 최종 실제 HTTP 승인 전409 CALIBRATION_REQUIRED/HTML 응답/카메라 cuda:0 확인. DOM 계약·한국어·원본 링크 검사 PASS는 실제 브라우저 렌더링 승인이 아니다.
+기존 진단5건/이미지20개는 그대로 보존한다. 이번 대조 시 누적 기준 진단9건/이미지36개였으며 전후 전체 원장 행·이미지 해시와 PC36자산을 확인했다. 제품 검사0, 승인 calibration0, DB integrity ok/FK위반0. 실제 정상/L누락/R누락/양쪽누락 검사·DB·화면 수용은 미실행. 모델·신뢰도·겹침 기준·Recipe 불변, 학습/튜닝/실 PLC/실 엔진 미실행. app_v005/v006과 전환 전 data_root 전체 백업을 보존했다.
+Evidence: docs/verification/INSPECTION-CALIBRATION-FIX-20260914.json 및 runs/inspection_app_v1/calibration_fix_v006/ (v006 진단/중간 배포와 최종 v007 증거 함께 보존). 다음: 정상 제품 배치 확인 → 현재 기준 사진 촬영 → 사람 자리 승인 → 정상 한 건의 동일 ID 원본/판정/Jetson DB/PC/이력 대조. 그 뒤 누락3상태를 한 행동씩 진행한다.
+
 Latest Checkpoint (2026-09-14, INSPECTION-APP-V1):
 현재 Task는 tasks/inspection-app-v1.md. CODEX_INSPECTION_APP_V1_KO.md의 공통 앱 범위로 DB/PC/Mock 제어를 구현했으며, 아래 과거 BENCH의 DB 제외/8767 실행 표기는 당시 기록이다. 현재 Jetson 릴리스 app_v005, 검사 화면 http://127.0.0.1:8768, Windows PC 조회 http://127.0.0.1:8769. 기존 bench_v001은 소스·모델·기록을 보존하고 종료했다.
 제품 패키지 hash/schema/클래스/전처리/Recipe/촬영 검증, 같은 클래스 다중 슬롯·수량의 유일 배정, 별도 GPU/카메라 Worker 프로세스, Service 단일 SQLite writer와 PNG→commit→게시, 이력/asset 조회, 패키지 활성화/실패 복원, PC outbox·별도 DB·독립 이미지 ACK, Mock 요청/결과/종료 ACK·복구를 연결했다. Engine 모델/실물 슬롯은 미준비 비활성이다.

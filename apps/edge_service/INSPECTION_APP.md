@@ -1,6 +1,6 @@
 # 공통 검사 앱 V1 — 실행과 인계
 
-Windows에서 개발하며, 실제 카메라·PyTorch CUDA·원기록은 Jetson이 소유한다. Windows PC Service는 별도 SQLite 사본과 조회 화면만 소유한다. `bench_v001`은 변경하지 않은 복구 기준이다. 최종 실행 릴리스와 시험 결과는 `docs/verification/INSPECTION-APP-V1-20260914.json`을 본다.
+Windows에서 개발하며, 실제 카메라·PyTorch CUDA·원기록은 Jetson이 소유한다. Windows PC Service는 별도 SQLite 사본과 조회 화면만 소유한다. `bench_v001`은 변경하지 않은 복구 기준이다. 기준 등록 수정의 최종 릴리스는 `app_v007`이며 `docs/verification/INSPECTION-CALIBRATION-FIX-20260914.json`을 본다. 이후 사람 기준 승인과 정상 제품 검사1건 결과는 `docs/verification/INSPECTION-PHYSICAL-ACCEPTANCE-20260914.json`을 따른다. 기존 app_v005 근거 `docs/verification/INSPECTION-APP-V1-20260914.json`은 과거 진단 기록으로 보존한다.
 
 ## 접속과 실행
 
@@ -21,7 +21,7 @@ ssh -N -o BatchMode=yes -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -i "$e
 
 Jetson SSH 터미널:
 ```bash
-cd /home/jetson/oned_device_bench/releases/app_v005
+cd /home/jetson/oned_device_bench/releases/app_v007
 bash scripts/start_inspection_app.sh
 ```
 유휴/요청 종료 확인 후 종료:
@@ -33,11 +33,15 @@ bash scripts/stop_inspection_app.sh
 ## 실제 검사 순서
 
 1. 현재 미리보기에서 제품을 준비한다. 선택한 제품·기준 구도·모든 자리 가시성·손 제거를 사람이 확인한다.
-2. `기준 사진 촬영`으로 표시된 기대 자리와 실제 부품을 확인한 뒤 `표시된 기준 자리 확인`을 누른다. 버튼은 사람 확인이며 자동 승인하지 않는다. 자리 위치가 맞지 않으면 검사하지 않고 Recipe/촬영 조건을 준비한다.
+2. 모든 부품이 있는 정상 제품으로 `기준 사진 촬영`을 한다. 과거 고정 위치와 비교하지 않고 현재 원본의 클래스·수량·품질·연속 관측으로 새 후보를 만든다. 보라색 후보와 실제 부품 위치를 사람이 확인한 뒤에만 `표시된 기준 자리 확인`을 누른다. 같은 클래스가 여러 자리에 대응하면 자동 배정하지 않고 자리 지정 필요로 중단한다. 새 기준 촬영을 시작하면 이전 승인 기록은 보존하되 검사는 새 승인까지 차단하며 재시작해도 차단을 유지한다.
 3. 준비 완료 후 `검사하기`. 현재 영상과 선택한 저장 결과는 별개다. 결과 상세의 당시 package·request·observations·assets를 확인한다.
 4. 네 상태 실물 시험은 정상 → L 누락 → R 누락 → 양쪽 누락으로 사람이 한 번에 한 행동씩 진행한다. 현재 이 수용 시험은 대기다.
 
 모든 기준이 확실할 때만 PASS, 수량 부족 근거가 있을 때 FAIL, 관찰/정렬/식별/검출 불확실이면 REVIEW, 카메라·모델·저장 실패는 ERROR다. 같은 클래스의 여러 자리/수량을 지원하며 검출 하나를 여러 자리로 세지 않는다. 가시성은 사람 보조 모드이며 손·가림·닫힌 뚜껑·제품 방향 자동 인식은 미검증이다. 보이는 자리의 확정 불량과 다른 자리의 미확인을 함께 기록한다.
+
+기준 진단의 REVIEW와 제품 검사의 판정을 구분한다. 오른쪽 저장 결과는 표시된 ID/시각의 과거 사진이며 현재 미리보기 판정이 아니다. 원본 사진 링크와 상세 JSON으로 같은 ID의 근거를 확인한다. 기준 등록 실패는 자리/관측 번호/수량·신뢰도·품질·움직임·대응 모호성의 이유를 표시한다. 과거 영어 오류 원문은 저장 기록에서 보존한다.
+
+기준 후보는 원본 픽셀을 원본 width/height로 정규화하여 저장한다. CSS 화면 크기는 기준 좌표가 아니다. 승인된 calibration은 제품·manifest/capture/recipe hash·station 설정 hash·cell·원본 frame ID·기준 inspection ID에 연결된 별도 SQLite 행이다. 일반 검사는 승인된 좌표를 고정 사용하고 결과 `calibration_used`와 보라색 표시도 같은 좌표를 사용한다. 새 후보 없는 실패 화면에 과거 Recipe 사각형을 새 후보처럼 그리지 않는다. 사람 승인 후 정상 실물 검사1건의 사진·판정·Jetson/PC 저장을 확인했으며 화면 이력의 사람 확인과 누락3상태 수용은 대기다.
 
 ## 제품 교체
 
@@ -74,6 +78,6 @@ RESULT_ACK: 결과 한 번 소비. CYCLE_ACK: 가상 처리 종료를 Edge 원�
 
 ## 검증 범위와 미완료
 
-실제 Jetson GPU·USB 진단 촬영·PNG/SQLite 조회·PC 중단/복구 전송·같은 Baseline 재활성화·Service/Worker 종료를 시험했다. Worker 강제 종료, 잘못된 패키지 복원, ACK 유실/늦은 결과/timeout은 명시적 fixture 시험이다. 브라우저 실제 렌더링·사람 기준 자리·네 상태 수용·물리 USB 단절·실물 Mock 사이클은 대기다. B04·추가 학습·ONNX/TensorRT·실 엔진·실 PLC는 실행하지 않았다.
+실제 Jetson GPU·USB 진단 촬영·PNG/SQLite 조회·PC 중단/복구 전송·같은 Baseline 재활성화·Service/Worker 종료를 시험했다. app_v007의 기준 후보는 사람이 명시 승인했고, 새 정상 제품 검사5031fbaf16a94877b5b6aa46f9e90c03은 PASS였다. 원본3+overlay1, Jetson/PC 같은 ID 결과와 해시·이벤트/이미지 ACK를 확인했다. 기준 진단 REVIEW는 그대로 보존했다. Worker 강제 종료, 잘못된 패키지 복원, ACK 유실/늦은 결과/timeout은 명시적 fixture 시험이다. 최종 브라우저 이력 표시·누락3상태 수용·물리 USB 단절·실물 Mock 사이클은 대기다. B04·추가 학습·ONNX/TensorRT·실 엔진·실 PLC는 실행하지 않았다.
 
 성능: 구 버전 `inspection_total_ms`는 저장 전 Worker 결과 수신 시점이었으므로 전체 검사 지연으로 쓰지 않는다. 새 버전의 `INSPECTION_DURABLE_TIMING` 이벤트는 Edge 단조 시계로 DB commit 완료까지 측정한다. PC와 Jetson 시각을 빼지 않는다. 진단 n=3은 작은 개발 관측이며 정상 제품의 P95 수용 시험을 대신하지 않는다.

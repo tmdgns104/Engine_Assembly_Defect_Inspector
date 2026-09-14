@@ -11,6 +11,7 @@ from src.journal.sqlite import ConflictError, Journal
 from src.recipe.package import load_package
 from src.vision.inspection_worker import worker_main
 from src.control.mock_cell import MockCell
+from src.decision.calibration import station_fingerprint
 from apps.edge_service.mock_port import ServiceMockPort
 
 
@@ -37,7 +38,7 @@ class InspectionService:
             self.package=load_package(selected[0])
         self.recovery = self.journal.recover()
         self.session = self.journal.new_session(station['cell_id'])
-        self.calibration = self.journal.calibration(self.package.manifest_hash, station['station_id'])
+        self.calibration = self._load_calibration()
         self.lock = threading.RLock()
         self.worker_target = worker_target
         self.ctx = mp.get_context('spawn')
@@ -55,6 +56,35 @@ class InspectionService:
         self._launch()
         self.monitor = threading.Thread(target=self._monitor, daemon=True)
         self.monitor.start()
+
+    def _calibration_matches(self, candidate):
+        if not candidate or candidate.get('coordinate_space') != 'normalized_image':
+            return False
+        expected = {'manifest_sha256': self.package.manifest_hash,
+                    'product_id': self.package.manifest['product_id'],
+                    'capture_sha256': self.package.manifest['files']['capture']['sha256'],
+                    'recipe_sha256': self.package.manifest['files']['recipe']['sha256'],
+                    'station_id': self.station['station_id'], 'cell_id': self.station['cell_id'],
+                    'station_sha256': station_fingerprint(self.station)}
+        return all(candidate.get(key) == value for key, value in expected.items())
+
+    def _load_calibration(self):
+        candidate = self.journal.calibration(self.package.manifest_hash, self.station['station_id'])
+        if (self._calibration_matches(candidate) and candidate.get('confirmed') is True
+                and candidate.get('source_inspection_id') == self._latest_reference_id()):
+            return candidate
+        return None
+
+    def _latest_reference_id(self):
+        # A new reference attempt invalidates use of an older approval, even
+        # after restart or a failed capture. The historical approval stays intact.
+        with self.journal.lock:
+            row = self.journal.db.execute(
+                "SELECT inspection_id FROM inspections WHERE cell_id=? "
+                "AND json_extract(package_json,'$.manifest_sha256')=? "
+                "AND json_extract(request_json,'$.kind')='calibrate' ORDER BY rowid DESC LIMIT 1",
+                (self.station['cell_id'], self.package.manifest_hash)).fetchone()
+        return row[0] if row else None
 
     def _launch(self):
         self.generation = uuid.uuid4().hex
@@ -164,13 +194,15 @@ class InspectionService:
             control_idle=self.mock.state in ('IDLE','RECOVERY')
             with self.journal.lock:
                 pending_cycles=self.journal.db.execute("SELECT count(*) FROM inspections JOIN cycles USING(cell_id,plc_session_id,cycle_id) WHERE terminal IS NULL AND json_extract(request_json,'$.control_mode')='mock'").fetchone()[0]
-            return {'state': self.state, 'error': self.error or storage_error,
+            return {'app_release': 'app_v007', 'state': self.state, 'error': self.error or storage_error,
                 'ready': self.state == 'IDLE' and camera and bool(self.calibration) and not storage_error and not self.switching and control_idle and not pending_cycles,
                 'camera_ready': camera, 'worker_pid': self.process.pid, 'worker_alive': self.process.is_alive(),
                 'plc_session_id': self.session, 'cell_id': self.station['cell_id'],
                 'active_inspection_id': self.active['inspection_id'] if self.active else None,
                 'backend': self.backend, 'package': self.package.snapshot(),
                 'calibration_confirmed': bool(self.calibration), 'recovery': self.recovery,
+                'calibration_source_inspection_id': self.calibration.get('source_inspection_id') if self.calibration else None,
+                'latest_reference_inspection_id': self._latest_reference_id(),
                 'mock':self.mock.status(),'pc_sync':{'error':self.sender.error,'last_success':self.sender.last_success} if self.sender else {'state':'NOT_CONFIGURED'}}
 
     def allocate_request(self):
@@ -209,7 +241,14 @@ class InspectionService:
                 raise ConflictError('CAMERA_NOT_READY')
             if request['kind'] == 'inspect' and not self.calibration:
                 raise ConflictError('CALIBRATION_REQUIRED')
+            if request['kind'] == 'calibrate':
+                view = request['view_assessment']
+                if (view.get('product_identity') != 'human_confirmed' or view.get('alignment_confirmed') is not True
+                        or any(view.get('visible_slots', {}).get(s['id']) is not True for s in self.package.recipe['slots'])):
+                    raise ConflictError('정상 제품의 배치와 모든 자리 가시성을 사람이 먼저 확인해 주세요.')
             identifier, created = self.journal.admit(request, self.package.snapshot())
+            if request['kind'] == 'calibrate':
+                self.calibration = None
             accepted = time.monotonic()
             self.active = {'inspection_id': identifier, 'request': request, 'accepted_monotonic': accepted,
                 'deadline': accepted + self.station['inspection_timeout_seconds'], 'calibration': self.calibration}
@@ -238,7 +277,8 @@ class InspectionService:
             if not detail or detail['state'] != 'COMPLETE' or detail['request']['kind'] != 'calibrate':
                 raise ConflictError('REFERENCE_RESULT_REQUIRED')
             candidate = (detail['result'] or {}).get('calibration_candidate')
-            if not candidate or candidate['manifest_sha256'] != self.package.manifest_hash:
+            if (not self._calibration_matches(candidate) or candidate.get('source_inspection_id') != identifier
+                    or detail['plc_session_id'] != self.session or identifier != self._latest_reference_id()):
                 raise ConflictError('CURRENT_PACKAGE_REFERENCE_REQUIRED')
             candidate = dict(candidate, confirmed=True, source_inspection_id=identifier)
             self.journal.save_calibration(self.package.manifest_hash, self.station['station_id'], candidate)
@@ -257,7 +297,7 @@ class InspectionService:
             previous = self.package
             self._stop_worker()
             self.package = candidate
-            self.calibration = self.journal.calibration(candidate.manifest_hash, self.station['station_id'])
+            self.calibration = self._load_calibration()
             self.session = self.journal.new_session(self.station['cell_id'])
             self._launch()
         deadline = time.monotonic() + self.station.get('startup_timeout_seconds',90)
@@ -277,7 +317,7 @@ class InspectionService:
             failure = self.error or 'ACTIVATION_TIMEOUT'
             self._stop_worker()
             self.package = previous
-            self.calibration = self.journal.calibration(previous.manifest_hash,self.station['station_id'])
+            self.calibration = self._load_calibration()
             self.session = self.journal.new_session(self.station['cell_id'])
             self._launch()
         deadline = time.monotonic() + self.station.get('startup_timeout_seconds',90)

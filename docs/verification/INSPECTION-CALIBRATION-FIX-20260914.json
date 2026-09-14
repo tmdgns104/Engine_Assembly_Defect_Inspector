@@ -1,0 +1,72 @@
+{
+  "status": "DEPLOYED_HUMAN_CALIBRATION_PENDING",
+  "app_release": "app_v007",
+  "repository_head": "878b956edbbedd6156c0aba501ec197b7d380756",
+  "uncommitted_changes": true,
+  "source_inspection_id": "c92f305afc9348df9ee030d2ec217a95",
+  "original_record_kind": "calibrate",
+  "original_reason": "REFERENCE_PARTS_UNCERTAIN",
+  "cause": "All three observations detected case and L/R, but legacy fixed regions assigned neither slot; deployed app_v005 source hashes matched the repository.",
+  "active_package_root": "/home/jetson/oned_device_bench/releases/app_v003/deployment/products/earbud_case_v0/app_v001",
+  "package_sha256": "a461349449314af8a2b0f83bc3a323eb3c9dc4226b9c05669ea89ecf1ef5030a",
+  "model_sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+  "recipe_sha256": "63597edd8505c3c98d8cfb53aa66d3de380470bf45fb014e8b466a4bbb9b27f9",
+  "changes": [
+    "Class/count/quality/consecutive-observation reference proposals in source coordinates, independent of legacy regions",
+    "Ambiguous shared-class slots reject automatic mapping",
+    "Candidate and inspection overlays use calibration_used coordinates",
+    "Human approval and current package/station/session/latest-source binding; new reference attempts block old approvals across restart",
+    "Separate immutable calibration record; saved diagnostic/inspection labels and source links"
+  ],
+  "preservation": {
+    "initial_diagnostics": 5,
+    "initial_assets": 20,
+    "current_diagnostics_unchanged": 9,
+    "current_assets_unchanged": 36,
+    "product_inspections": 0,
+    "confirmed_calibrations": 0,
+    "pc_assets_hash_verified": 36,
+    "edge_integrity": "ok",
+    "foreign_key_errors": 0
+  },
+  "verification": {
+    "windows_full": {
+      "passed": 227,
+      "seconds": 48.312
+    },
+    "jetson_final_changed_suite": {
+      "passed": 14,
+      "seconds": 10.011
+    },
+    "jetson_prior_unchanged_journal_package_tests": 17,
+    "offline_dom_contract": "PASS",
+    "stored_observation_replay": "PASS_UNAPPROVED_NO_NEW_INSPECTION",
+    "live_http_before_approval": "409 CALIBRATION_REQUIRED",
+    "live_camera_cuda": "PASS",
+    "served_html_matches_local": "PASS",
+    "deployed_files_hash_verified": 8
+  },
+  "failed_attempts_preserved": [
+    "Windows initial test fixture lacked evidence and used exact float equality; fixtures corrected without loosening runtime gates",
+    "Jetson test support files absent; copied unchanged test inputs",
+    "Jetson TestClient unavailable because httpx is not installed; Windows API tests and live target HTTP checks used",
+    "Raw HTML byte comparison differed only by newline normalization; decoded served text matched"
+  ],
+  "pending": [
+    "Human reload of final browser page and visual acceptance",
+    "Human placement/visibility and candidate-slot approval",
+    "Normal physical inspection with raw/detection/reason/Jetson DB/PC collection/history at the same ID",
+    "Missing-left, missing-right and missing-both physical acceptance"
+  ],
+  "limits": [
+    "Same-class ambiguous reference mapping is refused; manual slot editor is not implemented",
+    "Automatic occlusion/orientation recognition is unverified",
+    "Stored-observation replay is not a new physical inspection",
+    "No training/tuning/threshold changes/real PLC or engine tests"
+  ],
+  "backup_roots": [
+    "/home/jetson/oned_device_bench/data/app_v1_before_app_v006_20260914",
+    "/home/jetson/oned_device_bench/data/app_v1_before_app_v007_20260914"
+  ],
+  "evidence_root": "runs/inspection_app_v1/calibration_fix_v006"
+}

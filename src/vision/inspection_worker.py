@@ -6,7 +6,8 @@ import time
 import socket
 from datetime import datetime, timezone
 
-from src.decision.slots import assess, assign_slots, normalized_box, pixel_box
+from src.decision.slots import assess, pixel_box
+from src.decision.calibration import ReferenceError, reference_proposal, station_fingerprint
 from src.quality.image import assess_image
 from src.recipe.package import load_package
 
@@ -25,26 +26,6 @@ def put_latest(channel, value):
             pass
 
 
-def reference_proposal(observations, package):
-    recipe = package.recipe
-    observation = observations[-1]
-    assignments, uncertain = assign_slots(observation["detections"], recipe, observation["width"], observation["height"])
-    if uncertain or any(len(assignments[s["id"]]) != s["expected_count"] for s in recipe["slots"]):
-        raise ValueError("REFERENCE_PARTS_UNCERTAIN")
-    if any(not item["quality"]["valid"] for item in observations):
-        raise ValueError("REFERENCE_QUALITY_UNCERTAIN")
-    references = [d for d in observation["detections"] if d["class_name"] == recipe["reference_class"]]
-    reference_box = None
-    if recipe["reference_class"]:
-        if len(references) != 1 or references[0]["confidence"] < recipe["reference_confidence"]:
-            raise ValueError("REFERENCE_OBJECT_UNCERTAIN")
-        reference_box = normalized_box([references[0]["bounding_box"][key] for key in ('x1','y1','x2','y2')], observation["width"], observation["height"])
-    return {"slots": {slot["id"]: slot["region"] for slot in recipe["slots"]},
-            "reference_box": reference_box, "manifest_sha256": package.manifest_hash,
-            "capture_sha256": package.manifest["files"]["capture"]["sha256"],
-            "recipe_sha256": package.manifest["files"]["recipe"]["sha256"], "confirmed": False}
-
-
 def encode_evidence(frame, observations, recipe, calibration):
     import cv2
     images = []
@@ -61,8 +42,11 @@ def encode_evidence(frame, observations, recipe, calibration):
         x1,y1,x2,y2 = [round(box[k]) for k in ("x1","y1","x2","y2")]
         cv2.rectangle(overlay,(x1,y1),(x2,y2),(0,220,0),2)
         cv2.putText(overlay,f'{item["class_name"]} {item["confidence"]:.3f}',(x1,max(20,y1-5)),cv2.FONT_HERSHEY_SIMPLEX,.6,(0,220,0),2)
-    regions = calibration["slots"] if calibration else {slot["id"]: slot["region"] for slot in recipe["slots"]}
+    # No candidate means no authoritative expected slots to draw.
+    regions = calibration["slots"] if calibration else {}
     for slot in recipe["slots"]:
+        if slot['id'] not in regions:
+            continue
         x1,y1,x2,y2 = map(round,pixel_box(regions[slot["id"]],last.width,last.height))
         cv2.rectangle(overlay,(x1,y1),(x2,y2),(230,50,230),2)
         cv2.putText(overlay,"EXPECTED "+slot["id"],(x1,min(last.height-5,y2+20)),cv2.FONT_HERSHEY_SIMPLEX,.5,(230,50,230),1)
@@ -131,16 +115,21 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 if job["request"]["kind"] == "calibrate":
                     try:
                         candidate = reference_proposal(observations,package)
+                        candidate.update(source_inspection_id=job['inspection_id'], station_id=station['station_id'],
+                                         cell_id=station['cell_id'], station_sha256=station_fingerprint(station))
                         result = {"decision": "REVIEW", "reason": "검사 자리와 제품 구도를 화면에서 확인하세요.", "defects": [], "unassessed": []}
-                    except ValueError as error:
-                        result = {"decision": "REVIEW", "reason": str(error), "defects": [], "unassessed": [s["id"] for s in package.recipe["slots"]]}
+                    except ReferenceError as error:
+                        result = {"decision": "REVIEW", "reason": str(error), "reason_code": error.code,
+                                  "defects": [], "unassessed": error.slots}
                 else:
                     result = assess(observations,package.recipe,job["request"]["view_assessment"],job.get("calibration"))
-                result.update(observations=observations,calibration_candidate=candidate,backend=backend,
+                displayed_calibration = candidate if job['request']['kind'] == 'calibrate' else job.get('calibration')
+                result.update(observations=observations,calibration_candidate=candidate,
+                              calibration_used=displayed_calibration,backend=backend,
                               inference_ms=sum(item["inference_ms"] for item in observations),
                               worker_total_ms=(time.monotonic()-job["accepted_monotonic"])*1000,
                               visibility_limit="Human-assisted visibility; automatic occlusion/orientation recognition unverified")
-                images = encode_evidence(frames,observations,package.recipe,candidate or job.get("calibration"))
+                images = encode_evidence(frames,observations,package.recipe,displayed_calibration)
                 results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],"result":result,"images":images},timeout=2)
             except Exception as error:
                 results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],

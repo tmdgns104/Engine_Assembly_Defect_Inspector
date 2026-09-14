@@ -55,7 +55,9 @@ class ServiceTests(unittest.TestCase):
 
     def request(self, identifier=1):
         return {'cell_id':'mock-cell','plc_session_id':self.service.session,'request_id':identifier,
-            'cycle_id':identifier,'attempt':1,'kind':'calibrate','view_assessment':{},
+            'cycle_id':identifier,'attempt':1,'kind':'calibrate',
+            'view_assessment':{'product_identity':'human_confirmed','alignment_confirmed':True,
+                               'visible_slots':{'first':True,'second':True},'basis':'synthetic fixture'},
             'package_sha256':self.service.package.manifest_hash}
 
     def test_idempotent_busy_and_durable_result(self):

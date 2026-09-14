@@ -1,0 +1,112 @@
+{
+  "status": "NORMAL_INSPECTION_VERIFIED_REMAINING_ACCEPTANCE_PENDING",
+  "app_release": "app_v007",
+  "product_id": "earbud_case_v0",
+  "scope": "Actual earbud camera inspection; not engine or PLC acceptance",
+  "reference": {
+    "inspection_id": "a7908d3c586f422c9648cbfc97feffac",
+    "original_decision": "REVIEW",
+    "original_candidate_record_preserved": true,
+    "human_approval_explicit": true,
+    "calibration_id": "ce3a0337df5243109093e7eae9104ce7",
+    "confirmed_at": "2026-09-14T03:01:38.727886+00:00",
+    "jetson_sqlite_confirmed": true
+  },
+  "product_inspection": {
+    "inspection_id": "5031fbaf16a94877b5b6aa46f9e90c03",
+    "kind": "inspect",
+    "accepted_at": "2026-09-14T03:02:41.966903+00:00",
+    "completed_at": "2026-09-14T03:02:43.080233+00:00",
+    "expected_state_for_acceptance_only": "normal",
+    "expected_state_not_sent_to_decision": true,
+    "decision": "PASS",
+    "reason": "모든 필수 자리와 수량 확인",
+    "slot_states": {
+      "L": "PRESENT",
+      "R": "PRESENT"
+    },
+    "observations": 3,
+    "raw_images": 3,
+    "overlay_images": 1,
+    "new_frames_and_images": true,
+    "approved_calibration_coordinates_unchanged": true,
+    "model_sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1"
+  },
+  "verification": {
+    "inspection_id": "5031fbaf16a94877b5b6aa46f9e90c03",
+    "decision": "PASS",
+    "reason": "모든 필수 자리와 수량 확인",
+    "slot_states": {
+      "L": "PRESENT",
+      "R": "PRESENT"
+    },
+    "edge_and_pc_result_equal": true,
+    "edge_and_pc_single_row": true,
+    "assets": [
+      {
+        "asset_id": "215fc0dd6f7a4fc19fbee249cfdd5642",
+        "kind": "raw",
+        "sha256": "04380e88c2802d39826da972d2fdb30eaba03e0c7a17713d5178434fa16c2b18",
+        "sync_state": "ACKED",
+        "pc_sync_state": "ACKED"
+      },
+      {
+        "asset_id": "715cb4fdaae14de9977b3ac99e795438",
+        "kind": "raw",
+        "sha256": "0d1c4d49bc5916091e116489f5457523ce7579c661bfb31bdeb2d699e9b434dc",
+        "sync_state": "ACKED",
+        "pc_sync_state": "ACKED"
+      },
+      {
+        "asset_id": "9d6e3db3a0554b758a6882de78ec22dc",
+        "kind": "raw",
+        "sha256": "fc9d8f5cb2ee3089d36f5e8b6bf42ac1f30e2eca8b7f5c94dd1a8f2d7a1eea03",
+        "sync_state": "ACKED",
+        "pc_sync_state": "ACKED"
+      },
+      {
+        "asset_id": "9d3df196d26642e4a67766fa19f5e089",
+        "kind": "overlay",
+        "sha256": "33e7d6bc97e29d66a5bc77447ef4babf3a8c2776092db017b2a752c27691f1ba",
+        "sync_state": "ACKED",
+        "pc_sync_state": "ACKED"
+      }
+    ],
+    "events": [
+      {
+        "event_id": "0b0abf4337304e6e92bce1cda215db0d",
+        "event_type": "INSPECTION_COMPLETED",
+        "state": "ACKED",
+        "acknowledged_at": "2026-09-14T03:02:43.450872+00:00"
+      },
+      {
+        "event_id": "9530b6933d774f75a59d18efdfda5aa2",
+        "event_type": "INSPECTION_DURABLE_TIMING",
+        "state": "ACKED",
+        "acknowledged_at": "2026-09-14T03:02:43.498045+00:00"
+      }
+    ],
+    "new_frames_and_images": true,
+    "approved_slots_unchanged": true,
+    "prior_nine_records_preserved": true,
+    "reference_review_record_preserved": true,
+    "edge_integrity": "ok",
+    "edge_foreign_key_errors": 0,
+    "history_api_contains_product_pass": true,
+    "browser_history_visual": "UNVERIFIED",
+    "scope": "real earbud camera manual inspection; not PLC or engine"
+  },
+  "pending": [
+    "Browser history visual confirmation",
+    "Missing-left physical acceptance",
+    "Missing-right physical acceptance",
+    "Missing-both physical acceptance"
+  ],
+  "not_run": [
+    "Retraining or tuning",
+    "Physical PLC or motor",
+    "Actual engine test"
+  ],
+  "publication": "Metadata only; original images, database files, model weights and tokens remain local",
+  "local_evidence": "runs/inspection_app_v1/physical_acceptance/5031fbaf16a94877b5b6aa46f9e90c03"
+}
