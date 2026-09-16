@@ -4,6 +4,45 @@ Windows에서 개발하며, 실제 카메라·PyTorch CUDA·원기록은 Jetson�
 
 ## 접속과 실행
 
+### 재부팅 후 수동 실행 — 현재 설치된 app_v007
+
+이미 실행 중이면 아래 시작 명령을 중복 실행하지 않고 검사 화면을 연다. 다음은 종료/재부팅 후 수동으로 다시 시작하는 순서다.
+
+1. Windows PowerShell에서 검사 화면 연결과 SSH 접속을 함께 실행한다. 비밀번호를 물으면 Jetson 로그인 비밀번호를 입력한다. 입력 문자가 표시되지 않는 것이 정상이다.
+
+```powershell
+ssh -o ExitOnForwardFailure=yes -L 127.0.0.1:8768:127.0.0.1:8768 jetson@192.168.50.2
+```
+
+2. 접속된 Jetson 터미널에서 실행하고 상태를 확인한다. 첫 모델 로딩에는 잠시 시간이 걸리므로 `INIT`이면 수 초 후 상태 조회만 다시 한다.
+
+```bash
+cd /home/jetson/oned_device_bench/releases/app_v007
+bash scripts/start_inspection_app.sh
+curl -s http://127.0.0.1:8768/api/v1/health | python3 -m json.tool
+```
+
+`state: IDLE`, `camera_ready: true`, `error: null`을 확인한다. `ready: true`는 기준 등록까지 복원된 준비 상태다. 이 SSH 창을 열어 둔 채 Windows 브라우저에서 **http://127.0.0.1:8768**을 연다. Jetson에 연결된 모니터의 브라우저에서도 같은 주소를 사용할 수 있다. Jetson 앱은 loopback 전용이므로 Windows에서 `http://192.168.50.2:8768`로 직접 접속하는 방식은 아니다.
+
+3. PC에도 검사 기록을 수집하려면 **별도 Windows PowerShell**에서 실행한다. 현재 PC에 설정된 전용 SSH 키와 공유 토큰을 그대로 사용한다.
+
+```powershell
+cd D:\OneDevice_Team_project
+& .\scripts\start_inspection_pc.ps1
+```
+
+PC 기록 화면은 **http://127.0.0.1:8769**다. `Port 8769 already has a listener`는 이미 수집기가 실행 중일 수 있으므로 먼저 화면/상태를 확인한다. `8768 Address already in use`도 기존 검사 터널을 확인하며 중복 시작하지 않는다.
+
+4. 실제 검사 전에 미리보기의 제품·초점·자리 가시성을 확인한다. 카메라 위치/높이/제품 구도가 달라졌으면 정상 제품으로 `기준 사진 촬영` → 보라색 L/R 위치 확인 → `표시된 기준 자리 확인` 후 `검사하기`를 누른다. 기존 `calibration_confirmed: true`만으로 현재 물리 배치가 동일하다고 판단하지 않는다.
+
+5. 검사가 끝난 유휴 상태에서 Jetson SSH 창의 위 앱 폴더에서 `bash scripts/stop_inspection_app.sh`로 종료한다. Windows PC 수집기는 프로젝트 폴더에서 `& .\scripts\stop_inspection_pc.ps1`로 종료한다. 마지막으로 SSH 창에서 `exit`하면 검사 화면 터널도 닫힌다. SSH 창만 닫으면 `nohup`으로 시작된 Jetson 앱은 계속 실행된다.
+
+2026-09-14 재기동 검증: app_v007 / Orin PyTorch cuda:0 자체 추론 / USB 1280×720 미리보기 2장 / 검사 및 PC HTTP 응답 확인. 제품 촬영·판정 요청은 보내지 않았다. 당시 영상은 제품이 보이지 않는 흐린 회색 면으로, 실제 검사 전 배치·초점 확인이 필요하다. Evidence: `runs/inspection_app_v1/startup_20260914/verification.json`.
+
+### 기존 전용키·개별 서비스 명령
+
+USB 카메라를 뺐다가 다시 연결한 뒤 `CAMERA_FRAME_TIMEOUT`/`RECOVERY`이면 진행 중 검사·미종료 Mock 사이클이 없는지 확인하고 화면 하단 **정비 · 제품 패키지 → 현재 제품 선택 → 선택 패키지 활성화 / Worker 복구**를 누른다. Windows 프로젝트 폴더에서 같은 동작은 `.venv\Scripts\python.exe -B -X utf8 scripts/inspection_client.py activate earbud_case_v0/app_v001`이다. 모델 로딩 후 미리보기가 다시 갱신되는지 확인한다. 기준 미승인 상태는 이 동작으로 승인되지 않으며 정상 제품의 기준 촬영·자리 확인이 별도로 필요하다. 2026-09-14 실제 재연결 이후 이 경로로 복구하고 이력13행 보존을 확인했다.
+
 현재 검사 화면: **http://127.0.0.1:8768**. PC 기록 화면: **http://127.0.0.1:8769**.
 화면은 SSH 터널/loopback 전용이며 토큰 없는 쓰기를 거부한다. 현재 운영자 세션 토큰이 정비·검사 권한도 갖는 단일 운영자 범위다. 다중 계정/RBAC는 구현 범위 밖이다.
 

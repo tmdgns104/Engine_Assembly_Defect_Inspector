@@ -1,0 +1,597 @@
+{
+  "task_id": "JETSON-P0-002",
+  "observed_at_utc": "2026-09-16T06:16:08.934603+00:00",
+  "status": "IMPLEMENTED_CONTRACTS_PASS_DEVICE_GATE_BLOCKED",
+  "overall_acceptance": "BLOCKED",
+  "acceptance": {
+    "A_CONTRACT_TESTS": "PASS",
+    "B_CANDIDATE_RUNTIME_SMOKE": "FAIL",
+    "C_ACTUAL_CAMERA_FRESH_FRAME": "NOT_RUN",
+    "D_MODEL_FRESH_FRAME_SMOKE": "NOT_RUN",
+    "E_MOVING_CONVEYOR_PHYSICAL_ACCEPTANCE": "NOT_RUN"
+  },
+  "candidate_runtime_gate": {
+    "gate_A": "PASS",
+    "gate_B": "PASS",
+    "gate_C": "FAIL",
+    "raw_gate_C_field_note": "Raw probe initialized gate_C=NOT_RUN and assigned PASS only on success. Traceback proves one detect call attempted; authoritative Gate C is FAIL.",
+    "modules": {
+      "numpy": {
+        "version": "1.26.4",
+        "path": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay/numpy/__init__.py"
+      },
+      "torch": {
+        "version": "2.8.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py"
+      },
+      "cv2": {
+        "version": "5.0.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py"
+      },
+      "tensorrt": {
+        "version": "10.3.0",
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt/__init__.py"
+      }
+    },
+    "camera_frames": [
+      {
+        "sequence": 1,
+        "source_pts_ns": 866415521,
+        "received_monotonic": 13398.86532909,
+        "estimated_source_monotonic": 13398.819401375,
+        "age_seconds": 0.045927715,
+        "received_at": "2026-09-16T05:54:34.163704+00:00",
+        "freshness_method": "v4l2src PTS; appsink drop=true max-buffers=1; increasing PTS; source time after request",
+        "sensor_exposure_timestamp_verified": false,
+        "frame_id": "357c17759acb4c16a0fe85efc739e662-1",
+        "camera_epoch": "357c17759acb4c16a0fe85efc739e662"
+      },
+      {
+        "sequence": 2,
+        "source_pts_ns": 902416401,
+        "received_monotonic": 13398.885129805,
+        "estimated_source_monotonic": 13398.848985744999,
+        "age_seconds": 0.03614406,
+        "received_at": "2026-09-16T05:54:34.183442+00:00",
+        "freshness_method": "v4l2src PTS; appsink drop=true max-buffers=1; increasing PTS; source time after request",
+        "sensor_exposure_timestamp_verified": false,
+        "frame_id": "357c17759acb4c16a0fe85efc739e662-2",
+        "camera_epoch": "357c17759acb4c16a0fe85efc739e662"
+      },
+      {
+        "sequence": 3,
+        "source_pts_ns": 934415321,
+        "received_monotonic": 13398.908544068,
+        "estimated_source_monotonic": 13398.876068487,
+        "age_seconds": 0.032475581,
+        "received_at": "2026-09-16T05:54:34.206822+00:00",
+        "freshness_method": "v4l2src PTS; appsink drop=true max-buffers=1; increasing PTS; source time after request",
+        "sensor_exposure_timestamp_verified": false,
+        "frame_id": "357c17759acb4c16a0fe85efc739e662-3",
+        "camera_epoch": "357c17759acb4c16a0fe85efc739e662"
+      },
+      {
+        "sequence": 4,
+        "source_pts_ns": 966424913,
+        "received_monotonic": 13398.94569653,
+        "estimated_source_monotonic": 13398.908121024,
+        "age_seconds": 0.037575506,
+        "received_at": "2026-09-16T05:54:34.244007+00:00",
+        "freshness_method": "v4l2src PTS; appsink drop=true max-buffers=1; increasing PTS; source time after request",
+        "sensor_exposure_timestamp_verified": false,
+        "frame_id": "357c17759acb4c16a0fe85efc739e662-4",
+        "camera_epoch": "357c17759acb4c16a0fe85efc739e662"
+      },
+      {
+        "sequence": 5,
+        "source_pts_ns": 1002418009,
+        "received_monotonic": 13398.978604802,
+        "estimated_source_monotonic": 13398.944330223,
+        "age_seconds": 0.034274579,
+        "received_at": "2026-09-16T05:54:34.276911+00:00",
+        "freshness_method": "v4l2src PTS; appsink drop=true max-buffers=1; increasing PTS; source time after request",
+        "sensor_exposure_timestamp_verified": false,
+        "frame_id": "357c17759acb4c16a0fe85efc739e662-5",
+        "camera_epoch": "357c17759acb4c16a0fe85efc739e662"
+      }
+    ],
+    "camera_profile": {
+      "device": "USB Composite Device HCAM0",
+      "format": "MJPG",
+      "width": 1280,
+      "height": 720,
+      "fps": 30
+    },
+    "camera_image_files_saved": 0,
+    "detector_detect_calls_attempted": 1,
+    "detector_results_returned": 0,
+    "detector_input": "/home/jetson/oned_device_bench/data/app_v1/assets/5031fbaf16a94877b5b6aa46f9e90c03/215fc0dd6f7a4fc19fbee249cfdd5642.png",
+    "input_sha256": "04380e88c2802d39826da972d2fdb30eaba03e0c7a17713d5178434fa16c2b18",
+    "error_traceback": "Traceback (most recent call last):\n  File \"/home/jetson/oned_device_bench/releases/app_v007/src/vision/pytorch_detector.py\", line 44, in detect\n    result = self.model.predict(frame.image, imgsz=self.preprocessing[\"size\"], rect=False, device=0,\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/engine/model.py\", line 520, in predict\n    return self.predictor.predict_cli(source=source) if is_cli else self.predictor(source=source, stream=stream)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/engine/predictor.py\", line 241, in __call__\n    return list(self.stream_inference(source, model, *args, **kwargs))  # merge list of Results into one\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/utils/_contextlib.py\", line 38, in generator_context\n    response = gen.send(None)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/engine/predictor.py\", line 344, in stream_inference\n    self.model.warmup(im=im)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/autobackend.py\", line 327, in warmup\n    self.forward(im)  # warmup model\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/autobackend.py\", line 285, in forward\n    y = self.backend.forward(im, **forward_kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/backends/pytorch.py\", line 93, in forward\n    return self.model(im, augment=augment, embed=embed, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1879, in _call_impl\n    return inner()\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1827, in inner\n    result = forward_call(*args, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/tasks.py\", line 157, in forward\n    return self.predict(x, *args, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/tasks.py\", line 173, in predict\n    return self._predict_once(x, profile, embed)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/tasks.py\", line 194, in _predict_once\n    x = m(x)  # run\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/modules/conv.py\", line 89, in forward_fuse\n    return self.act(self.conv(x))\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1773, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 1784, in _call_impl\n    return forward_call(*args, **kwargs)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/conv.py\", line 548, in forward\n    return self._conv_forward(input, self.weight, self.bias)\n  File \"/home/jetson/.local/lib/python3.10/site-packages/torch/nn/modules/conv.py\", line 543, in _conv_forward\n    return F.conv2d(\nRuntimeError: NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"/opt/pytorch/c10/cuda/CUDACachingAllocator.cpp\":1131, please report a bug to PyTorch. \n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"<stdin>\", line 61, in <module>\n  File \"/home/jetson/oned_device_bench/releases/app_v007/src/vision/pytorch_detector.py\", line 57, in detect\n    raise DetectorError(f\"{type(error).__name__}: {error}\") from error\nsrc.contracts.interfaces.DetectorError: RuntimeError: NVML_SUCCESS == r INTERNAL ASSERT FAILED at \"/opt/pytorch/c10/cuda/CUDACachingAllocator.cpp\":1131, please report a bug to PyTorch. \n",
+    "stderr": "NvMapMemAllocInternalTagged: 1075072515 error 12\nNvMapMemHandleAlloc: error 0\nNvMapMemAllocInternalTagged: 1075072515 error 12\nNvMapMemHandleAlloc: error 0\nNvMapMemAllocInternalTagged: 1075072515 error 12\nNvMapMemHandleAlloc: error 0\nNvMapMemAllocInternalTagged: 1075072515 error 12\nNvMapMemHandleAlloc: error 0\n",
+    "metadata_conflict": "opencv-python 5.0.0.93 requires numpy>=2; candidate numpy 1.26.4",
+    "post_failure_diagnostics": {
+      "meminfo": "MemTotal:        7802748 kB\nMemFree:          668456 kB\nMemAvailable:    4242008 kB\nBuffers:          151792 kB\nCached:          3454476 kB\nSwapCached:           44 kB\nActive:          2106516 kB\nInactive:        4166496 kB\nActive(anon):      43572 kB\nInactive(anon):  2682140 kB\nActive(file):    2062944 kB\nInactive(file):  1484356 kB\nUnevictable:       35404 kB\nMlocked:               0 kB\nSwapTotal:       3901368 kB\nSwapFree:        3660984 kB\nDirty:                20 kB\nWriteback:             0 kB\nAnonPages:       2634988 kB\nMapped:           378964 kB\nShmem:             23596 kB\nKReclaimable:     298788 kB\nSlab:             420052 kB\nSReclaimable:     298788 kB\nSUnreclaim:       121264 kB\nKernelStack:       11788 kB\nPageTables:        43628 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:     7802740 kB\nCommitted_AS:    8307312 kB\nVmallocTotal:   133143592960 kB\nVmallocUsed:       64796 kB\nVmallocChunk:          0 kB\nPercpu:             5040 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:   1013760 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nCmaTotal:         262144 kB\nCmaFree:            2024 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\n",
+      "free": {
+        "returncode": 0,
+        "stdout": "               total        used        free      shared  buff/cache   available\nMem:      7990013952  3308027904   683208704    24162304  3998777344  4342525952\nSwap:     3995000832   246153216  3748847616\n",
+        "stderr": ""
+      },
+      "root_cause": "UNCONFIRMED: allocator assertion and NvMap error 12 observed; resource exhaustion/fragmentation/build compatibility not distinguished"
+    },
+    "model_retries": 0,
+    "package_changes": 0
+  },
+  "contract": {
+    "sources": [
+      "LOCAL_TEST",
+      "MOCK"
+    ],
+    "clock": "local process/host monotonic, not PLC clock or exposure",
+    "comparison": "estimated_source_monotonic > trigger_received_monotonic + boundary_epsilon_ms/1000",
+    "single_active": true,
+    "queue_added": false,
+    "timeout_fallback": false,
+    "exposure_time_verified": false,
+    "config": {
+      "station_id": "jetson-p0-002-candidate",
+      "cell_id": "candidate-p0-002-local",
+      "app_release": "app_v008-dev-p0-002",
+      "camera_device": "/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index0",
+      "frame_spacing_seconds": 0.15,
+      "max_frame_age_seconds": 0.35,
+      "inspection_timeout_seconds": 15,
+      "startup_timeout_seconds": 90,
+      "fresh_frame": {
+        "max_trigger_to_frame_ms": 3000,
+        "inspection_window_ms": 3000,
+        "boundary_epsilon_ms": 0,
+        "acceptance_scope": "LAB_ONLY_UNMEASURED_CONVEYOR"
+      },
+      "quality": {
+        "min_blur_variance": 25,
+        "min_mean_brightness": 35,
+        "max_mean_brightness": 225
+      }
+    },
+    "rejection_reasons": [
+      "PRE_TRIGGER",
+      "STALE",
+      "DUPLICATE_FRAME",
+      "PTS_REGRESSION",
+      "CAMERA_EPOCH_CHANGED",
+      "DEADLINE_EXCEEDED",
+      "FRAME_METADATA_INVALID",
+      "CANCELLED",
+      "OBSERVATION_SPACING"
+    ],
+    "required_12_scenarios": {
+      "pre_trigger": "test_pre_trigger_and_exact_boundary_rejected",
+      "fresh_after_trigger": "test_immediately_after_trigger_accepted_with_truthful_metadata",
+      "duplicate": "test_same_sequence_and_equal_pts_rejected",
+      "pts_regression": "test_pts_regression_aborts",
+      "stale": "test_stale_uses_selection_age_not_capture_cached_age",
+      "epoch_changed": "test_camera_epoch_change_aborts_even_with_fresh_timestamp",
+      "deadline": "test_deadline_is_exclusive",
+      "no_past_fallback": "test_timeout_never_falls_back_or_revives",
+      "cancel_late_frame": "test_cancel_before_late_frame_never_revives",
+      "old_session": "test_old_session_trigger_cannot_publish_result",
+      "busy": "test_trigger_is_server_bound_durable_and_single_active",
+      "commit_before_publish": "test_no_result_visible_on_other_connection_before_commit"
+    }
+  },
+  "tests": {
+    "status": "PASS",
+    "count": 102,
+    "new_contract_tests": 27,
+    "existing_regressions": 75,
+    "command": [
+      "D:\\OneDevice_Team_project\\.venv\\Scripts\\python.exe",
+      "-B",
+      "-X",
+      "utf8",
+      "-m",
+      "unittest",
+      "test_fresh_frame",
+      "test_fresh_frame_service",
+      "test_fresh_frame_worker",
+      "test_contracts",
+      "test_product_package",
+      "test_calibration_reference",
+      "test_inspection_journal",
+      "test_inspection_service",
+      "test_inspection_api",
+      "test_collector_sync",
+      "test_mock_cell",
+      "test_mock_service",
+      "test_jetson_bench",
+      "test_jetson_bench_prepare",
+      "-v"
+    ],
+    "duration_seconds": 10.903622999998333,
+    "final_log": "runs/jetson_p0_002/tests_verified.json",
+    "prior_failure_log": "runs/jetson_p0_002/tests_final.json",
+    "prior_failure": "Legacy synthetic frame without frame_id failed after asset link extension. Preserve optional legacy ID; fresh selector still requires valid ID. Full 102 rerun passed."
+  },
+  "candidate": {
+    "root": "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002",
+    "data_root": "/home/jetson/oned_device_bench/data/candidate_p0_002",
+    "overlay": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay",
+    "inventory": {
+      "cache/gstreamer-1.0/registry.aarch64.bin": "22f15eefcb28571c9b8600c69ad0dcf94b126ef03da9f403fe42fe2576da0c4a",
+      "config/matplotlib/fontlist-v330.json": "3398db9b9ff94d72d22af5b6f4e05044a513b16da845cced6fef74c99b1b7da2",
+      "config/ultralytics/Ultralytics/settings.json": "59b75562812ce0dca2229302d05ac58a3d7806f4ca643d683ef93ead43217d3c",
+      "logs/runtime_gate.json": "3e768e29a909dfc7910fd05333f1fe87f002f2f125cd6b5322c03fbc98854b77",
+      "logs/source_inventory.json": "6e66e973543c073b775a32236ffcf3592ed2021b3fe86cf952a2d552d52ae224",
+      "logs/source_update_001.json": "39f34afb0708cef5bfb9026e89dd054b763b04bd0f451b44911f1f879e5d4eac",
+      "runtime/apps/edge_service/bench.py": "d9685e6a10626a15016fceebbcbb650e65f5b2e9a3c595f156618efd22694f48",
+      "runtime/apps/edge_service/inspection.html": "c37de1bbd38366b31c2bb7547c0a4ef3008509418cc978a65314e1bec3cbe344",
+      "runtime/apps/edge_service/inspection.py": "9715d0f041fcc98c8fabcfa166f20af59aeb4280cc1e217f210eb4e3a86233b6",
+      "runtime/apps/edge_service/inspection_api.py": "f01c23fbb5a748399b68c6d8e517300424a12c0af9df0189b9d898a1c98000b3",
+      "runtime/apps/edge_service/mock_port.py": "32ef4325b5a5dfffcfbc3c228eaba305862635c16832273999663c9dbded46f7",
+      "runtime/config/inspection_station_candidate_p0_002.json": "8140074579e1ad6d06851be28cfef3bba9726980a4190b2b2b2fcd9794758d21",
+      "runtime/scripts/run_jetson_fresh_candidate.py": "153ffce3b4d0de2a0600574eecaf0392f655559483db67747ee132a5e32f8675",
+      "runtime/src/api/__init__.py": "77b5cc12c7bac30b4b391aab4269e168a308f0a3379494b345513b1d5b24ab5c",
+      "runtime/src/camera/__init__.py": "86a5745582aafba3a0d5248727fc78f75539bc5b06ef4897346fcc3c9f476cbc",
+      "runtime/src/camera/fresh_frame.py": "28c3dbc6e792e553359496607e36a5b71880c48d1143fc11bd6f8ebbe8355555",
+      "runtime/src/camera/gstreamer_camera.py": "a7ece153e27b76fa9aa614eebecee0dea253df7dfcb4fd08b65ccb4b90039527",
+      "runtime/src/contracts/__init__.py": "15896decdf9a303f2862f036c995ef074bf1db59b4fbe39206bcda8172791bf9",
+      "runtime/src/contracts/enums.py": "a0d0051f8318e8382a5f337d6b383278392753303455e34450eef338c1f279f2",
+      "runtime/src/contracts/interfaces.py": "056e2fdb462b76af03cc688a35fa51f242c8faed5e60d15e0bd831017d35bef5",
+      "runtime/src/contracts/models.py": "1f95d1ce85b102848ed59b8244ce6fb7c6537b62e1c2e07dd9d1fc8fefaa4862",
+      "runtime/src/control/__init__.py": "9ee0a8a41927e64c5a2fb37e32f6212a91813969fc238b251f41b4e7e0e8b555",
+      "runtime/src/control/mock_cell.py": "1446202f4a7930d96345239aaf193741e30f7b675a52212a187df610f0be71b4",
+      "runtime/src/decision/__init__.py": "a7e1b1939d509c1e1b4d228b1ee9093fc4d7366eee1ca14399a6d9b60d19b53c",
+      "runtime/src/decision/bench.py": "f126194cb16cf77346552afacc80025f857765e1b4a579b886cbd7dbc7a3318e",
+      "runtime/src/decision/calibration.py": "e5749d6b8d07016b77d238bbf82904f9a9896a5be2d1bd151f95d392b47c2a5e",
+      "runtime/src/decision/slots.py": "d253535d78e7ed96cb912e83add85a90b2d407a5a44429b210d71c67fbcff219",
+      "runtime/src/journal/__init__.py": "7689d7ef66d0d8e3f9438e596626be92702039a6a7c91fd905f8a1ce91318093",
+      "runtime/src/journal/collector.py": "8d04e4adda59ffa77fd733b73fed4bc0feb10585d394fd9ca29348c81b5b33f4",
+      "runtime/src/journal/sqlite.py": "5972172a62f50d8bbe540b3435691b8452ae9a8f92cb93994cae4dfb242c3edc",
+      "runtime/src/journal/sync.py": "1db0bf248f4682bb7f8d12a0d61fa0abedfc2e22bbd61786a681167c343d09d4",
+      "runtime/src/quality/__init__.py": "be132f77e5d0cb90dd98eede3fa973a0481bf3d6af957ccb1e93678559625b54",
+      "runtime/src/quality/image.py": "04701a377a0d1632a9a01359a11a71e15c84dccb5f9ce39fdd944164bba6bb47",
+      "runtime/src/recipe/__init__.py": "529d86300d5302860c4b8a280b07e7ff208731ca35a06cfa894ab80467ebc1e6",
+      "runtime/src/recipe/package.py": "114afd489295856df6a6df1c5b909812a13c44804b3c1ffdcdcf20680c57d062",
+      "runtime/src/vision/__init__.py": "a4e3ec267d4b3cd40c26e4040d2dd655cf3c2f47cbd15bf6e0961e32497e02d3",
+      "runtime/src/vision/inspection_worker.py": "1e05530023d5e776c33d4b46bb72a3c112323d39cca7f461104d74cfb1f5669e",
+      "runtime/src/vision/pytorch_detector.py": "1248bf9464159a86c62a75f792c343c55d8d60660ecbbd6dc26ad02223fc0d1b"
+    },
+    "data_inventory": {},
+    "new_runtime_file_count": 32,
+    "python_compile_count": 30,
+    "launch_guard": {
+      "status": "PASS",
+      "exit_code": 1,
+      "stderr": "Traceback (most recent call last):\n  File \"/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002/runtime/scripts/run_jetson_fresh_candidate.py\", line 38, in <module>\n    main()\n  File \"/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002/runtime/scripts/run_jetson_fresh_candidate.py\", line 21, in main\n    raise RuntimeError('CANDIDATE_RUNTIME_GATE_BLOCKED: no app or database startup')\nRuntimeError: CANDIDATE_RUNTIME_GATE_BLOCKED: no app or database startup\n"
+    },
+    "candidate_api_started": false,
+    "candidate_port": 18768,
+    "port_listening": false,
+    "candidate_db_created": false,
+    "actual_model_fresh_cycles": 0,
+    "source_update": {
+      "updated_file": "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002/runtime/src/vision/inspection_worker.py",
+      "before_sha256": "72b882266bdec10a0c2de78bc39578fd967900836e992efc778ad82f9960bcf3",
+      "after_sha256": "1e05530023d5e776c33d4b46bb72a3c112323d39cca7f461104d74cfb1f5669e",
+      "reason": "Preserve legacy encode_evidence inputs without frame_id; fresh selector still requires frame_id"
+    }
+  },
+  "preservation": {
+    "status": "PASS",
+    "remote_groups": {
+      "/home/jetson/.config/Ultralytics/settings.json": {
+        "status": "PASS",
+        "before_count": 1,
+        "after_count": 1,
+        "before_manifest_sha256": "408ab68ffbaa50d5e04a3b36dfca728bd1b5bbf45b4bc47781cf0a2d8930e316",
+        "after_manifest_sha256": "408ab68ffbaa50d5e04a3b36dfca728bd1b5bbf45b4bc47781cf0a2d8930e316",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/coloredlogs.pth": {
+        "status": "PASS",
+        "before_count": 1,
+        "after_count": 1,
+        "before_manifest_sha256": "c066a54bbef6a0265778dfd036b14398d8c6c0f4298539e7cfdc128292127979",
+        "after_manifest_sha256": "c066a54bbef6a0265778dfd036b14398d8c6c0f4298539e7cfdc128292127979",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/cv2": {
+        "status": "PASS",
+        "before_count": 52,
+        "after_count": 52,
+        "before_manifest_sha256": "7dd8ebc6a4668ea8d8d01672b9bbbd2d1d456f2809634042972aa2b5ef8457c7",
+        "after_manifest_sha256": "7dd8ebc6a4668ea8d8d01672b9bbbd2d1d456f2809634042972aa2b5ef8457c7",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy": {
+        "status": "PASS",
+        "before_count": 1486,
+        "after_count": 1486,
+        "before_manifest_sha256": "7d3db864c509b4f74f05882070d9abf59a757eff79a375f2496f190ff2f5c44a",
+        "after_manifest_sha256": "7d3db864c509b4f74f05882070d9abf59a757eff79a375f2496f190ff2f5c44a",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy-2.2.6.dist-info": {
+        "status": "PASS",
+        "before_count": 6,
+        "after_count": 6,
+        "before_manifest_sha256": "0819dad8afc03963c6bc01b0c149fbee4a5bb323f66fda083c4839790bf3e4d4",
+        "after_manifest_sha256": "0819dad8afc03963c6bc01b0c149fbee4a5bb323f66fda083c4839790bf3e4d4",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy.libs": {
+        "status": "PASS",
+        "before_count": 2,
+        "after_count": 2,
+        "before_manifest_sha256": "2a281a05821a30cdc84427bc566e956dd5a79db1e74ee0682069f2e1ebc3f4da",
+        "after_manifest_sha256": "2a281a05821a30cdc84427bc566e956dd5a79db1e74ee0682069f2e1ebc3f4da",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python-5.0.0.93.dist-info": {
+        "status": "PASS",
+        "before_count": 8,
+        "after_count": 8,
+        "before_manifest_sha256": "e1e73d8838d4f68ed0a7a9a24eb45ea7b8e8d9d6e0eff0bc837b48524304e072",
+        "after_manifest_sha256": "e1e73d8838d4f68ed0a7a9a24eb45ea7b8e8d9d6e0eff0bc837b48524304e072",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python.libs": {
+        "status": "PASS",
+        "before_count": 39,
+        "after_count": 39,
+        "before_manifest_sha256": "57d6105e621e437ea9f711b416ac9deb8d354a3c1bfb6e7703f89048b7326b07",
+        "after_manifest_sha256": "57d6105e621e437ea9f711b416ac9deb8d354a3c1bfb6e7703f89048b7326b07",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/torch": {
+        "status": "PASS",
+        "before_count": 13465,
+        "after_count": 13465,
+        "before_manifest_sha256": "5cc71215bc2422869cd30e4df23fb3c6e340aeaedba3d038ef8cd35db6b17e10",
+        "after_manifest_sha256": "5cc71215bc2422869cd30e4df23fb3c6e340aeaedba3d038ef8cd35db6b17e10",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/torch-2.8.0.dist-info": {
+        "status": "PASS",
+        "before_count": 9,
+        "after_count": 9,
+        "before_manifest_sha256": "31c32d692b361868390581f326ce57f59156d6d106ed791cf0205eb800422894",
+        "after_manifest_sha256": "31c32d692b361868390581f326ce57f59156d6d106ed791cf0205eb800422894",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision": {
+        "status": "PASS",
+        "before_count": 376,
+        "after_count": 376,
+        "before_manifest_sha256": "8f007fe26ca5f5f93d236ef88907d3bffb39a9b53484179d4de390614a364ce0",
+        "after_manifest_sha256": "8f007fe26ca5f5f93d236ef88907d3bffb39a9b53484179d4de390614a364ce0",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision-0.23.0.dist-info": {
+        "status": "PASS",
+        "before_count": 7,
+        "after_count": 7,
+        "before_manifest_sha256": "cb548f58775e45a3a5211e9736aa124f01b764bdd2a812f4416d8e6759ffb5c7",
+        "after_manifest_sha256": "cb548f58775e45a3a5211e9736aa124f01b764bdd2a812f4416d8e6759ffb5c7",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics": {
+        "status": "PASS",
+        "before_count": 590,
+        "after_count": 590,
+        "before_manifest_sha256": "77299e2b1673f029670cc4ef14565dbb8199d656a41813c219fc324c5a28f130",
+        "after_manifest_sha256": "77299e2b1673f029670cc4ef14565dbb8199d656a41813c219fc324c5a28f130",
+        "changed": []
+      },
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics-8.4.118.dist-info": {
+        "status": "PASS",
+        "before_count": 8,
+        "after_count": 8,
+        "before_manifest_sha256": "885520a4c7c33d08abdf64a177af57bae101b691f3c3448b57c80bccf9801e4b",
+        "after_manifest_sha256": "885520a4c7c33d08abdf64a177af57bae101b691f3c3448b57c80bccf9801e4b",
+        "changed": []
+      },
+      "/home/jetson/oned_device_bench/data/app_v1/assets": {
+        "status": "PASS",
+        "before_count": 72,
+        "after_count": 72,
+        "before_manifest_sha256": "105dcf0dec11ae138682712f173fabb6cd6bc1b7f69f3a7aea488be07138be96",
+        "after_manifest_sha256": "105dcf0dec11ae138682712f173fabb6cd6bc1b7f69f3a7aea488be07138be96",
+        "changed": []
+      },
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3": {
+        "status": "PASS",
+        "before_count": 1,
+        "after_count": 1,
+        "before_manifest_sha256": "ed96f08953c310ed1474fec527bcc5384404ef71de13eeb2ac4034f317703532",
+        "after_manifest_sha256": "ed96f08953c310ed1474fec527bcc5384404ef71de13eeb2ac4034f317703532",
+        "changed": []
+      },
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-shm": {
+        "status": "PASS",
+        "before_count": 0,
+        "after_count": 0,
+        "before_manifest_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "after_manifest_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "changed": []
+      },
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-wal": {
+        "status": "PASS",
+        "before_count": 0,
+        "after_count": 0,
+        "before_manifest_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "after_manifest_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "changed": []
+      },
+      "/home/jetson/oned_device_bench/envs/app_v1": {
+        "status": "PASS",
+        "before_count": 1998,
+        "after_count": 1998,
+        "before_manifest_sha256": "e587142bdc1df7e37147f01a6bcecdf03cee6aaba0db81ddf16f80cbee1adee9",
+        "after_manifest_sha256": "e587142bdc1df7e37147f01a6bcecdf03cee6aaba0db81ddf16f80cbee1adee9",
+        "changed": []
+      },
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages/distutils-precedence.pth": {
+        "status": "PASS",
+        "before_count": 1,
+        "after_count": 1,
+        "before_manifest_sha256": "ae10f49dbb83bf378434a53ddc35234da3e503d21ca42e69376e0e623678df30",
+        "after_manifest_sha256": "ae10f49dbb83bf378434a53ddc35234da3e503d21ca42e69376e0e623678df30",
+        "changed": []
+      },
+      "/home/jetson/oned_device_bench/releases/app_v007": {
+        "status": "PASS",
+        "before_count": 50,
+        "after_count": 50,
+        "before_manifest_sha256": "752490a38654978c7858cb6c25e329f2b392db674fb0791f18d1deb6c4a894a8",
+        "after_manifest_sha256": "752490a38654978c7858cb6c25e329f2b392db674fb0791f18d1deb6c4a894a8",
+        "changed": []
+      },
+      "/usr/lib/python3/dist-packages/matplotlib-3.5.1-nspkg.pth": {
+        "status": "PASS",
+        "before_count": 1,
+        "after_count": 1,
+        "before_manifest_sha256": "6604ea39670af5d5c0e59d0f40720cda09d76fd4b68eafa3203cef743a825686",
+        "after_manifest_sha256": "6604ea39670af5d5c0e59d0f40720cda09d76fd4b68eafa3203cef743a825686",
+        "changed": []
+      },
+      "/usr/lib/python3.10/dist-packages/tensorrt": {
+        "status": "PASS",
+        "before_count": 2,
+        "after_count": 2,
+        "before_manifest_sha256": "a47aaeef395ff2be0406f1b77198f004a0fc4a88fc29e8fbfd635e0517335fcb",
+        "after_manifest_sha256": "a47aaeef395ff2be0406f1b77198f004a0fc4a88fc29e8fbfd635e0517335fcb",
+        "changed": []
+      },
+      "/usr/lib/python3.10/dist-packages/tensorrt-10.3.0.dist-info": {
+        "status": "PASS",
+        "before_count": 6,
+        "after_count": 6,
+        "before_manifest_sha256": "e81b8099f8e5360e161ce7e5c8c90b4e8217f377e16eb92a6def12d43c5b8a77",
+        "after_manifest_sha256": "e81b8099f8e5360e161ce7e5c8c90b4e8217f377e16eb92a6def12d43c5b8a77",
+        "changed": []
+      },
+      "P0-001R_candidate_entire_root": {
+        "status": "PASS",
+        "before_count": 922,
+        "after_count": 922,
+        "before_manifest_sha256": "0b1b8384f806769be7b8b285e7367263b4aff8b8ba1c755d27a5da8464f50be2",
+        "after_manifest_sha256": "0b1b8384f806769be7b8b285e7367263b4aff8b8ba1c755d27a5da8464f50be2",
+        "changed": []
+      },
+      "earbud_product_package": {
+        "status": "PASS",
+        "before_count": 7,
+        "after_count": 7,
+        "before_manifest_sha256": "2997f206cc3ecc93d967732deff8197a8f6d1bfa210be9adb1cee8e27c1b5328",
+        "after_manifest_sha256": "2997f206cc3ecc93d967732deff8197a8f6d1bfa210be9adb1cee8e27c1b5328",
+        "changed": []
+      }
+    },
+    "model_sha256": {
+      "deployment/products/earbud_case_v0/app_v001/best.pt": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1"
+    },
+    "current_link_before": null,
+    "current_link_after": null,
+    "windows_unrelated_before_files": {
+      "status": "PASS",
+      "before_count": 242,
+      "after_count": 242,
+      "before_manifest_sha256": "4b3d715982e6be2cd6b1797a5e07bb8d224ebc1895ef9c49bd0949a2a6d72dd9",
+      "after_manifest_sha256": "4b3d715982e6be2cd6b1797a5e07bb8d224ebc1895ef9c49bd0949a2a6d72dd9",
+      "changed": []
+    },
+    "pc_mirror": {
+      "status": "PASS",
+      "before_count": 86,
+      "after_count": 86,
+      "before_manifest_sha256": "35cfe303f2790327b31bdee43c8f72629b0eed78a0c5299d19ffa0e9b857675e",
+      "after_manifest_sha256": "35cfe303f2790327b31bdee43c8f72629b0eed78a0c5299d19ffa0e9b857675e",
+      "changed": []
+    },
+    "default_process_numpy_after": {
+      "version": "2.2.6",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/numpy/__init__.py"
+    },
+    "protected_database_connections_opened": 0,
+    "baseline_byte_changes": 0,
+    "baseline_app_start_attempts": 0,
+    "baseline_runtime_launch_acceptance": "NOT_RUN; existing dependency failure preserved"
+  },
+  "changed_repository_files": [
+    "apps/edge_service/inspection.py",
+    "config/inspection_station_candidate_p0_002.json",
+    "docs/STATUS.md",
+    "docs/jetson/JETSON_FRESH_FRAME_CONTRACT.md",
+    "docs/verification/JETSON-P0-002.json",
+    "scripts/run_jetson_fresh_candidate.py",
+    "src/camera/fresh_frame.py",
+    "src/camera/gstreamer_camera.py",
+    "src/journal/sqlite.py",
+    "src/vision/inspection_worker.py",
+    "tasks/JETSON-P0-002.md",
+    "tests/test_fresh_frame.py",
+    "tests/test_fresh_frame_service.py",
+    "tests/test_fresh_frame_worker.py"
+  ],
+  "changed_repository_sha256": {
+    "apps/edge_service/inspection.py": "9715d0f041fcc98c8fabcfa166f20af59aeb4280cc1e217f210eb4e3a86233b6",
+    "config/inspection_station_candidate_p0_002.json": "8140074579e1ad6d06851be28cfef3bba9726980a4190b2b2b2fcd9794758d21",
+    "docs/STATUS.md": "f325e9b7e22d2f32dae68f6b3747acb5ce940c1f938e973316fe05ca38940dd4",
+    "docs/jetson/JETSON_FRESH_FRAME_CONTRACT.md": "bbf8ac25eff2b95dedcb083f988849484a87330b6c845e6a816ba73b3bea133f",
+    "scripts/run_jetson_fresh_candidate.py": "153ffce3b4d0de2a0600574eecaf0392f655559483db67747ee132a5e32f8675",
+    "src/camera/fresh_frame.py": "28c3dbc6e792e553359496607e36a5b71880c48d1143fc11bd6f8ebbe8355555",
+    "src/camera/gstreamer_camera.py": "a7ece153e27b76fa9aa614eebecee0dea253df7dfcb4fd08b65ccb4b90039527",
+    "src/journal/sqlite.py": "5972172a62f50d8bbe540b3435691b8452ae9a8f92cb93994cae4dfb242c3edc",
+    "src/vision/inspection_worker.py": "1e05530023d5e776c33d4b46bb72a3c112323d39cca7f461104d74cfb1f5669e",
+    "tasks/JETSON-P0-002.md": "b7a817fe4bf3f0c1f4253f23692e8f95c9f9b33d9fb5d09694d9b39e344c35ce",
+    "tests/test_fresh_frame.py": "9b6cbc3327794dc2b6204597aaeb8365986da42136d9055724f9893d0a8bd9c0",
+    "tests/test_fresh_frame_service.py": "0481b484a634d6f8011e219140edbcb1b3a4593a76a4e1944e3a096e8296e2b7",
+    "tests/test_fresh_frame_worker.py": "46527abab2eb50c51f3e5f8e1b5340efc9da9d26dea4665ca613750e6738d260"
+  },
+  "git_diff_check": {
+    "status": "PASS",
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'apps/edge_service/INSPECTION_APP.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'apps/edge_service/inspection.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/STATUS.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'hardware/camera_mount/MINI_CONVEYOR_460_HCAM01L_v3/DIMENSIONS.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/camera/gstreamer_camera.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/journal/sqlite.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/vision/inspection_worker.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tasks/inspection-app-v1.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'training/capture_windows/guide.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'training/capture_windows/wizard.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'training/capture_windows/wizard_app.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'training/capture_windows/wizard_plan.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'training/capture_windows/wizard_quality.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'training/capture_windows/wizard_views.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'training/scripts/capture_proxy.py', LF will be replaced by CRLF the next time Git touches it\n"
+  },
+  "forbidden_actions": {
+    "baseline_overwrite": 0,
+    "global_environment_change": 0,
+    "dataset_write": 0,
+    "plc_access": 0,
+    "conveyor_control": 0,
+    "mqtt_change": 0,
+    "tensorrt_conversion": 0,
+    "retention_delete": 0,
+    "systemd_change": 0,
+    "model_training": 0,
+    "E04_access": 0,
+    "git_reset_clean": 0,
+    "commit_push": 0
+  },
+  "next_task": {
+    "P0_003_actual_device_readiness": "BLOCKED",
+    "required": "Resolve Gate C allocator failure in a separately scoped recovery, rerun Runtime Gate, then actual fresh-frame triggers and model/recipe/candidate DB smoke. No environment replacement authorized."
+  },
+  "sources": [
+    {
+      "title": "GStreamer clocks and synchronization",
+      "url": "https://gstreamer.freedesktop.org/documentation/application-development/advanced/clocks.html"
+    }
+  ],
+  "raw_evidence_sha256": {
+    "runs/jetson_p0_002/after.json": "b18b02eedfef777ba026db914c712a0fe47b93717ecc3c3ab6e11d6e4670f4c7",
+    "runs/jetson_p0_002/before.json": "3805e1012e215841cf7c66ab51a1eb38c8bd46729095049106e959db198d69d5",
+    "runs/jetson_p0_002/deploy.json": "2e7d7b96eb463b576ef5b99477669ca51433d9d64b952c1b17466fdcd6812de5",
+    "runs/jetson_p0_002/diagnose.json": "5eb0a4ae0555563bbaedc101c2e3c0c2e8e8a9ce152a9a5fb6ae0a587bfe535d",
+    "runs/jetson_p0_002/final_remote.json": "833a24b54eb40315d094fd7c67973c49bc786004d38c0d8bbc2c5f2da96165eb",
+    "runs/jetson_p0_002/gate.json": "a4553eaebd3a96d70d093111bf8ea6615677d3b8711de44c838e86eb32478db9",
+    "runs/jetson_p0_002/knowledge.json": "3c4aab8520a681eacf2bc3d22d5919fd2d9d628c16ed34fe9507169775b8c105",
+    "runs/jetson_p0_002/source_update.json": "31579a5ec951fcf35a00ada705f7ee011d516ca512057fcd6a5a82e5169ba7ae",
+    "runs/jetson_p0_002/tests_final.json": "db6fb692c213cf5a81f2b8d5e146472490b27d35cb10347b1a77ceb10012e6df",
+    "runs/jetson_p0_002/tests_verified.json": "cbf6da1eca3adc55dddd451d8b6aa222412e1d27b6d22767388e98a763bf0eaf",
+    "runs/jetson_p0_002/windows_before.json": "006ac71b825f257783f8f79246d351da99f7b60bbd894f7c0f03a6ad8201541b"
+  }
+}

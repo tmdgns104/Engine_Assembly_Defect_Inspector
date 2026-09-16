@@ -1,0 +1,27 @@
+{
+  "api": "create_detector(package: ProductPackage, *, latency_enabled=False) -> RuntimeDetector",
+  "protocol": "RuntimeDetector(Detector, Protocol): runtime_metadata() -> dict",
+  "source": "candidate_runtime/src/vision/detector_factory.py",
+  "legacy_default": "schema1 + exact original task/output + all package validation; PYTORCH_LEGACY_DEFAULT",
+  "explicit": "declared backend takes precedence; null/unknown rejected; schema2 requires explicit tensorrt",
+  "trt_result": "TENSORRT_BACKEND_NOT_IMPLEMENTED",
+  "silent_fallback": false,
+  "trt_factory_side_effects": {
+    "pytorch_constructor": 0,
+    "model_reads": 0,
+    "framework_imports": 0,
+    "gpu_calls": 0
+  },
+  "metadata": [
+    "backend",
+    "device",
+    "gpu",
+    "input_shape",
+    "artifact_sha256",
+    "source_model_sha256",
+    "observed_runtime",
+    "timing"
+  ],
+  "ownership": "Worker owns Camera/GPU; Service and Journal ownership unchanged",
+  "evidence": "test_backend_contract.json; test_existing_114.json; candidate_changed_files.json"
+}

@@ -1,0 +1,959 @@
+{
+  "task_id": "JETSON-P0-001R",
+  "date": "2026-09-16",
+  "status": "PASS_MINIMUM_ACCEPTANCE_PREPROCESS_READY",
+  "conclusion": "격리 Candidate environment에서 기존 필수 NumPy→Torch 입력 경로 호환성을 회복했다.",
+  "runtime_promoted": false,
+  "app_v007_recovered": false,
+  "root_cause": {
+    "finding": "The existing torch build emits NumPy 1.x/2.x ABI incompatibility diagnostics with NumPy2.2.6. The same unchanged torch/CUDA/OpenCV paths pass from_numpy when only NumPy resolves to1.26.4.",
+    "confidence_basis": "controlled overlay comparison + repeat baseline failure without overlay",
+    "historical_install_actor_or_time": "UNVERIFIED",
+    "torch_wheel_tag": "cp310-cp310-linux_aarch64"
+  },
+  "original_environment": {
+    "python": "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+    "sys_path": [
+      "",
+      "/usr/lib/python310.zip",
+      "/usr/lib/python3.10",
+      "/usr/lib/python3.10/lib-dynload",
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages",
+      "/home/jetson/.local/lib/python3.10/site-packages",
+      "/usr/local/lib/python3.10/dist-packages",
+      "/usr/lib/python3/dist-packages",
+      "/usr/lib/python3.10/dist-packages"
+    ],
+    "site_getsitepackages": [
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages",
+      "/home/jetson/oned_device_bench/envs/app_v1/local/lib/python3.10/dist-packages",
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3/dist-packages",
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/dist-packages",
+      "/usr/lib/python3.10/site-packages",
+      "/usr/local/lib/python3.10/dist-packages",
+      "/usr/lib/python3/dist-packages",
+      "/usr/lib/python3.10/dist-packages"
+    ],
+    "site_getusersitepackages": "/home/jetson/.local/lib/python3.10/site-packages",
+    "enable_user_site": true,
+    "pyvenv_cfg": "home = /usr/bin\ninclude-system-site-packages = true\nversion = 3.10.12\n",
+    "modules": {
+      "numpy": {
+        "spec_origin": "/home/jetson/.local/lib/python3.10/site-packages/numpy/__init__.py",
+        "submodule_search_locations": [
+          "/home/jetson/.local/lib/python3.10/site-packages/numpy"
+        ],
+        "version": "2.2.6",
+        "distribution_path": "/home/jetson/.local/lib/python3.10/site-packages/numpy-2.2.6.dist-info",
+        "requires": null,
+        "installer": "pip\n",
+        "wheel_metadata": "Wheel-Version: 1.0\nGenerator: meson\nRoot-Is-Purelib: false\nTag: cp310-cp310-manylinux_2_17_aarch64\nTag: cp310-cp310-manylinux2014_aarch64\n\n"
+      },
+      "torch": {
+        "spec_origin": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py",
+        "submodule_search_locations": [
+          "/home/jetson/.local/lib/python3.10/site-packages/torch"
+        ],
+        "version": "2.8.0",
+        "distribution_path": "/home/jetson/.local/lib/python3.10/site-packages/torch-2.8.0.dist-info",
+        "requires": [
+          "filelock",
+          "typing-extensions>=4.10.0",
+          "setuptools; python_version >= \"3.12\"",
+          "sympy>=1.13.3",
+          "networkx>=2.5.1",
+          "jinja2",
+          "fsspec>=0.8.5",
+          "optree>=0.13.0; extra == \"optree\"",
+          "opt-einsum>=3.3; extra == \"opt-einsum\"",
+          "pyyaml; extra == \"pyyaml\""
+        ],
+        "installer": "pip\n",
+        "wheel_metadata": "Wheel-Version: 1.0\nGenerator: setuptools (79.0.1)\nRoot-Is-Purelib: false\nTag: cp310-cp310-linux_aarch64\n\n"
+      },
+      "torchvision": {
+        "spec_origin": "/home/jetson/.local/lib/python3.10/site-packages/torchvision/__init__.py",
+        "submodule_search_locations": [
+          "/home/jetson/.local/lib/python3.10/site-packages/torchvision"
+        ],
+        "version": "0.23.0",
+        "distribution_path": "/home/jetson/.local/lib/python3.10/site-packages/torchvision-0.23.0.dist-info",
+        "requires": [
+          "numpy",
+          "torch",
+          "pillow!=8.3.*,>=5.3.0",
+          "gdown>=4.7.3; extra == \"gdown\"",
+          "scipy; extra == \"scipy\""
+        ],
+        "installer": "pip\n",
+        "wheel_metadata": "Wheel-Version: 1.0\nGenerator: setuptools (80.9.0)\nRoot-Is-Purelib: false\nTag: cp310-cp310-linux_aarch64\n\n"
+      },
+      "cv2": {
+        "spec_origin": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py",
+        "submodule_search_locations": [
+          "/home/jetson/.local/lib/python3.10/site-packages/cv2"
+        ],
+        "version": "5.0.0.93",
+        "distribution_path": "/home/jetson/.local/lib/python3.10/site-packages/opencv_python-5.0.0.93.dist-info",
+        "requires": [
+          "numpy<2.0; python_version < \"3.9\"",
+          "numpy>=2; python_version >= \"3.9\""
+        ],
+        "installer": "pip\n",
+        "wheel_metadata": "Wheel-Version: 1.0\nGenerator: skbuild 0.19.1\nRoot-Is-Purelib: false\nTag: cp37-abi3-manylinux_2_28_aarch64\n\n"
+      },
+      "ultralytics": {
+        "spec_origin": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/__init__.py",
+        "submodule_search_locations": [
+          "/home/jetson/.local/lib/python3.10/site-packages/ultralytics"
+        ],
+        "version": "8.4.118",
+        "distribution_path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics-8.4.118.dist-info",
+        "requires": [
+          "filelock>=3.16.1",
+          "numpy>=1.23.0",
+          "matplotlib>=3.3.0",
+          "opencv-python!=4.13.0.90,>=4.7.0",
+          "pillow>=7.1.2",
+          "pyyaml>=5.3.1",
+          "requests>=2.23.0",
+          "torch>=1.8.0",
+          "torch!=2.4.0,>=1.8.0; sys_platform == \"win32\"",
+          "torchvision>=0.9.0",
+          "psutil>=5.8.0",
+          "polars>=0.20.0",
+          "nvidia-ml-py>=12.0.0",
+          "ultralytics-thop>=2.1.6",
+          "ipython; extra == \"dev\"",
+          "pytest; extra == \"dev\"",
+          "pytest-cov; extra == \"dev\"",
+          "pytest-xdist>=3.0.0; extra == \"dev\"",
+          "coverage[toml]; extra == \"dev\"",
+          "zensical>=0.0.53; python_version >= \"3.10\" and extra == \"dev\"",
+          "minijinja>=2.0.0; extra == \"dev\"",
+          "onnx>=1.12.0; platform_system != \"Darwin\" and extra == \"export-base\"",
+          "onnx<1.18.0,>=1.12.0; (platform_system == \"Darwin\" and python_version < \"3.13\") and extra == \"export-base\"",
+          "onnx>=1.20.0; (platform_system == \"Darwin\" and python_version >= \"3.13\") and extra == \"export-base\"",
+          "onnxslim>=0.1.82; extra == \"export-base\"",
+          "onnxruntime<1.20.0; (python_version < \"3.11\" and (platform_machine != \"aarch64\" or platform_system != \"Linux\")) and extra == \"export-base\"",
+          "onnxruntime>=1.20.0; python_version >= \"3.11\" and extra == \"export-base\"",
+          "nncf<3.0.0,>=2.14.0; python_version >= \"3.9\" and extra == \"export-base\"",
+          "openvino>=2024.0.0; extra == \"export-base\"",
+          "packaging>=26.0; (platform_machine == \"aarch64\" and platform_system == \"Linux\" and python_version >= \"3.9\") and extra == \"export-base\"",
+          "numpy<2; extra == \"export-legacy-torch\"",
+          "setuptools<81.0.0; python_version >= \"3.9\" and extra == \"export-legacy-torch\"",
+          "numpy<2.0.0; python_version < \"3.13\" and extra == \"export-tensorflow\"",
+          "tensorflow<=2.19.0,>=2.0.0; python_version < \"3.13\" and extra == \"export-tensorflow\"",
+          "tensorflow>2.19.0; python_version >= \"3.13\" and extra == \"export-tensorflow\"",
+          "ydf<0.13.0; (platform_machine != \"aarch64\" and python_version <= \"3.12\") and extra == \"export-tensorflow\"",
+          "googleapis-common-protos<1.74.0; python_version <= \"3.12\" and extra == \"export-tensorflow\"",
+          "tensorstore>=0.1.63; (platform_machine == \"aarch64\" and python_version >= \"3.9\") and extra == \"export-tensorflow\"",
+          "h5py!=3.11.0; platform_machine == \"aarch64\" and extra == \"export-tensorflow\"",
+          "numpy<=2.3.5; (platform_system != \"Windows\" and python_version <= \"3.13\") and extra == \"export-coreml\"",
+          "coremltools>=9.0; (platform_system != \"Windows\" and python_version <= \"3.13\") and extra == \"export-coreml\"",
+          "scikit-learn>=1.3.2; (platform_system != \"Windows\" and python_version <= \"3.13\") and extra == \"export-coreml\"",
+          "executorch; extra == \"export-executorch\"",
+          "torch<2.13.0,>=2.12.0; (platform_system == \"Linux\" and platform_machine == \"aarch64\") and extra == \"export-executorch\"",
+          "numpy<=2.3.5; extra == \"export-executorch\"",
+          "dx_com; extra == \"export-deepx\"",
+          "numpy<2; extra == \"export-deepx\"",
+          "litert-torch>=0.9.0; ((platform_system == \"Linux\" and platform_machine == \"x86_64\") or platform_system == \"Darwin\") and extra == \"export-litert\"",
+          "ai-edge-litert>=2.1.4; ((platform_system == \"Linux\" and platform_machine == \"x86_64\") or platform_system == \"Darwin\") and extra == \"export-litert\"",
+          "ai-edge-quantizer>=0.6.0; ((platform_system == \"Linux\" and platform_machine == \"x86_64\") or platform_system == \"Darwin\") and extra == \"export-litert\"",
+          "ultralytics[export-base]; extra == \"export\"",
+          "ultralytics[export-tensorflow]; extra == \"export\"",
+          "ultralytics[export-coreml]; extra == \"export\"",
+          "ultralytics[export-litert]; extra == \"export\"",
+          "torch<2.13.0,>=2.12.0; (platform_system == \"Linux\" and platform_machine == \"aarch64\" and python_version == \"3.11\") and extra == \"export\"",
+          "shapely>=2.0.0; extra == \"solutions\"",
+          "lap>=0.5.12; extra == \"solutions\"",
+          "streamlit>=1.51.0; python_version >= \"3.10\" and extra == \"solutions\"",
+          "streamlit<1.51.0,>=1.29.0; (python_version < \"3.10\" and (platform_machine != \"aarch64\" or platform_system != \"Linux\")) and extra == \"solutions\"",
+          "flask>=3.0.1; extra == \"solutions\"",
+          "openai>=2.0.0; extra == \"llm\"",
+          "wandb; extra == \"logging\"",
+          "tensorboard; extra == \"logging\"",
+          "mlflow; extra == \"logging\"",
+          "ipython; extra == \"extra\"",
+          "albumentations>=1.4.6; extra == \"extra\"",
+          "faster-coco-eval>=1.6.7; extra == \"extra\"",
+          "types-pillow; extra == \"typing\"",
+          "types-psutil; extra == \"typing\"",
+          "types-pyyaml; extra == \"typing\"",
+          "types-requests; extra == \"typing\"",
+          "types-shapely; extra == \"typing\""
+        ],
+        "installer": "pip\n",
+        "wheel_metadata": "Wheel-Version: 1.0\nGenerator: setuptools (82.0.1)\nRoot-Is-Purelib: true\nTag: py3-none-any\n\n"
+      },
+      "tensorrt": {
+        "spec_origin": "/usr/lib/python3.10/dist-packages/tensorrt/__init__.py",
+        "submodule_search_locations": [
+          "/usr/lib/python3.10/dist-packages/tensorrt"
+        ],
+        "version": "10.3.0",
+        "distribution_path": "/usr/lib/python3.10/dist-packages/tensorrt-10.3.0.dist-info",
+        "requires": [
+          "numpy ; extra == 'numpy'"
+        ],
+        "installer": null,
+        "wheel_metadata": "Wheel-Version: 1.0\nGenerator: bdist_wheel (0.37.1)\nRoot-Is-Purelib: true\nTag: cp310-none-linux_aarch64\n\n"
+      }
+    },
+    "actual_imports": {
+      "import_numpy": {
+        "status": "PASS",
+        "version": "2.2.6",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/numpy/__init__.py"
+      },
+      "import_torch": {
+        "status": "PASS",
+        "version": "2.8.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py"
+      },
+      "import_cv2": {
+        "status": "PASS",
+        "version": "5.0.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py"
+      },
+      "import_tensorrt": {
+        "status": "PASS",
+        "version": "10.3.0",
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt/__init__.py"
+      }
+    },
+    "pip_version": "22.0.2",
+    "cuda": {
+      "status": "PASS",
+      "value": true,
+      "torch_cuda_version": "12.6",
+      "gpu": "Orin"
+    }
+  },
+  "candidate_environment": {
+    "root": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001",
+    "overlay": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay",
+    "python": "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+    "sys_path": [
+      "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay",
+      "",
+      "/usr/lib/python310.zip",
+      "/usr/lib/python3.10",
+      "/usr/lib/python3.10/lib-dynload",
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages",
+      "/home/jetson/.local/lib/python3.10/site-packages",
+      "/usr/local/lib/python3.10/dist-packages",
+      "/usr/lib/python3/dist-packages",
+      "/usr/lib/python3.10/dist-packages"
+    ],
+    "selection": "fresh process sys.path.insert(0, overlay); per-process PYTHONPATH used for pip check, no global .pth or shell settings changed",
+    "numpy": {
+      "status": "PASS",
+      "version": "1.26.4",
+      "path": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay/numpy/__init__.py"
+    },
+    "reused_modules": {
+      "import_torch": {
+        "status": "PASS",
+        "version": "2.8.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py"
+      },
+      "import_cv2": {
+        "status": "PASS",
+        "version": "5.0.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py"
+      },
+      "import_tensorrt": {
+        "status": "PASS",
+        "version": "10.3.0",
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt/__init__.py"
+      }
+    },
+    "wheel": {
+      "filename": "numpy-1.26.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+      "path": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/wheels/numpy-1.26.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+      "sha256": "d209d8969599b27ad20994c8e41936ee0964e6da07478d6c35016bc386b66ad4",
+      "pypi_sha256": "d209d8969599b27ad20994c8e41936ee0964e6da07478d6c35016bc386b66ad4",
+      "url": "https://files.pythonhosted.org/packages/fc/a5/4beee6488160798683eed5bdb7eead455892c3b4e1f78d79d8d3f3b084ac/numpy-1.26.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",
+      "bytes": 14219016
+    },
+    "download_command": [
+      "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+      "-B",
+      "-m",
+      "pip",
+      "--isolated",
+      "--disable-pip-version-check",
+      "download",
+      "--dest",
+      "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/wheels",
+      "--no-deps",
+      "--only-binary=:all:",
+      "--no-cache-dir",
+      "--index-url",
+      "https://pypi.org/simple",
+      "numpy==1.26.4"
+    ],
+    "install_command": [
+      "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+      "-B",
+      "-m",
+      "pip",
+      "--isolated",
+      "--disable-pip-version-check",
+      "install",
+      "--target",
+      "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay",
+      "--no-index",
+      "--no-deps",
+      "--no-compile",
+      "--no-cache-dir",
+      "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/wheels/numpy-1.26.4-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl"
+    ],
+    "installed_distribution_count": 1,
+    "changed_package": "numpy==1.26.4 in new --target only",
+    "file_count": 922,
+    "bytes": 62896161,
+    "file_manifest": "runs/jetson_p0_001r/candidate_files_manifest.json",
+    "file_manifest_sha256": "a801e97e14be4333a16405864a60174c9e8e0ae4645ef1647c8b4630d570f67e",
+    "config_isolation": {
+      "YOLO_CONFIG_DIR": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/config/ultralytics",
+      "MPLCONFIGDIR": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/config/matplotlib",
+      "XDG_CACHE_HOME": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/cache",
+      "TORCH_HOME": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/cache/torch",
+      "YOLO_AUTOINSTALL": "false"
+    }
+  },
+  "compatibility_matrix": [
+    {
+      "check": "import_numpy",
+      "current": {
+        "status": "PASS",
+        "version": "2.2.6",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/numpy/__init__.py"
+      },
+      "candidate": {
+        "status": "PASS",
+        "version": "1.26.4",
+        "path": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay/numpy/__init__.py"
+      }
+    },
+    {
+      "check": "import_torch",
+      "current": {
+        "status": "PASS",
+        "version": "2.8.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py"
+      },
+      "candidate": {
+        "status": "PASS",
+        "version": "2.8.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py"
+      }
+    },
+    {
+      "check": "import_cv2",
+      "current": {
+        "status": "PASS",
+        "version": "5.0.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py"
+      },
+      "candidate": {
+        "status": "PASS",
+        "version": "5.0.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py"
+      }
+    },
+    {
+      "check": "import_tensorrt",
+      "current": {
+        "status": "PASS",
+        "version": "10.3.0",
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt/__init__.py"
+      },
+      "candidate": {
+        "status": "PASS",
+        "version": "10.3.0",
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt/__init__.py"
+      }
+    },
+    {
+      "check": "torch_from_numpy",
+      "current": {
+        "status": "FAIL",
+        "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 89, in operation\n  File \"<stdin>\", line 106, in convert\nRuntimeError: Numpy is not available\n"
+      },
+      "candidate": {
+        "status": "PASS",
+        "result": {
+          "shape": [
+            1,
+            3,
+            2,
+            2
+          ],
+          "dtype": "torch.float32",
+          "device": "cpu",
+          "sum": 0.0
+        }
+      }
+    },
+    {
+      "check": "torch_tensor",
+      "current": {
+        "status": "PASS",
+        "result": {
+          "shape": [
+            1,
+            3,
+            2,
+            2
+          ],
+          "dtype": "torch.float32",
+          "device": "cpu",
+          "sum": 0.0
+        }
+      },
+      "candidate": {
+        "status": "PASS",
+        "result": {
+          "shape": [
+            1,
+            3,
+            2,
+            2
+          ],
+          "dtype": "torch.float32",
+          "device": "cpu",
+          "sum": 0.0
+        }
+      }
+    },
+    {
+      "check": "torch_as_tensor",
+      "current": {
+        "status": "PASS",
+        "result": {
+          "shape": [
+            1,
+            3,
+            2,
+            2
+          ],
+          "dtype": "torch.float32",
+          "device": "cpu",
+          "sum": 0.0
+        }
+      },
+      "candidate": {
+        "status": "PASS",
+        "result": {
+          "shape": [
+            1,
+            3,
+            2,
+            2
+          ],
+          "dtype": "torch.float32",
+          "device": "cpu",
+          "sum": 0.0
+        }
+      }
+    },
+    {
+      "check": "cuda_available",
+      "current": {
+        "status": "PASS",
+        "value": true,
+        "torch_cuda_version": "12.6",
+        "gpu": "Orin"
+      },
+      "candidate": {
+        "status": "PASS",
+        "value": true,
+        "torch_cuda_version": "12.6",
+        "gpu": "Orin"
+      }
+    },
+    {
+      "check": "numpy_torch_cuda_cpu",
+      "current": {
+        "status": "NOT_RUN",
+        "reason": "Candidate-only test; requires passing CPU bridge and CUDA availability"
+      },
+      "candidate": {
+        "status": "PASS",
+        "result": {
+          "shape": [
+            1,
+            3,
+            2,
+            2
+          ],
+          "input_dtype": "float32",
+          "device": "cuda:0",
+          "output": [
+            1.0,
+            3.0,
+            5.0,
+            7.0,
+            9.0,
+            11.0,
+            13.0,
+            15.0,
+            17.0,
+            19.0,
+            21.0,
+            23.0
+          ],
+          "expected": [
+            1.0,
+            3.0,
+            5.0,
+            7.0,
+            9.0,
+            11.0,
+            13.0,
+            15.0,
+            17.0,
+            19.0,
+            21.0,
+            23.0
+          ],
+          "benchmark": false
+        }
+      }
+    },
+    {
+      "check": "opencv_numpy_memory",
+      "current": {
+        "status": "PASS",
+        "result": {
+          "input_shape": [
+            4,
+            6,
+            3
+          ],
+          "rgb_pixel": [
+            127,
+            31,
+            7
+          ],
+          "resize_shape": [
+            2,
+            3,
+            3
+          ],
+          "gray_shape": [
+            4,
+            6
+          ],
+          "camera_or_file_opened": false
+        }
+      },
+      "candidate": {
+        "status": "PASS",
+        "result": {
+          "input_shape": [
+            4,
+            6,
+            3
+          ],
+          "rgb_pixel": [
+            127,
+            31,
+            7
+          ],
+          "resize_shape": [
+            2,
+            3,
+            3
+          ],
+          "gray_shape": [
+            4,
+            6
+          ],
+          "camera_or_file_opened": false
+        }
+      }
+    }
+  ],
+  "preprocess": {
+    "status": "PREPROCESS_READY",
+    "actual_method": "ultralytics.engine.predictor.BasePredictor.preprocess + pre_transform + LetterBox",
+    "actual_method_file": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/engine/predictor.py",
+    "numpy_version": "1.26.4",
+    "numpy_path": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay/numpy/__init__.py",
+    "torch_version": "2.8.0",
+    "torch_path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py",
+    "cv2_version": "5.0.0",
+    "cv2_path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py",
+    "torchvision_version": "0.23.0",
+    "torchvision_path": "/home/jetson/.local/lib/python3.10/site-packages/torchvision/__init__.py",
+    "ultralytics_version": "8.4.118",
+    "ultralytics_path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/__init__.py",
+    "image": {
+      "path": "/home/jetson/oned_device_bench/data/app_v1/assets/5031fbaf16a94877b5b6aa46f9e90c03/215fc0dd6f7a4fc19fbee249cfdd5642.png",
+      "sha256_before": "04380e88c2802d39826da972d2fdb30eaba03e0c7a17713d5178434fa16c2b18",
+      "sha256_after": "04380e88c2802d39826da972d2fdb30eaba03e0c7a17713d5178434fa16c2b18",
+      "shape": [
+        720,
+        1280,
+        3
+      ]
+    },
+    "tensor": {
+      "shape": [
+        1,
+        3,
+        640,
+        640
+      ],
+      "dtype": "torch.float32",
+      "device": "cpu",
+      "min": 0.0,
+      "max": 1.0,
+      "sha256": "15d3ced144392ec1ae64f0b051a71ab5b218430c82ec21892ed1665242828299",
+      "max_abs_difference": 0.0,
+      "expected_padding": 140
+    },
+    "isolation": {
+      "YOLO_CONFIG_DIR": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/config/ultralytics",
+      "MPLCONFIGDIR": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/config/matplotlib",
+      "XDG_CACHE_HOME": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/cache",
+      "TORCH_HOME": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/cache/torch",
+      "YOLO_AUTOINSTALL": "false"
+    },
+    "descriptor": "no model loaded; fp16=false/rect=false/stride32, with auto letterbox false; stride does not change this resize",
+    "inference_executed": false,
+    "camera_opened": false,
+    "database_opened": false
+  },
+  "pip_check": {
+    "baseline": {
+      "argv": [
+        "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+        "-B",
+        "-m",
+        "pip",
+        "--isolated",
+        "--disable-pip-version-check",
+        "check"
+      ],
+      "overlay": null,
+      "exit_code": 1,
+      "stdout": "pynacl 1.5.0 requires cffi, which is not installed.\n",
+      "stderr": ""
+    },
+    "candidate": {
+      "argv": [
+        "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+        "-B",
+        "-m",
+        "pip",
+        "--isolated",
+        "--disable-pip-version-check",
+        "check"
+      ],
+      "overlay": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay",
+      "exit_code": 1,
+      "stdout": "pynacl 1.5.0 requires cffi, which is not installed.\nopencv-python 5.0.0.93 has requirement numpy>=2; python_version >= \"3.9\", but you have numpy 1.26.4.\n",
+      "stderr": ""
+    }
+  },
+  "known_limits": [
+    "OpenCV5 metadata requires NumPy>=2 on Python3.10: candidate pip check fails despite passing required OpenCV memory/preprocess smoke. Full dependency consistency and production promotion are not accepted.",
+    "Baseline already has unrelated pynacl1.5.0 missing cffi; preserved without installing anything.",
+    "No model inference, new camera frame, service start, PLC, MQTT, TensorRT conversion, benchmark or deployment.",
+    "Overlay reuses existing torch/OpenCV/system libraries and is not a fully self-contained environment."
+  ],
+  "baseline_after": {
+    "numpy": {
+      "status": "PASS",
+      "version": "2.2.6",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/numpy/__init__.py"
+    },
+    "from_numpy": {
+      "status": "FAIL",
+      "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 89, in operation\n  File \"<stdin>\", line 106, in convert\nRuntimeError: Numpy is not available\n"
+    },
+    "sys_path": [
+      "",
+      "/usr/lib/python310.zip",
+      "/usr/lib/python3.10",
+      "/usr/lib/python3.10/lib-dynload",
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages",
+      "/home/jetson/.local/lib/python3.10/site-packages",
+      "/usr/local/lib/python3.10/dist-packages",
+      "/usr/lib/python3/dist-packages",
+      "/usr/lib/python3.10/dist-packages"
+    ],
+    "overlay_absent_from_default_path": true
+  },
+  "preservation": {
+    "remote": [
+      {
+        "path": "/home/jetson/.config/Ultralytics/settings.json",
+        "files": 1,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/coloredlogs.pth",
+        "files": 1,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2",
+        "files": 52,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/numpy",
+        "files": 1486,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/numpy-2.2.6.dist-info",
+        "files": 6,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/numpy.libs",
+        "files": 2,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/opencv_python-5.0.0.93.dist-info",
+        "files": 8,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/opencv_python.libs",
+        "files": 39,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch",
+        "files": 13465,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch-2.8.0.dist-info",
+        "files": 9,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torchvision",
+        "files": 376,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torchvision-0.23.0.dist-info",
+        "files": 7,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics",
+        "files": 590,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics-8.4.118.dist-info",
+        "files": 8,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/oned_device_bench/data/app_v1/assets",
+        "files": 72,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3",
+        "files": 1,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-shm",
+        "files": 0,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-wal",
+        "files": 0,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/oned_device_bench/envs/app_v1",
+        "files": 1998,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages/distutils-precedence.pth",
+        "files": 1,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/home/jetson/oned_device_bench/releases/app_v007",
+        "files": 50,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/usr/lib/python3/dist-packages/matplotlib-3.5.1-nspkg.pth",
+        "files": 1,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt",
+        "files": 2,
+        "status": "PASS",
+        "differences": []
+      },
+      {
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt-10.3.0.dist-info",
+        "files": 6,
+        "status": "PASS",
+        "differences": []
+      }
+    ],
+    "product_package_files": {
+      "deployment/products/earbud_case_v0/app_v001/best.pt": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+      "deployment/products/earbud_case_v0/app_v001/capture.json": "4c09f26c12cba1ac9e85aa90a4a80f0886b35fb1d684ad03925075ddb7478030",
+      "deployment/products/earbud_case_v0/app_v001/classes.json": "7d7b27c02d5b3b28f931adbbef5b1ea7a87b176b36fdb797d20af0f2bc62ef52",
+      "deployment/products/earbud_case_v0/app_v001/manifest.json": "a461349449314af8a2b0f83bc3a323eb3c9dc4226b9c05669ea89ecf1ef5030a",
+      "deployment/products/earbud_case_v0/app_v001/preprocessing.json": "035dff1e2fac618b23458a17145d294395aad10c1390c9c47447bd4adef01544",
+      "deployment/products/earbud_case_v0/app_v001/recipe.json": "63597edd8505c3c98d8cfb53aa66d3de380470bf45fb014e8b466a4bbb9b27f9",
+      "deployment/products/earbud_case_v0/app_v001/self_test.png": "d64f17077d1c5060df7d7e663ee8c9fdbd4614191d2bdd9f9f4a51ab2cd62b4d"
+    },
+    "model_sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+    "edge_db": {
+      "exists": true,
+      "files": {
+        "journal.sqlite3": "dcd31eb7a79d13ce357ab95729a2b22fba6c974a1a6b3541c1c786b7498b1cbd"
+      },
+      "bytes": 561152
+    },
+    "original_settings": {
+      "exists": true,
+      "files": {
+        "settings.json": "fc81409e60d90731183224e6188332f6dc68b012ddd2084d5c5e08c96fcceb4d"
+      },
+      "bytes": 456
+    },
+    "app_processes_before": [],
+    "app_processes_after": [],
+    "source_db_opened": false,
+    "windows_final": {
+      "status": "PASS",
+      "protected_file_entries": 161,
+      "original_status_body_sha256": "ed01da2fe9cf7d53fc3f5b673a578fcdcc198f5e253c51931bc5d07b014d6d87",
+      "other_original_changes": [],
+      "pc_db_model_images_unchanged": true,
+      "existing_untracked_paths_retained": true,
+      "head_unchanged": true
+    }
+  },
+  "verification": {
+    "required_smokes": "PASS",
+    "preservation": "PASS",
+    "preprocess": "PREPROCESS_READY",
+    "dependency_metadata_consistency": "FAIL",
+    "git_diff_check": {
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "runs/jetson_p0_001r/git_diff_check.txt"
+    }
+  },
+  "p0_002": {
+    "candidate_development": "READY_WITH_LIMITS",
+    "physical_runtime_execution": "BLOCKED_PENDING_SEPARATE_CANDIDATE_RUNTIME_VALIDATION",
+    "reason": "Proceed with candidate-scoped development. No app_v008-dev/launcher promotion, model inference or actual camera startup was performed; do not start unchanged app_v007 as if repaired."
+  },
+  "installation_history": [
+    {
+      "attempt": 1,
+      "status": "PIP_ARGUMENT_PARSE_FAILED_BEFORE_INSTALL",
+      "reason": "pip22.0.2 does not support --report; candidate directories/log only; original pip preserved"
+    },
+    {
+      "attempt": 2,
+      "status": "PASS",
+      "reason": "same NumPy1.26.4 wheel downloaded from PyPI, digest checked, installed offline to fresh overlay with --no-deps/--no-compile"
+    }
+  ],
+  "repository": {
+    "root": "D:\\OneDevice_Team_project",
+    "head": "f6403fca07cbb92ad89d59a1c3161ef0bb31a71b",
+    "dirty_at_start": true,
+    "commit_push": false
+  },
+  "evidence_files": [
+    "runs/jetson_p0_001r/before.json",
+    "runs/jetson_p0_001r/baseline.json",
+    "runs/jetson_p0_001r/install.json",
+    "runs/jetson_p0_001r/install_compatible.json",
+    "runs/jetson_p0_001r/candidate.json",
+    "runs/jetson_p0_001r/preprocess_source.json",
+    "runs/jetson_p0_001r/preprocess.json",
+    "runs/jetson_p0_001r/pip_check.json",
+    "runs/jetson_p0_001r/baseline_after.json",
+    "runs/jetson_p0_001r/after.json",
+    "runs/jetson_p0_001r/windows_before.json",
+    "runs/jetson_p0_001r/candidate_files_manifest.json"
+  ],
+  "final_verification": {
+    "status": "PASS_MINIMUM_ACCEPTANCE",
+    "new_artifacts": [
+      "docs/jetson/JETSON_RUNTIME_DEPENDENCY_RECOVERY.md",
+      "docs/verification/JETSON-P0-001R.json",
+      "tasks/JETSON-P0-001R.md"
+    ],
+    "status_prefix_only": true,
+    "valid_utf8_json": true,
+    "local_markdown_links_checked": 5,
+    "new_file_whitespace_checks": "PASS; no-index exit1 is added-file diff, not whitespace failure",
+    "required_smokes": {
+      "import_numpy": "PASS",
+      "import_torch": "PASS",
+      "torch_from_numpy": "PASS",
+      "cuda_available": "PASS",
+      "numpy_torch_cuda_cpu": "PASS",
+      "opencv_numpy_memory": "PASS"
+    },
+    "documentation_sha256": {
+      "docs/jetson/JETSON_RUNTIME_DEPENDENCY_RECOVERY.md": "ca3b170cd32e13ecdd3ad0040032096fcde66fb099bddfeba3130cdadce4b564",
+      "tasks/JETSON-P0-001R.md": "6c11381af9a96c4765dc53504e446568d75c1cd2374b30a317675b3fbb2cb64e"
+    },
+    "dependency_consistency": "FAIL_KNOWN_METADATA_CONFLICT_NOT_HIDDEN",
+    "commit_push": false
+  },
+  "knowledge_capture": {
+    "status": "recorded",
+    "notes": [
+      "02_Knowledge/Evidence-Based Verification.md",
+      "01_Projects/Engine Assembly Defect Inspector.md"
+    ],
+    "receipt": "D:\\Obsidian\\_automation\\knowledge-capture\\state\\events\\a4123ab4b94d4ec9b5d5c147a2bf3f23.json"
+  }
+}

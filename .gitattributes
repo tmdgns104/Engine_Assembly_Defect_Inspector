@@ -1,2 +1,9 @@
 # Jetson launch scripts must retain Unix line endings on Windows checkouts.
 *.sh text eol=lf
+
+# Frozen diagnostic source snapshots retain their audited byte hashes on every checkout.
+/runs/jetson_p0_003/runtime/** -text
+/runs/jetson_p0_004b/candidate_runtime/** -text
+# These two audited HTML snapshots already use CRLF; CR is part of their preserved EOL.
+/runs/jetson_p0_003/runtime/apps/edge_service/inspection.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/runs/jetson_p0_004b/candidate_runtime/apps/edge_service/inspection.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

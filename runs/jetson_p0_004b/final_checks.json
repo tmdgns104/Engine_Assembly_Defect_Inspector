@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "checks": {
+    "existing_114": true,
+    "new_backend_28": true,
+    "actual_framework_imports_blocked": true,
+    "same_114_test_ids": true,
+    "existing_asserts_preserved": true,
+    "all_runtime_module_origins_candidate": true,
+    "core_origins_present": true,
+    "baseline_exact_32": true,
+    "baseline_still_exact": true,
+    "candidate_only_three_modified_one_added": true,
+    "candidate_inventory_current": true,
+    "detector_original_methods_ast_identical": true,
+    "unchanged_src/contracts/models.py": true,
+    "unchanged_src/contracts/interfaces.py": true,
+    "unchanged_src/camera/fresh_frame.py": true,
+    "unchanged_src/camera/gstreamer_camera.py": true,
+    "unchanged_src/journal/sqlite.py": true,
+    "unchanged_apps/edge_service/inspection_api.py": true,
+    "python310_syntax": true,
+    "protected_windows_files_unchanged": true,
+    "protected_jetson_groups_unchanged": true,
+    "current_symlink_unchanged": true,
+    "remote_framework_imports_zero": true,
+    "remote_p003_runtime_exact": true,
+    "HEAD_unchanged": true,
+    "git_diff_check": true
+  }
+}

@@ -1,0 +1,652 @@
+{
+  "task_id": "JETSON-P0-001",
+  "date": "2026-09-16",
+  "status": "AUDIT_COMPLETE_WITH_FINDINGS",
+  "runtime_acceptance": "NOT_MET",
+  "read_only_acceptance": "FAIL_SIDE_EFFECTS_DISCLOSED",
+  "head": "f6403fca07cbb92ad89d59a1c3161ef0bb31a71b",
+  "dirty_at_start": true,
+  "observation_window_utc": {
+    "windows_start": "2026-09-16T05:07:32.589630+00:00",
+    "jetson_start": "2026-09-16T05:08:06.544099+00:00",
+    "jetson_end": "2026-09-16T05:12:24.415558+00:00"
+  },
+  "evidence": [
+    "runs/jetson_p0_001/before_failed_remote_parse.json",
+    "runs/jetson_p0_001/before.json",
+    "runs/jetson_p0_001/supplement.json",
+    "runs/jetson_p0_001/after.json",
+    "runs/jetson_p0_001/focused_tests.log"
+  ],
+  "environment": {
+    "hardware": "Jetson Orin Nano Engineering Reference Developer Kit Super",
+    "l4t": "36.4.7",
+    "kernel": "5.15.148-tegra",
+    "os": "Ubuntu 22.04.5 LTS",
+    "python": "3.10.12",
+    "torch": "2.8.0",
+    "cuda_available": true,
+    "torch_cuda": "12.6",
+    "tensorrt": "10.3.0",
+    "opencv": "5.0.0",
+    "numpy": "2.2.6",
+    "ultralytics": "8.4.118",
+    "gstreamer": "1.20.3",
+    "opencv_gstreamer": false,
+    "gi_gstreamer": true,
+    "numpy_bridge": {
+      "numpy": "2.2.6",
+      "torch": "2.8.0",
+      "numpy_bridge": {
+        "status": "FAIL",
+        "error": "RuntimeError: Numpy is not available"
+      }
+    },
+    "inference_executed": false,
+    "new_capture_count": 0,
+    "app_processes": [],
+    "app_health": {
+      "url": "http://127.0.0.1:8768/api/v1/health",
+      "error": "<urlopen error [Errno 111] Connection refused>"
+    },
+    "pc_status": {
+      "url": "http://127.0.0.1:8769/api/v1/status",
+      "error": "<urlopen error [WinError 10061] 대상 컴퓨터에서 연결을 거부했으므로 연결하지 못했습니다>"
+    },
+    "systemd_app_unit_matches": [],
+    "trt_engine_paths_in_project_releases": [],
+    "memory_disk_camera_commands": [
+      {
+        "argv": [
+          "free",
+          "-b"
+        ],
+        "exit_code": 0,
+        "stdout": "total        used        free      shared  buff/cache   available\nMem:      7990013952  3213094912  1414000640    24305664  3362918400  4508581888\nSwap:     3995000832   240386048  3754614784",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "df",
+          "-B1",
+          "/home/jetson/oned_device_bench/data/app_v1"
+        ],
+        "exit_code": 0,
+        "stdout": "Filesystem        1B-blocks        Used   Available Use% Mounted on\n/dev/mmcblk0p1 124252487680 35474845696 83480969216  30% /",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "lsusb"
+        ],
+        "exit_code": 0,
+        "stdout": "Bus 002 Device 002: ID 0bda:0489 Realtek Semiconductor Corp. 4-Port USB 3.0 Hub\nBus 002 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub\nBus 001 Device 008: ID 13d3:3549 IMC Networks Bluetooth Radio\nBus 001 Device 010: ID 4c4a:4a55 Jieli Technology USB Composite Device\nBus 001 Device 002: ID 0bda:5489 Realtek Semiconductor Corp. 4-Port USB 2.0 Hub\nBus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "v4l2-ctl",
+          "--list-devices"
+        ],
+        "exit_code": 0,
+        "stdout": "NVIDIA Tegra Video Input Device (platform:tegra-camrtc-ca):\n\t/dev/media0\n\nUSB Composite Device:     HCAM0 (usb-3610000.usb-2.1):\n\t/dev/video0\n\t/dev/video1\n\t/dev/media1",
+        "stderr": ""
+      },
+      {
+        "argv": [
+          "v4l2-ctl",
+          "--device",
+          "/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index0",
+          "--list-formats-ext"
+        ],
+        "exit_code": 0,
+        "stdout": "ioctl: VIDIOC_ENUM_FMT\n\tType: Video Capture\n\n\t[0]: 'MJPG' (Motion-JPEG, compressed)\n\t\tSize: Discrete 1280x720\n\t\t\tInterval: Discrete 0.033s (30.000 fps)\n\t\t\tInterval: Discrete 0.033s (30.000 fps)\n\t\tSize: Discrete 640x480\n\t\t\tInterval: Discrete 0.033s (30.000 fps)\n\t\tSize: Discrete 480x320\n\t\t\tInterval: Discrete 0.033s (30.000 fps)\n\t\tSize: Discrete 1280x720\n\t\t\tInterval: Discrete 0.033s (30.000 fps)\n\t\t\tInterval: Discrete 0.033s (30.000 fps)\n\t[1]: 'YUYV' (YUYV 4:2:2)\n\t\tSize: Discrete 640x480\n\t\t\tInterval: Discrete 0.045s (22.000 fps)\n\t\tSize: Discrete 320x240\n\t\t\tInterval: Discrete 0.033s (30.000 fps)\n\t\t\tInterval: Discrete 0.040s (25.000 fps)",
+        "stderr": ""
+      }
+    ],
+    "camera_device_links": {
+      "/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index1": "/dev/video1",
+      "/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index0": "/dev/video0"
+    },
+    "gstreamer_plugins": {
+      "v4l2src": {
+        "exit_code": 0,
+        "error": null
+      },
+      "jpegdec": {
+        "exit_code": 0,
+        "error": null
+      },
+      "videoconvert": {
+        "exit_code": 0,
+        "error": null
+      },
+      "appsink": {
+        "exit_code": 0,
+        "error": null
+      }
+    },
+    "app_python_path": "/home/jetson/oned_device_bench/envs/app_v1/bin/python"
+  },
+  "package": {
+    "path": "/home/jetson/oned_device_bench/releases/app_v007/deployment/products/earbud_case_v0/app_v001",
+    "sha256": {
+      "best.pt": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+      "capture.json": "4c09f26c12cba1ac9e85aa90a4a80f0886b35fb1d684ad03925075ddb7478030",
+      "classes.json": "7d7b27c02d5b3b28f931adbbef5b1ea7a87b176b36fdb797d20af0f2bc62ef52",
+      "manifest.json": "a461349449314af8a2b0f83bc3a323eb3c9dc4226b9c05669ea89ecf1ef5030a",
+      "preprocessing.json": "035dff1e2fac618b23458a17145d294395aad10c1390c9c47447bd4adef01544",
+      "recipe.json": "63597edd8505c3c98d8cfb53aa66d3de380470bf45fb014e8b466a4bbb9b27f9",
+      "self_test.png": "d64f17077d1c5060df7d7e663ee8c9fdbd4614191d2bdd9f9f4a51ab2cd62b4d"
+    },
+    "manifest": {
+      "detector": {
+        "backend": "pytorch",
+        "output": "ultralytics_xyxy",
+        "task": "detect"
+      },
+      "enabled": true,
+      "files": {
+        "capture": {
+          "path": "capture.json",
+          "sha256": "4c09f26c12cba1ac9e85aa90a4a80f0886b35fb1d684ad03925075ddb7478030"
+        },
+        "classes": {
+          "path": "classes.json",
+          "sha256": "7d7b27c02d5b3b28f931adbbef5b1ea7a87b176b36fdb797d20af0f2bc62ef52"
+        },
+        "model": {
+          "path": "best.pt",
+          "sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1"
+        },
+        "preprocessing": {
+          "path": "preprocessing.json",
+          "sha256": "035dff1e2fac618b23458a17145d294395aad10c1390c9c47447bd4adef01544"
+        },
+        "recipe": {
+          "path": "recipe.json",
+          "sha256": "63597edd8505c3c98d8cfb53aa66d3de380470bf45fb014e8b466a4bbb9b27f9"
+        },
+        "self_test": {
+          "path": "self_test.png",
+          "sha256": "d64f17077d1c5060df7d7e663ee8c9fdbd4614191d2bdd9f9f4a51ab2cd62b4d"
+        }
+      },
+      "model_version": "baseline_20260913_v001",
+      "product_id": "earbud_case_v0",
+      "release_id": "app_v001",
+      "schema_version": 1
+    }
+  },
+  "preservation": {
+    "windows:src": {
+      "count": 24,
+      "differences": []
+    },
+    "windows:apps": {
+      "count": 12,
+      "differences": []
+    },
+    "windows:config": {
+      "count": 9,
+      "differences": []
+    },
+    "windows:scripts": {
+      "count": 25,
+      "differences": []
+    },
+    "windows:deployment/products/earbud_case_v0": {
+      "count": 7,
+      "differences": []
+    },
+    "windows:runs/inspection_app_v1/pc/assets": {
+      "count": 72,
+      "differences": []
+    },
+    "jetson:release_sha256": {
+      "count": 50,
+      "differences": []
+    },
+    "jetson:assets_sha256": {
+      "count": 72,
+      "differences": []
+    },
+    "active_product_package": {
+      "count": 7,
+      "differences": []
+    },
+    "jetson_database": {
+      "differences": []
+    },
+    "pc_database_main_and_wal": {
+      "differences": []
+    },
+    "jetson_database_rows": {
+      "differences": []
+    },
+    "pc_database_rows": {
+      "differences": []
+    },
+    "preexisting_modified_tracked_files": {
+      "count": 14,
+      "differences": [],
+      "final_status_note": "After audit snapshot, only a new STATUS prefix was added; original body hash verified unchanged."
+    }
+  },
+  "windows_deployed_comparison": {
+    "common_files": 49,
+    "differences": [],
+    "remote_only": [
+      "release_files.json"
+    ]
+  },
+  "stale_release_inventory": {
+    "declared_release": "app_v005",
+    "mismatches": [
+      {
+        "path": "src/vision/inspection_worker.py",
+        "recorded": "c87aa46f840817dffe6eaefd92351fb24099a61197ef342628bb814384df0add",
+        "actual": "929868f6c7f70467439f6bcf4ef6f9c5163e24be116b3efdbcebfa28818c3dea"
+      },
+      {
+        "path": "apps/edge_service/inspection.html",
+        "recorded": "8a32986f384f800b8c97eac955ce6d6575e5e9236b299f402eabf3b04c1b3efd",
+        "actual": "c37de1bbd38366b31c2bb7547c0a4ef3008509418cc978a65314e1bec3cbe344"
+      },
+      {
+        "path": "apps/edge_service/inspection.py",
+        "recorded": "1ee627fbe5364a1d20e97f65287973320c4cf9371b72f4439810e721c8a2b69f",
+        "actual": "55e0716bac65745121acb51e64e8ecca5108bd4b4fae2c753cee4ce2d3ac7df3"
+      },
+      {
+        "path": "tests/test_inspection_service.py",
+        "recorded": "60a0137c329f46da77002a1c54745a3bacdcbbfe19080a13b7272f525737e463",
+        "actual": "a848d3ebd608b0d5fe8b39d6ef1f6e45766ce66e4e236d509dd3fe295b934212"
+      }
+    ]
+  },
+  "database": {
+    "edge_sha256": {
+      "journal.sqlite3": "dcd31eb7a79d13ce357ab95729a2b22fba6c974a1a6b3541c1c786b7498b1cbd"
+    },
+    "pc_sha256": {
+      "journal.sqlite3": "42f67cde08aaa4db17432058fdd3521a7199a1dfd4afe740ca486d6b49226302",
+      "journal.sqlite3-wal": "b6f9fe984e7b8a36d8421b5321c5b553e4d92a79caead4476fabf344626c870c",
+      "journal.sqlite3-shm": "a79fbf464cbb775a0e8097429c135ebd20788f3d9024b015cde1d0aa8f5fdf94"
+    },
+    "edge_integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "pc_integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "edge_foreign_key_violations": [],
+    "pc_foreign_key_violations": [],
+    "inspection_summary": [
+      [
+        "calibrate",
+        "REVIEW",
+        17
+      ],
+      [
+        "inspect",
+        "PASS",
+        1
+      ]
+    ],
+    "edge_rows": 18,
+    "pc_rows": 18,
+    "same_inspection_ids": true,
+    "same_result_and_request_hashes": true,
+    "row_metadata_differences": [
+      {
+        "path": "a44a968e2a914a47a54e7ecc5a3383c4",
+        "before": {
+          "inspection_id": "a44a968e2a914a47a54e7ecc5a3383c4",
+          "state": "COMPLETE",
+          "decision": "REVIEW",
+          "accepted_at": "2026-09-13T15:51:01.699300+00:00",
+          "completed_at": "2026-09-13T15:51:03.001646+00:00",
+          "request_hash": null,
+          "result_sha256": "f58c13a878c3923fafcbae1a2d5148193f06a05bca69d7415e6e8cb7e2194298",
+          "request_sha256": "648fd02160162c141d33d53410cb2a35048a2cb37f86ac4a9d06b149f0e6966d"
+        },
+        "after": {
+          "inspection_id": "a44a968e2a914a47a54e7ecc5a3383c4",
+          "state": "COMPLETE",
+          "decision": "REVIEW",
+          "accepted_at": "2026-09-13T15:51:03.004451+00:00",
+          "completed_at": "2026-09-13T15:51:03.001646+00:00",
+          "request_hash": null,
+          "result_sha256": "f58c13a878c3923fafcbae1a2d5148193f06a05bca69d7415e6e8cb7e2194298",
+          "request_sha256": "648fd02160162c141d33d53410cb2a35048a2cb37f86ac4a9d06b149f0e6966d"
+        }
+      }
+    ],
+    "same_event_ids": true,
+    "edge_outbox_states": {
+      "ACKED": 34
+    },
+    "edge_asset_states": {
+      "ACKED": 72
+    },
+    "pc_asset_states": {
+      "ACKED": 72
+    },
+    "same_asset_metadata": true,
+    "asset_hash_errors": [],
+    "assets_checked": 144,
+    "normal_pass_id": "5031fbaf16a94877b5b6aa46f9e90c03",
+    "asset_kinds_per_side": {
+      "raw": 54,
+      "overlay": 18
+    }
+  },
+  "checks": {
+    "focused_tests": {
+      "status": "PASS",
+      "count": 61,
+      "seconds": 7.415,
+      "scope": "Windows isolated fixtures; no actual camera/model/PLC"
+    },
+    "jetson_compile_in_memory": {
+      "count": 28,
+      "errors": []
+    },
+    "jetson_bash_syntax": [
+      {
+        "file": "start_inspection_app.sh",
+        "exit_code": 0,
+        "stderr": ""
+      },
+      {
+        "file": "stop_inspection_app.sh",
+        "exit_code": 0,
+        "stderr": ""
+      }
+    ],
+    "product_package_validation": {
+      "status": "PASS",
+      "path": "/home/jetson/oned_device_bench/releases/app_v007/deployment/products/earbud_case_v0/app_v001",
+      "manifest_sha256": "a461349449314af8a2b0f83bc3a323eb3c9dc4226b9c05669ea89ecf1ef5030a",
+      "names": [
+        "earbud_left",
+        "earbud_right",
+        "case"
+      ]
+    },
+    "git_diff_check": {
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "runs/jetson_p0_001/git_diff_check.txt"
+    },
+    "same_app_execution": {
+      "status": "UNVERIFIED",
+      "reason": "App stopped; starting it creates a session/DB writes and captures preview. Required NumPy bridge diagnostic FAIL."
+    },
+    "new_document_diff_checks": {
+      "status": "PASS",
+      "count": 9,
+      "no_index_exit_semantics": "1 means added-file difference only; negative whitespace control returned 3 with diagnostic",
+      "negative_control_exit_code": 3,
+      "evidence": "runs/jetson_p0_001/new_document_diff_checks.json"
+    },
+    "artifact_validation": {
+      "status": "PASS",
+      "markdown_files": 9,
+      "local_links": 28,
+      "feature_rows": 11,
+      "gap_rows": 21,
+      "draft_tasks": 6,
+      "issues": []
+    },
+    "final_local_preservation": {
+      "status": "PASS",
+      "preexisting_modified_tracked_files": 14,
+      "status_original_body_unchanged": true,
+      "other_modified_tracked_files_unchanged": 13,
+      "preexisting_untracked_paths_retained": 182,
+      "new_untracked_paths": [
+        "docs/jetson/JETSON_RUNTIME_BASELINE.md",
+        "docs/jetson/JETSON_RUNTIME_GAP_ANALYSIS.md",
+        "docs/verification/JETSON-P0-001.json",
+        "tasks/JETSON-P0-001.md",
+        "tasks/JETSON-P0-002.md",
+        "tasks/JETSON-P0-003.md",
+        "tasks/JETSON-P0-004.md",
+        "tasks/JETSON-P0-005.md",
+        "tasks/JETSON-P0-006.md",
+        "tasks/JETSON-P0-007.md"
+      ],
+      "head_unchanged": true
+    }
+  },
+  "read_only_exceptions": [
+    {
+      "component": "Ultralytics user settings",
+      "path": "/home/jetson/.config/Ultralytics/settings.json",
+      "observation": "Version import emitted settings schema update warning; modification time is inside audit window.",
+      "after": {
+        "path": "/home/jetson/.config/Ultralytics/settings.json",
+        "sha256": "fc81409e60d90731183224e6188332f6dc68b012ddd2084d5c5e08c96fcceb4d",
+        "mtime_utc": "2026-09-16T05:08:56.388080+00:00",
+        "pre_import_sha256": "UNMEASURED",
+        "restored": false
+      },
+      "before": "UNMEASURED",
+      "action": "No further import or guessed restoration; use distribution metadata thereafter."
+    },
+    {
+      "component": "PC SQLite shared-memory sidecar",
+      "path": "runs/inspection_app_v1/pc/journal.sqlite3-shm",
+      "before_sha256": "67737af7757a9bc2585c56f6fefa61b74f9b75a732b9c9e176ae2c706479c3cf",
+      "after_sha256": "a79fbf464cbb775a0e8097429c135ebd20788f3d9024b015cde1d0aa8f5fdf94",
+      "observation": "Changed during first mode=ro query with an existing WAL. Main DB, WAL and all logical tables unchanged.",
+      "action": "Preserve evidence; no original DB/WAL modification, deletion, checkpoint or guessed SHM restoration."
+    }
+  ],
+  "prohibited_actions_executed": {
+    "implementation": false,
+    "app_v007_edit": false,
+    "product_package_edit": false,
+    "model_conversion": false,
+    "package_install": false,
+    "mqtt_change": false,
+    "plc_control": false,
+    "service_start_stop": false,
+    "git_reset_clean": false,
+    "commit_push": false
+  },
+  "next_task": "JETSON-P0-002 (DRAFT ONLY; resolve runtime environment prerequisite separately before target execution)",
+  "gap_analysis": {
+    "count": 21,
+    "counts": {
+      "PARTIAL": 11,
+      "MISSING": 8,
+      "READY": 2
+    },
+    "features": [
+      {
+        "feature": "fresh-frame after trigger",
+        "status": "PARTIAL",
+        "code_evidence": "`inspection_worker.py:100-113`: accepted_monotonic+spacing 이후 추정 source time, max age 필터. `gstreamer_camera.py:39-80`: 단조 PTS/latest queue",
+        "remaining": "현재 기준은 Service 수락 시각이며 PLC 물리 trigger가 아니다. 센서 노출 시각/이동 중 동일 제품 보장 없음. P0-002"
+      },
+      {
+        "feature": "frame timestamp / age",
+        "status": "PARTIAL",
+        "code_evidence": "`gstreamer_camera.py:74`: sequence/source_pts_ns/received_monotonic/estimated_source_monotonic/age_seconds/received_at. `contracts/models.py:FrameMetadata`",
+        "remaining": "captured_at은 수신 시각; 노출 시각 검증 false. 추론·저장·PLC 결과 소비 시점의 age 재평가/최대 허용 창 계약 필요. P0-002"
+      },
+      {
+        "feature": "latency instrumentation",
+        "status": "PARTIAL",
+        "code_evidence": "`pytorch_detector.py:40`, `inspection_worker.py:129`, `inspection.py:142-149`, `inspection_api.py:118`",
+        "remaining": "CUDA 동기화 포함 detector 전체 호출·worker·result commit 시간 존재. trigger/대기/preprocess/H2D/infer/NMS/encode/save/sync/ACK 단계 및 분포 미완성. P0-003"
+      },
+      {
+        "feature": "TensorRT backend",
+        "status": "MISSING",
+        "code_evidence": "`recipe/package.py:102`는 PyTorch detect/ultralytics_xyxy만 허용, `inspection_worker.py:63-74`가 PyTorchDetector 직접 생성",
+        "remaining": "TRT10.3 설치는 확인. 배포 releases의 .engine/.plan0, 변환·실행0. 새 backend/패키지 계약과 parity는 P0-004"
+      },
+      {
+        "feature": "inference backend abstraction",
+        "status": "PARTIAL",
+        "code_evidence": "`contracts/interfaces.py:34` Detector Protocol, `models.py:DetectionResult`; PyTorch 구현",
+        "remaining": "worker factory/선택 경로가 hardcoded, package validator도 단일 backend. 계약 재사용하고 선택 경계 확장. P0-004"
+      },
+      {
+        "feature": "PLC adapter abstraction",
+        "status": "PARTIAL",
+        "code_evidence": "`control/mock_cell.py:6` 주입 port; `edge_service/mock_port.py:6` ServiceMockPort",
+        "remaining": "mock 전용 duck-typed 경계. 명시 PLC I/O 계약·연결 lifecycle·주소/단위·timeout·bit ownership 없음. P0-005/007"
+      },
+      {
+        "feature": "Mock PLC",
+        "status": "READY",
+        "code_evidence": "`mock_cell.py:17-72`, `mock_port.py`, `inspection_api.py:68`; `test_mock_cell`5개와 `test_mock_service`1개 이번 PASS",
+        "remaining": "상승 edge·POSITIONING/SETTLING·durable result·RELEASE/HOLD/FAULT·별도 ACK·복구 구현. 실물 Mock cycle/가상 I/O 수준 PLC 에뮬레이터는 미검증/미구현. P0-005는 기존 구현 확장"
+      },
+      {
+        "feature": "Omron PLC adapter",
+        "status": "MISSING",
+        "code_evidence": "src/apps/config/scripts에서 Omron/FINS 활성 구현 없음",
+        "remaining": "기종·프로토콜·주소표·데이터 순서·권한 미확정. P0-007은 emulator/무출력 계약부터"
+      },
+      {
+        "feature": "PLC heartbeat",
+        "status": "MISSING",
+        "code_evidence": "`inspection_worker.py:66-68`의0.5초 pulse는 Worker→Service 공유 메모리",
+        "remaining": "PLC 송수신 생존 counter/toggle·peer freshness 없음. Worker heartbeat를 PLC heartbeat로 재명명하지 않음. P0-006"
+      },
+      {
+        "feature": "PLC watchdog",
+        "status": "MISSING",
+        "code_evidence": "`inspection.py:173`5초 Worker heartbeat 감시; `mock_cell.py:43`의 HEARTBEAT_OR_SESSION_LOST는 Service 상태 검사",
+        "remaining": "PLC 측 scan/timeout·출력 안전상태·서로 독립된 watchdog 없음. P0-006/007"
+      },
+      {
+        "feature": "request/result ACK",
+        "status": "PARTIAL",
+        "code_evidence": "`inspection.py:218` 동일 request 재조회; `inspection_api.py:60` durable admission HTTP응답; `mock_port.py:38` RESULT_ACK; `mock_cell.py:67` CYCLE_ACK; `journal/sync.py:20` PC ACK",
+        "remaining": "소프트웨어 admission/result/cycle/PC ACK 구분은 존재. 실제 PLC request-latch/ACK wire protocol·순서/재전송 합의 없음. P0-005/007"
+      },
+      {
+        "feature": "session/cycle/request IDs",
+        "status": "READY",
+        "code_evidence": "`journal/sqlite.py:23-47`, `:98`, `inspection.py:208-236`",
+        "remaining": "cell/session/request 고유키, session/counter 영속화, cycle/attempt·1..2^32-1 검사, session mismatch 거부. PLC word mapping/재부팅 handshake는 별도"
+      },
+      {
+        "feature": "MQTT",
+        "status": "MISSING",
+        "code_evidence": "`journal/sync.py:16` HTTP loopback 전송; 관련 MQTT import/client/config 경로 없음",
+        "remaining": "broker/client/topic/QoS/session 규격 없음. 설치/설정 이번0, 지정된 P0-002~007 이후 별도 명세"
+      },
+      {
+        "feature": "MQTT outbox",
+        "status": "MISSING",
+        "code_evidence": "`sqlite.py:58,139` outbox는 HTTP event sync용",
+        "remaining": "기존 durable outbox 원칙은 재사용 가능. MQTT delivery 상태·broker ACK와 업무 ACK·중복 키 계약은 없음"
+      },
+      {
+        "feature": "metrics",
+        "status": "PARTIAL",
+        "code_evidence": "`sqlite.py:240`, `inspection_api.py:115`, `collector.py:90`",
+        "remaining": "제품/기준 시도 수, 판정/처분, PC pending은 있음. 지연 histogram·GPU/RAM·queue/frame drop·disk 수치/알림 없음"
+      },
+      {
+        "feature": "structured logging",
+        "status": "PARTIAL",
+        "code_evidence": "`sqlite.py:139` event envelope/JSON/hash, `inspection.py:147` timing 및 Mock 전이 events",
+        "remaining": "구조화 감사 이벤트는 존재. 통합 JSON 운영 logger·level·correlation·rotation 정책은 없음; nohup stdout 파일"
+      },
+      {
+        "feature": "disk monitor",
+        "status": "PARTIAL",
+        "code_evidence": "`sqlite.py:108` free<100,000,000B/미ACK outbox>=10,000 거부; `inspection.py:186` health capacity",
+        "remaining": "admission/finish/health 시점 gate. 주기적 사용량·inode·쓰기오류 추세/알림은 없음"
+      },
+      {
+        "feature": "synced-only retention",
+        "status": "MISSING",
+        "code_evidence": "`frame_assets.sync_state`, `outbox.state`는 존재; `sqlite.py:205` orphan 보존, 원본 자동 삭제 없음",
+        "remaining": "보존기간·event와asset ACK 충족·유예/삭제 감사·quota 정책 없음. 지금 삭제 구현/실행 금지"
+      },
+      {
+        "feature": "startup self-test",
+        "status": "PARTIAL",
+        "code_evidence": "`package.py:94` hash/계약, `inspection_worker.py:75-88` optional 대표 이미지 추론·첫 카메라 capture, `inspection.py:175`90초 timeout",
+        "remaining": "현재 package는 self_test 있음. 기대 검출/수치 oracle 비교, 전체 dependency bridge·DB integrity·PC/PLC 검사 자동 gate는 없음. 현 환경은 별도 NumPy 진단 FAIL"
+      },
+      {
+        "feature": "systemd",
+        "status": "MISSING",
+        "code_evidence": "`scripts/start_inspection_app.sh:1` nohup/pid/log; 대상 system/user unit 목록·unit 파일 내용 검색 일치0",
+        "remaining": "자동 시작·Restart/Watchdog·시작 제한 unit 없음. OS systemd 자체 설치와 구분"
+      },
+      {
+        "feature": "automatic restart/recovery",
+        "status": "PARTIAL",
+        "code_evidence": "`inspection.py:111,173,288` 오류 감지/명시 activate 복구, `sqlite.py:205` 미완료 취소·고아 보존, `sync.py:46`1~60초 backoff",
+        "remaining": "PC sync retry/시작 시 journal recovery는 있음. Worker fault 후 자동 재기동·service supervisor는 없음. 자동 START를 금지하는 기존 안전 조건 유지"
+      }
+    ]
+  },
+  "documentation_sha256": {
+    "docs/jetson/JETSON_RUNTIME_BASELINE.md": "c76470108650e100fd4b0524070f8d7a48b94fe6fd995b27c034c41c38629112",
+    "docs/jetson/JETSON_RUNTIME_GAP_ANALYSIS.md": "7b72b54c7a4046af137ef1e44b3a84234f21a02c07a3f7df4eeec1731f15f5f6",
+    "tasks/JETSON-P0-001.md": "2a99ec7ecdd03771e3a1087cca6722522480ffe9d7191e55558fff1713549f0a",
+    "tasks/JETSON-P0-002.md": "3b5bc43d932b6a9d4e79581bd412bd9484a84e714d99f8e1c4aed78db24bb74c",
+    "tasks/JETSON-P0-003.md": "9c60fa2e84bfe862ea1a0760672c67eddbe6c14f110213b9d83ab91b17c2c14c",
+    "tasks/JETSON-P0-004.md": "8fc5ec28f6f2dbfc8ee6454e3acb3b744f7790e551269768dd143fd51170dfdc",
+    "tasks/JETSON-P0-005.md": "c71024abea36b6e8c2c0f042ed9abd368422faa70a78d97bf5a765df66e0bd26",
+    "tasks/JETSON-P0-006.md": "400bcb883eaf5dda0390e993db725db91e43e4519e0abbfdb037e4f5bc816014",
+    "tasks/JETSON-P0-007.md": "154b5dcbe27273abb16e0897ee2b9edaffc040a236a6a655338a72b70cf7899b"
+  },
+  "knowledge_capture": {
+    "status": "recorded",
+    "notes": [
+      "02_Knowledge/Evidence-Based Verification.md",
+      "01_Projects/Engine Assembly Defect Inspector.md"
+    ],
+    "receipt": "D:/Obsidian/_automation/knowledge-capture/state/events/63ba9e8146cb4f1ad41f3b7219753a5c.json"
+  },
+  "acceptance": [
+    {
+      "criterion": "Environment and code audit with baseline/gap/draft artifacts",
+      "status": "PASS"
+    },
+    {
+      "criterion": "app_v007/package/model/DB-main/WAL/inspection/images unchanged",
+      "status": "PASS"
+    },
+    {
+      "criterion": "Preexisting user changes preserved",
+      "status": "PASS"
+    },
+    {
+      "criterion": "Strictly read-only audit",
+      "status": "FAIL",
+      "reason": "Settings auto-migration and SQLite SHM side effect disclosed"
+    },
+    {
+      "criterion": "Current app_v007 runs as before",
+      "status": "UNVERIFIED",
+      "reason": "Stopped app, no launch; prerequisite torch NumPy bridge FAIL"
+    },
+    {
+      "criterion": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "criterion": "No implementation, actual PLC, MQTT change, TensorRT conversion, commit/push",
+      "status": "PASS"
+    }
+  ]
+}

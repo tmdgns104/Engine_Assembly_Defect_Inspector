@@ -1,0 +1,144 @@
+{
+  "task": "JETSON-P0-004A",
+  "status": "PREFLIGHT_COMPLETE_IMPLEMENTATION_NOT_AUTHORIZED",
+  "date": "2026-09-16",
+  "gates": {
+    "CURRENT_DETECTOR_CONTRACT_MAPPED": "DOCUMENTED_STATIC",
+    "FACTORY_INSERTION_POINT_IDENTIFIED": "DOCUMENTED_STATIC",
+    "PACKAGE_VALIDATOR_BOUNDARY_MAPPED": "DOCUMENTED_STATIC",
+    "TRT_INSTALLATION_EVIDENCE_CAPTURED": "DOCUMENTED_STATIC",
+    "ONNX_EXPORT_TOOLCHAIN_INVENTORIED": "DOCUMENTED_STATIC",
+    "EXPORT_PATH_CANDIDATES_MAPPED": "DOCUMENTED_STATIC",
+    "INPUT_OUTPUT_CONTRACT_FIXED_FROM_SOURCE": "DOCUMENTED_STATIC",
+    "ENGINE_PROVENANCE_CONTRACT_DEFINED": "DOCUMENTED_STATIC",
+    "PARITY_INPUTS_IDENTIFIED": "DOCUMENTED_STATIC",
+    "PARITY_METRICS_DEFINED": "DOCUMENTED_STATIC",
+    "NUMERIC_TOLERANCES_NOT_INVENTED": "DOCUMENTED_STATIC",
+    "SILENT_FALLBACK_POLICY_DEFINED": "DOCUMENTED_STATIC",
+    "FUTURE_SELF_TEST_CONTRACT_DEFINED": "DOCUMENTED_STATIC",
+    "IMPLEMENTATION_TASKS_BOUNDED": "DOCUMENTED_STATIC",
+    "ORIGINALS_UNCHANGED": "DOCUMENTED_STATIC"
+  },
+  "runtime_gpu_camera_export_calls": 0,
+  "readonly_ssh_sessions": 2,
+  "remote_new_files": 0,
+  "framework_imports": [],
+  "preservation": {
+    "remote_groups": {
+      "/home/jetson/.config/Ultralytics/settings.json": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/coloredlogs.pth": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/cv2": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy-2.2.6.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy.libs": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python-5.0.0.93.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python.libs": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torch": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torch-2.8.0.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision-0.23.0.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics-8.4.118.dist-info": true,
+      "/home/jetson/oned_device_bench/data/app_v1/assets": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-shm": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-wal": true,
+      "/home/jetson/oned_device_bench/envs/app_v1": true,
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages/distutils-precedence.pth": true,
+      "/home/jetson/oned_device_bench/releases/app_v007": true,
+      "/usr/lib/python3/dist-packages/matplotlib-3.5.1-nspkg.pth": true,
+      "/usr/lib/python3.10/dist-packages/tensorrt": true,
+      "/usr/lib/python3.10/dist-packages/tensorrt-10.3.0.dist-info": true,
+      "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002": true,
+      "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002_reaccept": true,
+      "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_003_latency": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_002": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_002_reaccept": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_002r4_soak": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_003_latency": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r_cuda": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r2": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r3_nvmap": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r4_soak": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_003_latency": true
+    },
+    "remote_group_count": 36,
+    "overlay_equal": true,
+    "current_equal": true,
+    "local_files": 462,
+    "local_changed": [],
+    "p003_frozen": true,
+    "scope": "Enumerated protected content SHA, no claim about unrelated OS activity."
+  },
+  "toolchain": {
+    "onnx": {
+      "status": "PRESENT",
+      "module_path": "/home/jetson/.local/lib/python3.10/site-packages/onnx/__init__.py",
+      "version": "1.22.0",
+      "distribution_path": "/home/jetson/.local/lib/python3.10/site-packages/onnx-1.22.0.dist-info"
+    },
+    "onnxruntime": {
+      "status": "PRESENT",
+      "module_path": "/home/jetson/.local/lib/python3.10/site-packages/onnxruntime/__init__.py",
+      "version": "1.23.2",
+      "distribution_path": "/home/jetson/.local/lib/python3.10/site-packages/onnxruntime-1.23.2.dist-info"
+    },
+    "onnxsim": {
+      "status": "ABSENT",
+      "module_path": null,
+      "version": null
+    },
+    "onnxslim": {
+      "status": "ABSENT",
+      "module_path": null,
+      "version": null
+    },
+    "onnx_graphsurgeon": {
+      "status": "ABSENT",
+      "module_path": null,
+      "version": null
+    },
+    "polygraphy": {
+      "status": "ABSENT",
+      "module_path": null,
+      "version": null
+    },
+    "trtexec": {
+      "status": "PRESENT",
+      "path": "/usr/src/tensorrt/bin/trtexec",
+      "version": "NOT_EXECUTED",
+      "scope": "PATH and /usr/src/tensorrt/bin/trtexec; no binary execution"
+    },
+    "torch.onnx": {
+      "status": "PRESENT",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/onnx/__init__.py",
+      "imported": false
+    }
+  },
+  "export_decision": "DECISION_PENDING",
+  "precision": "FP32/FP16 CANDIDATE_ONLY; none accepted; INT8 out of scope",
+  "parity_input_count": 2,
+  "tolerance": "TOLERANCE_TBD_FROM_EMPIRICAL_PARITY_EVIDENCE",
+  "raw_onnx_parity": "NOT_RUN",
+  "root_cause": "UNCONFIRMED",
+  "production_threshold": "NOT_DEFINED",
+  "conveyor": "NOT_RUN",
+  "implementation": "NOT_STARTED",
+  "next_tasks": [
+    "P0-004B candidate factory/package contract after design approval",
+    "P0-004C adapter with synthetic/invalid artifact tests",
+    "P0-004D approved export/build with fixed format/settings",
+    "P0-004E parity pilot and separately approved tolerance",
+    "P0-004F matched-runtime latency comparison"
+  ],
+  "git_diff_check": "PASS",
+  "coordination": "Specified ChatGPT conversation reviewed preflight scope; external advice is not source evidence or authority to lift restrictions.",
+  "artifacts": {
+    "source_contract": "5a5a5c505bb30b1717a54a166ffbbfc9cfb8e2a3b0c6e943f966d5e81e183a74",
+    "package_contract": "19638879ebadb51dd7e5b7cde29a62694614aedeba605944612f0579144cc514",
+    "toolchain_inventory": "07b1c6d8db1d4e0c9a0168be2b165f15f9838721b7b26d06df246b95b23e2a97",
+    "ultralytics_export_inventory": "eaafa38bd40a3c158eab08d88550af9adf1e07b881171a65f162679f54f3abc9",
+    "parity_input_inventory": "7c91935d6c250342753cbd55960a90e07e504b79ad32efdf123b3b0d65fd5315",
+    "preservation": "4e05b7a69739c11d742926ec35c6bcb10aa9df1281827e8d18892f67c7f5938c"
+  }
+}

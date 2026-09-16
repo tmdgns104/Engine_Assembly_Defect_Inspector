@@ -1,0 +1,692 @@
+{
+  "task": "JETSON-P0-003",
+  "date": "2026-09-16",
+  "status": "LATENCY_INSTRUMENTATION_VERIFIED_LAB",
+  "authorization": "User requested results exchange with specified ChatGPT conversation and continued work; reviewed P0-003 candidate-only proposal against existing safety boundaries.",
+  "coordination_url": "https://chatgpt.com/c/6aa23182-dfe4-83ee-9ab4-be9e20b06b3b",
+  "source_contract": {
+    "status": "SOURCE_CONTRACT_CONFIRMED",
+    "legacy_inference_ms": "perf_counter around YOLO.predict plus existing post-predict synchronize; excludes preceding synchronize and boxes CPU mapping.",
+    "detector_host_total_ms": "monotonic_ns around full detect call, including both existing adapter synchronize calls and CPU result mapping.",
+    "ultralytics_reported": "Results.speed: ops.Profile perf_counter host durations with existing device synchronize at profile boundaries. Not pure GPU kernel or CUDA-event times.",
+    "preprocess": "letterbox/stack, BGR->RGB, BCHW, contiguous, from_numpy, .to(device), dtype conversion, /255. H2D included, not independently observable.",
+    "inference": "Installed predictor.inference call inside profile1; first internal warmup is outside profile1 and excluded with warmup sample.",
+    "postprocess": "DetectionPredictor.postprocess: NMS and result construction including coordinate scaling.",
+    "quality_order": "detect return, then assess_image, matching unchanged worker.",
+    "encode": "encode_evidence PNG raw3 and last-frame JPG overlay; memory encoding only.",
+    "persist": "Journal.finish includes atomic asset writes/fsync, SHA metadata, inspection/assets/defects/events/cycle SQL transaction; returns after commit.",
+    "durable": "New sidecar timestamp at Journal.finish return; immutable original result/event remains unchanged. Existing service also has separate INSPECTION_DURABLE_TIMING event.",
+    "publication": "Local diagnostic handoff timestamp immediately before publication JSON file write; no claim of PLC/network receipt or file durability latency.",
+    "candidate_startup": "model_to_cuda_ready_ms is existing YOLO.to(cuda:0) call wall duration; no additional completion synchronization.",
+    "warmup_scope": "MODEL_DETECT_PATH; does not establish database/encoder/filesystem/OS cache or thermal steady state.",
+    "atomicity_limit": "Individual atomic asset file writes followed by SQLite commit; filesystem plus database is NOT a single atomic transaction.",
+    "unobservable": [
+      "h2d_ms",
+      "pure_gpu_kernel_ms",
+      "separate_asset_write_ms",
+      "separate_db_commit_ms",
+      "plc_or_network_ack_ms"
+    ],
+    "source_locations": {
+      "legacy_timer": "runtime/src/vision/pytorch_detector.py:51 (synchronize53/58, timer54/59)",
+      "preprocess_h2d": "upstream/engine/predictor.py:160 (.to(device)178)",
+      "reported_segments": "upstream/engine/predictor.py:328 (profiles340/348/355, Results.speed365)",
+      "upstream_sync": "upstream/utils/ops.py:70 (synchronize73)",
+      "worker_order": "runtime/src/vision/inspection_worker.py:130 (quality135, encode156)",
+      "persist": "runtime/src/journal/sqlite.py:151 (asset175, SQL185, return198)",
+      "file_fsync": "runtime/apps/edge_service/bench.py:28 (fsync36/41)",
+      "existing_durable_event": "runtime/apps/edge_service/inspection.py:154"
+    },
+    "source_sha256": {
+      "runtime\\apps\\edge_service\\bench.py": "d9685e6a10626a15016fceebbcbb650e65f5b2e9a3c595f156618efd22694f48",
+      "runtime\\apps\\edge_service\\inspection.py": "9715d0f041fcc98c8fabcfa166f20af59aeb4280cc1e217f210eb4e3a86233b6",
+      "runtime\\apps\\edge_service\\inspection_api.py": "f01c23fbb5a748399b68c6d8e517300424a12c0af9df0189b9d898a1c98000b3",
+      "runtime\\apps\\edge_service\\mock_port.py": "32ef4325b5a5dfffcfbc3c228eaba305862635c16832273999663c9dbded46f7",
+      "runtime\\scripts\\run_jetson_fresh_candidate.py": "153ffce3b4d0de2a0600574eecaf0392f655559483db67747ee132a5e32f8675",
+      "runtime\\src\\api\\__init__.py": "77b5cc12c7bac30b4b391aab4269e168a308f0a3379494b345513b1d5b24ab5c",
+      "runtime\\src\\camera\\__init__.py": "86a5745582aafba3a0d5248727fc78f75539bc5b06ef4897346fcc3c9f476cbc",
+      "runtime\\src\\camera\\fresh_frame.py": "28c3dbc6e792e553359496607e36a5b71880c48d1143fc11bd6f8ebbe8355555",
+      "runtime\\src\\camera\\gstreamer_camera.py": "a7ece153e27b76fa9aa614eebecee0dea253df7dfcb4fd08b65ccb4b90039527",
+      "runtime\\src\\contracts\\__init__.py": "15896decdf9a303f2862f036c995ef074bf1db59b4fbe39206bcda8172791bf9",
+      "runtime\\src\\contracts\\enums.py": "a0d0051f8318e8382a5f337d6b383278392753303455e34450eef338c1f279f2",
+      "runtime\\src\\contracts\\interfaces.py": "056e2fdb462b76af03cc688a35fa51f242c8faed5e60d15e0bd831017d35bef5",
+      "runtime\\src\\contracts\\models.py": "1f95d1ce85b102848ed59b8244ce6fb7c6537b62e1c2e07dd9d1fc8fefaa4862",
+      "runtime\\src\\control\\__init__.py": "9ee0a8a41927e64c5a2fb37e32f6212a91813969fc238b251f41b4e7e0e8b555",
+      "runtime\\src\\control\\mock_cell.py": "1446202f4a7930d96345239aaf193741e30f7b675a52212a187df610f0be71b4",
+      "runtime\\src\\decision\\__init__.py": "a7e1b1939d509c1e1b4d228b1ee9093fc4d7366eee1ca14399a6d9b60d19b53c",
+      "runtime\\src\\decision\\bench.py": "f126194cb16cf77346552afacc80025f857765e1b4a579b886cbd7dbc7a3318e",
+      "runtime\\src\\decision\\calibration.py": "e5749d6b8d07016b77d238bbf82904f9a9896a5be2d1bd151f95d392b47c2a5e",
+      "runtime\\src\\decision\\slots.py": "d253535d78e7ed96cb912e83add85a90b2d407a5a44429b210d71c67fbcff219",
+      "runtime\\src\\journal\\__init__.py": "7689d7ef66d0d8e3f9438e596626be92702039a6a7c91fd905f8a1ce91318093",
+      "runtime\\src\\journal\\collector.py": "8d04e4adda59ffa77fd733b73fed4bc0feb10585d394fd9ca29348c81b5b33f4",
+      "runtime\\src\\journal\\sqlite.py": "5972172a62f50d8bbe540b3435691b8452ae9a8f92cb93994cae4dfb242c3edc",
+      "runtime\\src\\journal\\sync.py": "1db0bf248f4682bb7f8d12a0d61fa0abedfc2e22bbd61786a681167c343d09d4",
+      "runtime\\src\\quality\\__init__.py": "be132f77e5d0cb90dd98eede3fa973a0481bf3d6af957ccb1e93678559625b54",
+      "runtime\\src\\quality\\image.py": "04701a377a0d1632a9a01359a11a71e15c84dccb5f9ce39fdd944164bba6bb47",
+      "runtime\\src\\recipe\\__init__.py": "529d86300d5302860c4b8a280b07e7ff208731ca35a06cfa894ab80467ebc1e6",
+      "runtime\\src\\recipe\\package.py": "114afd489295856df6a6df1c5b909812a13c44804b3c1ffdcdcf20680c57d062",
+      "runtime\\src\\vision\\__init__.py": "a4e3ec267d4b3cd40c26e4040d2dd655cf3c2f47cbd15bf6e0961e32497e02d3",
+      "runtime\\src\\vision\\inspection_worker.py": "1e05530023d5e776c33d4b46bb72a3c112323d39cca7f461104d74cfb1f5669e",
+      "runtime\\src\\vision\\pytorch_detector.py": "9f38dc88f116ebfb28602406a22e289ec3269004f6443ebb79b3f9e9991e7cf5",
+      "upstream\\engine\\predictor.py": "92ed1e3e78f9a76c52fce02cebee4ca6b12a65de2d1e2e8f6e42551ce8edf0b0",
+      "upstream\\models\\yolo\\detect\\predict.py": "4e91a22b1e0bef4d1a392828ae5c2a9976cdc8d24cc38fcd9cd061af45197d43",
+      "upstream\\utils\\ops.py": "28af08379862e9fe6d6f53ff07778f7d8ddaad6a495fa7092b098d5e8664f89a"
+    }
+  },
+  "candidate_changes": [
+    "src/vision/pytorch_detector.py"
+  ],
+  "external_review": {
+    "status": "RECEIVED_AND_TERMINOLOGY_CLARIFIED",
+    "authority": "External feedback on shared summary, not independent execution evidence.",
+    "raw_evidence_changed": false,
+    "additional_hardware_runs": 0,
+    "clarifications": [
+      "legacy detector timing",
+      "MODEL_DETECT_PATH warmup only",
+      "individual file atomicity, not filesystem+DB transaction",
+      "diagnostic local handoff only"
+    ]
+  },
+  "original_runtime_changes": 0,
+  "clock": "jetson_process_monotonic",
+  "sync_policy": "EXISTING_RUNTIME_SYNCHRONIZE_ONLY",
+  "extra_cuda_synchronization_count": 0,
+  "pid": 21354,
+  "runtime_wall_seconds": 19.836587339999824,
+  "warmup_count": 1,
+  "measured_cycles": 10,
+  "measured_observations": 30,
+  "startup": [
+    {
+      "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+      "clock": "jetson_process_monotonic",
+      "sample_class": "STARTUP_OR_WARMUP",
+      "timestamps_ns": {
+        "start": 20456213229454,
+        "end": 20459211622940
+      },
+      "durations_ms": {
+        "import_ms": 2998.393486
+      },
+      "measurement_status": {
+        "import_ms": "MEASURED"
+      }
+    },
+    {
+      "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+      "clock": "jetson_process_monotonic",
+      "sample_class": "STARTUP_OR_WARMUP",
+      "timestamps_ns": {
+        "start": 20459239290384,
+        "end": 20461528692645
+      },
+      "durations_ms": {
+        "camera_open_ms": 2289.402261
+      },
+      "measurement_status": {
+        "camera_open_ms": "MEASURED"
+      }
+    },
+    {
+      "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+      "clock": "jetson_process_monotonic",
+      "sample_class": "STARTUP_OR_WARMUP",
+      "timestamps_ns": {
+        "start": 20461529002219,
+        "end": 20461565555689
+      },
+      "durations_ms": {
+        "package_load_ms": 36.55347
+      },
+      "measurement_status": {
+        "package_load_ms": "MEASURED"
+      }
+    },
+    {
+      "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+      "clock": "jetson_process_monotonic",
+      "sample_class": "STARTUP_OR_WARMUP",
+      "timestamps_ns": {
+        "start": 20461713735016,
+        "end": 20463959217103
+      },
+      "durations_ms": {
+        "model_construct_ms": 2245.482087
+      },
+      "measurement_status": {
+        "model_construct_ms": "MEASURED"
+      }
+    },
+    {
+      "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+      "clock": "jetson_process_monotonic",
+      "sample_class": "STARTUP_OR_WARMUP",
+      "timestamps_ns": {
+        "start": 20463817359433,
+        "end": 20463959024971
+      },
+      "durations_ms": {
+        "model_to_cuda_ready_ms": 141.665538
+      },
+      "measurement_status": {
+        "model_to_cuda_ready_ms": "MEASURED"
+      }
+    },
+    {
+      "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+      "clock": "jetson_process_monotonic",
+      "sample_class": "STARTUP_OR_WARMUP",
+      "timestamps_ns": {
+        "start": 20463994773434,
+        "end": 20466536065938
+      },
+      "durations_ms": {
+        "warmup_detect_ms": 2541.292504
+      },
+      "measurement_status": {
+        "warmup_detect_ms": "MEASURED"
+      }
+    }
+  ],
+  "summary": {
+    "quantile_method": "linear interpolation at (n-1)*p (Hyndman-Fan type 7)",
+    "population": "MEASURED_WARM only; descriptive lab samples, not production SLA",
+    "observations": {
+      "detector_host_total_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 46.860804,
+        "max": 91.676097,
+        "p50": 54.0749435,
+        "p95": 91.27150235,
+        "p99": 91.56854905
+      },
+      "frame_age_at_select_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 27.272996,
+        "max": 39.388263,
+        "p50": 32.7963845,
+        "p95": 37.97611834999999,
+        "p99": 39.175542490000005
+      },
+      "h2d_ms": {
+        "n": 0,
+        "null_count": 30,
+        "invalid_count": 0,
+        "status": "UNMEASURED",
+        "min": null,
+        "max": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "quality_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 17.864024,
+        "max": 50.006848,
+        "p50": 28.0554355,
+        "p95": 41.28022315,
+        "p99": 47.51656783000001
+      },
+      "selection_wait_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 33.783305,
+        "max": 399.001296,
+        "p50": 208.561382,
+        "p95": 393.12422415,
+        "p99": 397.92611346
+      },
+      "source_estimate_to_receive_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 27.057312,
+        "max": 38.756219,
+        "p50": 32.4573605,
+        "p95": 37.4426121,
+        "p99": 38.61080749
+      },
+      "trigger_to_receive_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 33.360128,
+        "max": 398.749547,
+        "p50": 208.098285,
+        "p95": 392.73952729999996,
+        "p99": 397.67029982
+      },
+      "trigger_to_source_estimate_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 0.82624,
+        "max": 366.327894,
+        "p50": 174.82976250000002,
+        "p95": 359.2050238,
+        "p99": 365.40062567
+      },
+      "ultralytics_inference_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 35.946865998994326,
+        "max": 70.28288600122323,
+        "p50": 40.75857499992708,
+        "p95": 69.96037289918604,
+        "p99": 70.19763847005379
+      },
+      "ultralytics_postprocess_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 2.5886259973049164,
+        "max": 4.479126000660472,
+        "p50": 3.2353264996345388,
+        "p95": 4.02368690156436,
+        "p99": 4.3860365810542135
+      },
+      "ultralytics_preprocess_ms": {
+        "n": 30,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 5.3121979981369805,
+        "max": 13.281567000376526,
+        "p50": 6.804882999858819,
+        "p95": 13.163428998814197,
+        "p99": 13.251295059526456
+      }
+    },
+    "cycles": {
+      "durable_to_local_publish_ms": {
+        "n": 10,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 1.319994,
+        "max": 2.106312,
+        "p50": 1.4295955,
+        "p95": 2.05824435,
+        "p99": 2.0966984699999998
+      },
+      "evidence_encode_ms": {
+        "n": 10,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 99.741692,
+        "max": 115.254598,
+        "p50": 108.682264,
+        "p95": 114.2676031,
+        "p99": 115.05719902
+      },
+      "persist_total_ms": {
+        "n": 10,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 124.095024,
+        "max": 250.189927,
+        "p50": 126.822036,
+        "p95": 197.02599144999988,
+        "p99": 239.55713989000003
+      },
+      "recipe_ms": {
+        "n": 10,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 0.083394,
+        "max": 0.125186,
+        "p50": 0.11065849999999999,
+        "p95": 0.12337159999999998,
+        "p99": 0.12482312
+      },
+      "trigger_to_durable_result_ms": {
+        "n": 10,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 686.672263,
+        "max": 863.392971,
+        "p50": 717.4061165,
+        "p95": 801.3617485499998,
+        "p99": 850.98672651
+      },
+      "trigger_to_local_publish_ms": {
+        "n": 10,
+        "null_count": 0,
+        "invalid_count": 0,
+        "status": "MEASURED",
+        "min": 688.194212,
+        "max": 865.499283,
+        "p50": 718.9763399999999,
+        "p95": 803.1376462499999,
+        "p99": 853.02695565
+      }
+    }
+  },
+  "manifest": {
+    "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+    "clock": "jetson_process_monotonic",
+    "sync_policy": "EXISTING_RUNTIME_SYNCHRONIZE_ONLY",
+    "extra_cuda_synchronization_count": 0,
+    "instrumentation_event_count": 293,
+    "collection_strategy": "memory buffered events, flushed before next-cycle permission and at teardown; no timing-point disk write/fsync",
+    "jsonl_bytes": 202500,
+    "overhead_wall_ms": null,
+    "overhead_status": "UNMEASURED; no paired instrumentation-off hardware run",
+    "warmup_count": 1,
+    "measured_observation_count": 30,
+    "measured_cycle_count": 10,
+    "startup_records": [
+      {
+        "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+        "clock": "jetson_process_monotonic",
+        "sample_class": "STARTUP_OR_WARMUP",
+        "timestamps_ns": {
+          "start": 20456213229454,
+          "end": 20459211622940
+        },
+        "durations_ms": {
+          "import_ms": 2998.393486
+        },
+        "measurement_status": {
+          "import_ms": "MEASURED"
+        }
+      },
+      {
+        "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+        "clock": "jetson_process_monotonic",
+        "sample_class": "STARTUP_OR_WARMUP",
+        "timestamps_ns": {
+          "start": 20459239290384,
+          "end": 20461528692645
+        },
+        "durations_ms": {
+          "camera_open_ms": 2289.402261
+        },
+        "measurement_status": {
+          "camera_open_ms": "MEASURED"
+        }
+      },
+      {
+        "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+        "clock": "jetson_process_monotonic",
+        "sample_class": "STARTUP_OR_WARMUP",
+        "timestamps_ns": {
+          "start": 20461529002219,
+          "end": 20461565555689
+        },
+        "durations_ms": {
+          "package_load_ms": 36.55347
+        },
+        "measurement_status": {
+          "package_load_ms": "MEASURED"
+        }
+      },
+      {
+        "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+        "clock": "jetson_process_monotonic",
+        "sample_class": "STARTUP_OR_WARMUP",
+        "timestamps_ns": {
+          "start": 20461713735016,
+          "end": 20463959217103
+        },
+        "durations_ms": {
+          "model_construct_ms": 2245.482087
+        },
+        "measurement_status": {
+          "model_construct_ms": "MEASURED"
+        }
+      },
+      {
+        "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+        "clock": "jetson_process_monotonic",
+        "sample_class": "STARTUP_OR_WARMUP",
+        "timestamps_ns": {
+          "start": 20463817359433,
+          "end": 20463959024971
+        },
+        "durations_ms": {
+          "model_to_cuda_ready_ms": 141.665538
+        },
+        "measurement_status": {
+          "model_to_cuda_ready_ms": "MEASURED"
+        }
+      },
+      {
+        "run_id": "60140d67d3a24bbfafd3bf025a2b3815",
+        "clock": "jetson_process_monotonic",
+        "sample_class": "STARTUP_OR_WARMUP",
+        "timestamps_ns": {
+          "start": 20463994773434,
+          "end": 20466536065938
+        },
+        "durations_ms": {
+          "warmup_detect_ms": 2541.292504
+        },
+        "measurement_status": {
+          "warmup_detect_ms": "MEASURED"
+        }
+      }
+    ],
+    "candidate_hash": "a7feb0e1774ce9b31cc5930ce3bcbd1335bf85d8e501bacdb9d61254e51443d8",
+    "candidate_files": {
+      "apps/edge_service/bench.py": "d9685e6a10626a15016fceebbcbb650e65f5b2e9a3c595f156618efd22694f48",
+      "apps/edge_service/inspection.html": "c37de1bbd38366b31c2bb7547c0a4ef3008509418cc978a65314e1bec3cbe344",
+      "apps/edge_service/inspection.py": "9715d0f041fcc98c8fabcfa166f20af59aeb4280cc1e217f210eb4e3a86233b6",
+      "apps/edge_service/inspection_api.py": "f01c23fbb5a748399b68c6d8e517300424a12c0af9df0189b9d898a1c98000b3",
+      "apps/edge_service/mock_port.py": "32ef4325b5a5dfffcfbc3c228eaba305862635c16832273999663c9dbded46f7",
+      "config/inspection_station_candidate_p0_002.json": "8140074579e1ad6d06851be28cfef3bba9726980a4190b2b2b2fcd9794758d21",
+      "scripts/run_jetson_fresh_candidate.py": "153ffce3b4d0de2a0600574eecaf0392f655559483db67747ee132a5e32f8675",
+      "src/api/__init__.py": "77b5cc12c7bac30b4b391aab4269e168a308f0a3379494b345513b1d5b24ab5c",
+      "src/camera/__init__.py": "86a5745582aafba3a0d5248727fc78f75539bc5b06ef4897346fcc3c9f476cbc",
+      "src/camera/fresh_frame.py": "28c3dbc6e792e553359496607e36a5b71880c48d1143fc11bd6f8ebbe8355555",
+      "src/camera/gstreamer_camera.py": "a7ece153e27b76fa9aa614eebecee0dea253df7dfcb4fd08b65ccb4b90039527",
+      "src/contracts/__init__.py": "15896decdf9a303f2862f036c995ef074bf1db59b4fbe39206bcda8172791bf9",
+      "src/contracts/enums.py": "a0d0051f8318e8382a5f337d6b383278392753303455e34450eef338c1f279f2",
+      "src/contracts/interfaces.py": "056e2fdb462b76af03cc688a35fa51f242c8faed5e60d15e0bd831017d35bef5",
+      "src/contracts/models.py": "1f95d1ce85b102848ed59b8244ce6fb7c6537b62e1c2e07dd9d1fc8fefaa4862",
+      "src/control/__init__.py": "9ee0a8a41927e64c5a2fb37e32f6212a91813969fc238b251f41b4e7e0e8b555",
+      "src/control/mock_cell.py": "1446202f4a7930d96345239aaf193741e30f7b675a52212a187df610f0be71b4",
+      "src/decision/__init__.py": "a7e1b1939d509c1e1b4d228b1ee9093fc4d7366eee1ca14399a6d9b60d19b53c",
+      "src/decision/bench.py": "f126194cb16cf77346552afacc80025f857765e1b4a579b886cbd7dbc7a3318e",
+      "src/decision/calibration.py": "e5749d6b8d07016b77d238bbf82904f9a9896a5be2d1bd151f95d392b47c2a5e",
+      "src/decision/slots.py": "d253535d78e7ed96cb912e83add85a90b2d407a5a44429b210d71c67fbcff219",
+      "src/journal/__init__.py": "7689d7ef66d0d8e3f9438e596626be92702039a6a7c91fd905f8a1ce91318093",
+      "src/journal/collector.py": "8d04e4adda59ffa77fd733b73fed4bc0feb10585d394fd9ca29348c81b5b33f4",
+      "src/journal/sqlite.py": "5972172a62f50d8bbe540b3435691b8452ae9a8f92cb93994cae4dfb242c3edc",
+      "src/journal/sync.py": "1db0bf248f4682bb7f8d12a0d61fa0abedfc2e22bbd61786a681167c343d09d4",
+      "src/quality/__init__.py": "be132f77e5d0cb90dd98eede3fa973a0481bf3d6af957ccb1e93678559625b54",
+      "src/quality/image.py": "04701a377a0d1632a9a01359a11a71e15c84dccb5f9ce39fdd944164bba6bb47",
+      "src/recipe/__init__.py": "529d86300d5302860c4b8a280b07e7ff208731ca35a06cfa894ab80467ebc1e6",
+      "src/recipe/package.py": "114afd489295856df6a6df1c5b909812a13c44804b3c1ffdcdcf20680c57d062",
+      "src/vision/__init__.py": "a4e3ec267d4b3cd40c26e4040d2dd655cf3c2f47cbd15bf6e0961e32497e02d3",
+      "src/vision/inspection_worker.py": "1e05530023d5e776c33d4b46bb72a3c112323d39cca7f461104d74cfb1f5669e",
+      "src/vision/pytorch_detector.py": "9f38dc88f116ebfb28602406a22e289ec3269004f6443ebb79b3f9e9991e7cf5"
+    },
+    "model_sha256": "49f533e4e4e5846d1582564d8efbb38a647ad10348a976db9085d94df16250c1",
+    "environment": {
+      "executable": "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+      "sys_path": [
+        "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay",
+        "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_003_latency/runtime",
+        "/home/jetson/oned_device_bench/diagnostics/p0_003_latency",
+        "/usr/lib/python310.zip",
+        "/usr/lib/python3.10",
+        "/usr/lib/python3.10/lib-dynload",
+        "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages",
+        "/home/jetson/.local/lib/python3.10/site-packages",
+        "/usr/local/lib/python3.10/dist-packages",
+        "/usr/lib/python3/dist-packages",
+        "/usr/lib/python3.10/dist-packages",
+        "/home/jetson/oned_device_bench/diagnostics/p0_003_latency/latency/tmp/tmpy4vmuyd9"
+      ],
+      "modules": {
+        "numpy": {
+          "version": "1.26.4",
+          "path": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay/numpy/__init__.py"
+        },
+        "torch": {
+          "version": "2.8.0",
+          "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py"
+        },
+        "cv2": {
+          "version": "5.0.0",
+          "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py"
+        },
+        "ultralytics": {
+          "version": "8.4.118",
+          "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/__init__.py"
+        }
+      },
+      "cuda_version": "12.6",
+      "allocator_env": {
+        "PYTORCH_CUDA_ALLOC_CONF": null,
+        "PYTORCH_ALLOC_CONF": null,
+        "PYTORCH_NO_CUDA_MEMORY_CACHING": null
+      }
+    },
+    "production_threshold": "NOT_DEFINED",
+    "root_cause": "UNCONFIRMED",
+    "publication_boundary": "local diagnostic handoff immediately before writing publication record, not PLC/network ACK",
+    "quantile_method": "linear interpolation at (n-1)*p (Hyndman-Fan type 7)"
+  },
+  "tests": {
+    "candidate_existing": 102,
+    "synthetic_timing": 12,
+    "total": 114,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "collector_selftest": {
+      "status": "PASS",
+      "synthetic_only": true,
+      "fragmented_line": true,
+      "cooperative_stop": true,
+      "current_native_call_completed": true,
+      "successor_cycle_blocked": true,
+      "teardown_collected": true
+    },
+    "initial_harness_failure": "Windows test runner initially lacked __main__ guard. Stopped owned runner, preserved failed log, fixed task runner only, then 114 passed. No hardware test retry."
+  },
+  "checks": {
+    "status": "PASS",
+    "count": 1128,
+    "raw": "runs/jetson_p0_003/final_checks.json"
+  },
+  "stderr": [],
+  "runtime_errors": [],
+  "python_exception": null,
+  "camera_epoch_changes": 0,
+  "invalid_selections": {
+    "PRE_TRIGGER": 0,
+    "STALE": 0,
+    "DUPLICATE_FRAME": 0,
+    "PTS_REGRESSION": 0,
+    "CAMERA_EPOCH_CHANGED": 0
+  },
+  "database": {
+    "integrity": "ok",
+    "states": {
+      "COMPLETE": 10
+    },
+    "late_results": 0,
+    "asset_count": 40,
+    "asset_kinds": {
+      "overlay": 10,
+      "raw": 30
+    },
+    "unique_inspections": 10,
+    "unique_requests": 10,
+    "unique_cycles": 10,
+    "sessions": [
+      1
+    ],
+    "asset_hashes_verified": 40,
+    "result_links_verified": 10
+  },
+  "asset_sha_pass": true,
+  "preservation": {
+    "remote": {
+      "/home/jetson/.config/Ultralytics/settings.json": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/coloredlogs.pth": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/cv2": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy-2.2.6.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy.libs": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python-5.0.0.93.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python.libs": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torch": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torch-2.8.0.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision-0.23.0.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics-8.4.118.dist-info": true,
+      "/home/jetson/oned_device_bench/data/app_v1/assets": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-shm": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-wal": true,
+      "/home/jetson/oned_device_bench/envs/app_v1": true,
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages/distutils-precedence.pth": true,
+      "/home/jetson/oned_device_bench/releases/app_v007": true,
+      "/usr/lib/python3/dist-packages/matplotlib-3.5.1-nspkg.pth": true,
+      "/usr/lib/python3.10/dist-packages/tensorrt": true,
+      "/usr/lib/python3.10/dist-packages/tensorrt-10.3.0.dist-info": true,
+      "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002": true,
+      "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002_reaccept": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_002": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_002_reaccept": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r_cuda": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r2": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r3_nvmap": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r4_soak": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_002r4_soak": true,
+      "/home/jetson/.nv/ComputeCache": true,
+      "/home/jetson/.cache/ultralytics": true,
+      "/usr/local/cuda/version.json": true
+    },
+    "overlay_equal": true,
+    "current_symlink_equal": true,
+    "windows_changed": [
+      "docs/STATUS.md",
+      "tasks/JETSON-P0-003.md"
+    ],
+    "protected_changes": 0,
+    "scope": "Enumerated protected content SHA256; not OS background filesystem activity."
+  },
+  "metadata_conflict": "OpenCV5 metadata requires NumPy>=2; process-local NumPy1.26.4 compatibility overlay retained. Not production-approved dependencies.",
+  "root_cause": "UNCONFIRMED",
+  "production_threshold": "NOT_DEFINED",
+  "production_acceptance": "NOT_RUN",
+  "physical_conveyor_acceptance": "NOT_RUN",
+  "next_task": "No automatic P0-004/TensorRT implementation; separate task and authorization boundary required.",
+  "paths": {
+    "candidate": "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_003_latency/runtime",
+    "data": "/home/jetson/oned_device_bench/data/candidate_p0_003_latency",
+    "diagnostics": "/home/jetson/oned_device_bench/diagnostics/p0_003_latency",
+    "windows_raw": "runs/jetson_p0_003",
+    "jsonl_csv_summary_manifest": "runs/jetson_p0_003/remote/latency"
+  },
+  "git_diff_check": "PASS",
+  "commit_push": false
+}

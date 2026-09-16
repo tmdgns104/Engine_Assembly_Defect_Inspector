@@ -2,6 +2,10 @@
 
 Status: IN PROGRESS (2026-09-14). 최신 사용자 지시 `CODEX_INSPECTION_APP_V1_KO.md`가 범위 기준이다.
 
+USB 재연결 복구 완료 (2026-09-14 14:13 KST): 기존 CAMERA_FRAME_TIMEOUT/종료 Worker를 동일 manifest 재활성화로 복구, 새 Worker/실제 USB 미리보기 PASS. 전후13이력 보존. 기준 미승인은 복구 전후 유지하며 신규 검사·사람 승인0. Evidence: runs/inspection_app_v1/camera_reconnect_20260914_1412/verification.json. 사용자가 수행한 분리 이후의 복구 검증이며 전체 USB 실패 수용을 완료로 바꾸지 않는다.
+
+재기동 요청 완료 (2026-09-14 13:43 KST): 기존 app_v007/PC 수집/SSH 터널 실행, Jetson cuda:0 자체 추론·USB1280×720 미리보기·health READY·PC sync 정상 확인. 신규 검사0, 현재 제품 배치·초점은 사람 조정 필요. 수동 실행 안내 보완, 실제 브라우저 렌더는 도구 미연결로 UNVERIFIED. 이 재기동 완료는 아래 실물 수용 완료를 뜻하지 않는다. Evidence: runs/inspection_app_v1/startup_20260914/verification.json 및 docs/STATUS.md의 Latest Startup.
+
 최신 실물 결과: 사용자 후보 명시 승인 후 별도 calibration DB 저장 확인. 신규 정상 제품 검사5031fbaf16a94877b5b6aa46f9e90c03 PASS, L/R PRESENT. 새 원본3+overlay1과 Jetson/PC 결과·ID·해시·이벤트/이미지 ACK 대조 완료. 기준 진단 a7908d3c586f422c9648cbfc97feffac REVIEW 원문 유지. 정상1건 실행 검증 완료, 브라우저 이력 표시 사람 확인과 누락3상태는 대기. 상세 docs/STATUS.md의 Latest Physical Normal Inspection 및 해당 verification.json.
 
 실물 재개: 사용자 배치/가시성 확인 후 기준 진단 a7908d3c586f422c9648cbfc97feffac의 새 후보 생성 성공. REVIEW는 사람 자리 승인 대기이며 제품 판정이 아니다. 원본3+overlay1의 저장/PC4자산 해시 확인. 다음 필수 행동은 이 사진의 보라색 L/R 위치를 사람이 확인하는 것. 아직 승인0, 정상 제품 검사 대기.

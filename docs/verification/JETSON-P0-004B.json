@@ -1,0 +1,239 @@
+{
+  "task": "JETSON-P0-004B",
+  "status": "BACKEND_CONTRACT_IMPLEMENTED_CANDIDATE_ONLY",
+  "date": "2026-09-16",
+  "gates": {
+    "CURRENT_PYTORCH_BEHAVIOR_PRESERVED": "PASS",
+    "LEGACY_PACKAGE_COMPATIBILITY_PASS": "PASS",
+    "DETECTOR_FACTORY_IMPLEMENTED": "PASS",
+    "WORKER_FACTORY_INTEGRATED": "PASS",
+    "WORKER_BACKEND_NEUTRALIZED": "PASS",
+    "PYTORCH_RUNTIME_METADATA_CONTRACT_PASS": "PASS",
+    "PACKAGE_BACKEND_CONTRACT_PASS": "PASS",
+    "ARTIFACT_FORMAT_EXPLICIT": "PASS",
+    "NO_FORMAT_AUTODETECT": "PASS",
+    "NO_SILENT_FALLBACK": "PASS",
+    "TENSORRT_BACKEND_EXPLICIT_NOT_IMPLEMENTED": "PASS",
+    "PYTORCH_PATH_NO_TRT_DEPENDENCY": "PASS",
+    "EXISTING_114_REGRESSION_PASS": "PASS",
+    "NEW_CONTRACT_TESTS_PASS": "PASS",
+    "ROOT_RUNTIME_SOURCE_UNCHANGED": "PASS",
+    "JETSON_PROTECTED_UNCHANGED": "PASS"
+  },
+  "TRT_EXPORT_BUILD_INFERENCE": "NOT_RUN",
+  "baseline": {
+    "status": "EXACT_SHA_MATCH",
+    "source": "D:\\OneDevice_Team_project\\runs\\jetson_p0_003\\runtime",
+    "evidence": "D:\\OneDevice_Team_project\\runs\\jetson_p0_003\\deploy.json",
+    "files": {
+      "config/inspection_station_candidate_p0_002.json": "8140074579e1ad6d06851be28cfef3bba9726980a4190b2b2b2fcd9794758d21",
+      "scripts/run_jetson_fresh_candidate.py": "153ffce3b4d0de2a0600574eecaf0392f655559483db67747ee132a5e32f8675",
+      "src/api/__init__.py": "77b5cc12c7bac30b4b391aab4269e168a308f0a3379494b345513b1d5b24ab5c",
+      "src/camera/fresh_frame.py": "28c3dbc6e792e553359496607e36a5b71880c48d1143fc11bd6f8ebbe8355555",
+      "src/camera/gstreamer_camera.py": "a7ece153e27b76fa9aa614eebecee0dea253df7dfcb4fd08b65ccb4b90039527",
+      "src/camera/__init__.py": "86a5745582aafba3a0d5248727fc78f75539bc5b06ef4897346fcc3c9f476cbc",
+      "src/contracts/enums.py": "a0d0051f8318e8382a5f337d6b383278392753303455e34450eef338c1f279f2",
+      "src/contracts/interfaces.py": "056e2fdb462b76af03cc688a35fa51f242c8faed5e60d15e0bd831017d35bef5",
+      "src/contracts/models.py": "1f95d1ce85b102848ed59b8244ce6fb7c6537b62e1c2e07dd9d1fc8fefaa4862",
+      "src/contracts/__init__.py": "15896decdf9a303f2862f036c995ef074bf1db59b4fbe39206bcda8172791bf9",
+      "src/control/mock_cell.py": "1446202f4a7930d96345239aaf193741e30f7b675a52212a187df610f0be71b4",
+      "src/control/__init__.py": "9ee0a8a41927e64c5a2fb37e32f6212a91813969fc238b251f41b4e7e0e8b555",
+      "src/decision/bench.py": "f126194cb16cf77346552afacc80025f857765e1b4a579b886cbd7dbc7a3318e",
+      "src/decision/calibration.py": "e5749d6b8d07016b77d238bbf82904f9a9896a5be2d1bd151f95d392b47c2a5e",
+      "src/decision/slots.py": "d253535d78e7ed96cb912e83add85a90b2d407a5a44429b210d71c67fbcff219",
+      "src/decision/__init__.py": "a7e1b1939d509c1e1b4d228b1ee9093fc4d7366eee1ca14399a6d9b60d19b53c",
+      "src/journal/collector.py": "8d04e4adda59ffa77fd733b73fed4bc0feb10585d394fd9ca29348c81b5b33f4",
+      "src/journal/sqlite.py": "5972172a62f50d8bbe540b3435691b8452ae9a8f92cb93994cae4dfb242c3edc",
+      "src/journal/sync.py": "1db0bf248f4682bb7f8d12a0d61fa0abedfc2e22bbd61786a681167c343d09d4",
+      "src/journal/__init__.py": "7689d7ef66d0d8e3f9438e596626be92702039a6a7c91fd905f8a1ce91318093",
+      "src/quality/image.py": "04701a377a0d1632a9a01359a11a71e15c84dccb5f9ce39fdd944164bba6bb47",
+      "src/quality/__init__.py": "be132f77e5d0cb90dd98eede3fa973a0481bf3d6af957ccb1e93678559625b54",
+      "src/recipe/package.py": "114afd489295856df6a6df1c5b909812a13c44804b3c1ffdcdcf20680c57d062",
+      "src/recipe/__init__.py": "529d86300d5302860c4b8a280b07e7ff208731ca35a06cfa894ab80467ebc1e6",
+      "src/vision/inspection_worker.py": "1e05530023d5e776c33d4b46bb72a3c112323d39cca7f461104d74cfb1f5669e",
+      "src/vision/pytorch_detector.py": "9f38dc88f116ebfb28602406a22e289ec3269004f6443ebb79b3f9e9991e7cf5",
+      "src/vision/__init__.py": "a4e3ec267d4b3cd40c26e4040d2dd655cf3c2f47cbd15bf6e0961e32497e02d3",
+      "apps/edge_service/bench.py": "d9685e6a10626a15016fceebbcbb650e65f5b2e9a3c595f156618efd22694f48",
+      "apps/edge_service/inspection.html": "c37de1bbd38366b31c2bb7547c0a4ef3008509418cc978a65314e1bec3cbe344",
+      "apps/edge_service/inspection.py": "9715d0f041fcc98c8fabcfa166f20af59aeb4280cc1e217f210eb4e3a86233b6",
+      "apps/edge_service/inspection_api.py": "f01c23fbb5a748399b68c6d8e517300424a12c0af9df0189b9d898a1c98000b3",
+      "apps/edge_service/mock_port.py": "32ef4325b5a5dfffcfbc3c228eaba305862635c16832273999663c9dbded46f7"
+    },
+    "count": 32
+  },
+  "candidate_changes": {
+    "modified": [
+      "src/recipe/package.py",
+      "src/vision/inspection_worker.py",
+      "src/vision/pytorch_detector.py"
+    ],
+    "added": [
+      "src/vision/detector_factory.py"
+    ],
+    "deleted": [],
+    "baseline_count": 32,
+    "candidate_count": 33,
+    "pytorch_original_methods_ast_unchanged": {
+      "__init__": true,
+      "_observe_input": true,
+      "detect": true
+    },
+    "unchanged_original_files": 29
+  },
+  "factory": {
+    "api": "create_detector(package: ProductPackage, *, latency_enabled=False) -> RuntimeDetector",
+    "protocol": "RuntimeDetector(Detector, Protocol): runtime_metadata() -> dict",
+    "source": "candidate_runtime/src/vision/detector_factory.py",
+    "legacy_default": "schema1 + exact original task/output + all package validation; PYTORCH_LEGACY_DEFAULT",
+    "explicit": "declared backend takes precedence; null/unknown rejected; schema2 requires explicit tensorrt",
+    "trt_result": "TENSORRT_BACKEND_NOT_IMPLEMENTED",
+    "silent_fallback": false,
+    "trt_factory_side_effects": {
+      "pytorch_constructor": 0,
+      "model_reads": 0,
+      "framework_imports": 0,
+      "gpu_calls": 0
+    },
+    "metadata": [
+      "backend",
+      "device",
+      "gpu",
+      "input_shape",
+      "artifact_sha256",
+      "source_model_sha256",
+      "observed_runtime",
+      "timing"
+    ],
+    "ownership": "Worker owns Camera/GPU; Service and Journal ownership unchanged",
+    "evidence": "test_backend_contract.json; test_existing_114.json; candidate_changed_files.json"
+  },
+  "package_contract": {
+    "schema1": "Existing explicit PyTorch package and snapshot unchanged; bounded absent-backend default added",
+    "schema2": "TensorRT declaration only; CONTRACT_VALID_NON_EXECUTABLE; SCHEMA_VALID != RUNTIME_READY",
+    "artifact_identity": "backend + files.model.artifact_format + files.model.sha256; model_version remains source-model version label",
+    "artifact_path": "files.model.path; relative unique resolved package-root containment",
+    "artifact_format": [
+      "trt_plan",
+      "ultralytics_metadata_prefixed_engine"
+    ],
+    "format_autodetect": false,
+    "reader": "FUTURE_READER_VALIDATION_REQUIRED; no reader/deserialization implemented",
+    "source_model_sha256": "detector.source_model_sha256",
+    "input": "detector.input shape/dtype/layout must match preprocessing; batch1 channels3 NCHW",
+    "precision_declarations": [
+      null,
+      "fp32",
+      "fp16"
+    ],
+    "accepted_precision": null,
+    "output": null,
+    "nms_location": null,
+    "provenance": {
+      "build": [
+        "tool",
+        "version",
+        "options"
+      ],
+      "build_environment": [
+        "tensorrt",
+        "cuda",
+        "l4t",
+        "gpu_compute_capability",
+        "plugins"
+      ]
+    },
+    "null_semantics": "required field with unobserved/pending value; never compatibility approval",
+    "snapshot": "manifest preserved, defaulted/new backend_resolution added; existing Journal JSON; no migration",
+    "error_codes": [
+      "UNSUPPORTED_BACKEND",
+      "BACKEND_CONTRACT_INVALID",
+      "ARTIFACT_FORMAT_UNSUPPORTED",
+      "ARTIFACT_HASH_MISMATCH"
+    ]
+  },
+  "existing_regression": {
+    "passed": 114,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "semantics": "114 baseline regression semantics ported to candidate harness; root tests unchanged; one mock class in one copied file used by two Worker tests adapted; assert AST identical"
+  },
+  "new_tests": {
+    "passed": 28,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "activity": {
+    "readonly_ssh_attempts": 3,
+    "completed_before_after_snapshots": 2,
+    "remote_files_written": 0,
+    "actual_torch_ultralytics_tensorrt_imports": 0,
+    "camera_gpu_export_build_inference_calls": 0,
+    "deployment": 0,
+    "commit": 0,
+    "push": 0,
+    "root_source_changes": 0
+  },
+  "preservation": {
+    "status": "PASS",
+    "windows_protected_file_count": 504,
+    "windows_changed": [],
+    "remote_protected_group_count": 37,
+    "remote_changed": [],
+    "overlay_included": true,
+    "current_symlink_before": null,
+    "current_symlink_after": null,
+    "root_runtime_source_changes": 0,
+    "frozen_p003_p004a_changes": 0,
+    "remote_new_files": 0,
+    "scope": "content SHA; not a claim of global OS log/atime immutability"
+  },
+  "pending": {
+    "EXPORT_PATH": "DECISION_PENDING",
+    "PRECISION": "DECISION_PENDING",
+    "DECODE_NMS_OWNERSHIP": "DECISION_PENDING",
+    "PARSER_COMPATIBILITY": "UNKNOWN",
+    "REQUIRED_PLUGINS": "UNKNOWN",
+    "PARITY_NUMERIC_TOLERANCE": "TBD",
+    "FINAL_ENGINE_PRODUCT_MODEL": "NOT_EVALUATED"
+  },
+  "P0_003": "FROZEN",
+  "P0_004C": "NOT_STARTED_SEPARATE_AUTHORIZATION_REQUIRED",
+  "ROOT_CAUSE": "UNCONFIRMED",
+  "production_acceptance": false,
+  "known_limits": [
+    "OpenCV5/NumPy1.26.4 metadata conflict",
+    "production threshold NOT_DEFINED",
+    "physical conveyor NOT_RUN",
+    "Windows synthetic architecture tests do not validate Jetson GPU runtime or TRT compatibility"
+  ],
+  "HEAD": "f6403fca07cbb92ad89d59a1c3161ef0bb31a71b",
+  "git_diff_check": "PASS",
+  "raw_artifacts": {
+    "baseline_candidate_inventory.json": "a680c5302910b670d15c86ee5a88d13a5fa72aadb81f0f94fec2cd97a0c62b5e",
+    "candidate_changed_files.json": "39642bb6e1e978a876b602874e43ae1cd4825c5b312d62f2e268456320b59bbe",
+    "coordination_review.json": "c19c870011474443626bb4da0c754473e7f36f5ba37c72372585599ae76a27e2",
+    "factory_contract.json": "8c8c556a0665a9d60261774b1f6b62747a5d8b8662368ac3178530016a3b63d0",
+    "final_checks.json": "d34bfcc2d9d0f5eaf8c4cf92f21ab9afb7a8448309a8080b6a27a4a4873ceb98",
+    "git_before.json": "78ddba6ceda859813f07bb148e6efb8aa6d1d8d923fbc7e6e1ee56dfbbaac7a7",
+    "git_diff_check.json": "4fa41cfb7446aac1cf46215d16023264aa399c0de43f31d0c18af8254ee86d70",
+    "import_origins.json": "c19c6bca39ad2eacef396aa39bdf36a45b7396b06facbba5f688b61a18ced6b9",
+    "initial_hash_probe_failure.json": "47a5d0a5e995b578b3f8d14bd3806da8f569dac5eb5ea51a3e09f2b5dceb5d45",
+    "local_before.json": "6a95031335e3e69c6e6c696d4c1a1534d30ca9df00b64ea6550e83c53170b85e",
+    "package_contract.json": "eedf28073ccf351f663748268278355ea28a81542c96e88f231eb0edd5e20e18",
+    "preservation.json": "4e4d30138d55338d81e3f7b7aab2d5c37bf5c6d265337b85336524101415b991",
+    "regression_fixture_adaptation.json": "8f37e7368da1321d2312454161a89bcdc925ebc1438532e3639bcaea1fe7286a",
+    "remote_after.json": "6dcbe7945bb89b82f2a9e4699b8abc9f0cdcb65d8bdc1091e3ba7962aeb6091e",
+    "remote_before.json": "6dcbe7945bb89b82f2a9e4699b8abc9f0cdcb65d8bdc1091e3ba7962aeb6091e",
+    "syntax_check.json": "c18d8b20a4c90087557add09ec0f677df8f33acd8a23cfa92f431d59da24c5d0",
+    "test_backend_contract.json": "992c8b45db5eb184edbf1b9912b3411e91cb641152cdb85cd42c21ac9e195185",
+    "test_backend_contract_22_pass.json": "b9fad57cc90a4199ca886abb07430b43551d8e9299306755624a65dec8a8a860",
+    "test_backend_contract_28_pre_review_pass.json": "e6a427d9401dc9fe0747bae78cf816a61b851b774eaf14ede4d9ccad069550ef",
+    "test_backend_contract_initial_fixture_failure.json": "6f80dd4c6e82720d8dc71e5e35bc5f3e8cfcd1f97270897eed3c2d2558da8098",
+    "test_backend_contract_nonfinite_red.json": "73a193b5a637423899834f0408d19cd6f55e562da6a3675ee55662937d8650f4",
+    "test_backend_contract_red.json": "4f8b0d4db173f8296a26ddf29e5d6f8d3decb65e6a9bc97ada0fe54ee281b754",
+    "test_existing_114.json": "dcb45fedd9c60c0cee79706dda142158e9f6c53bbc13df3b7324afbd79838f5a",
+    "test_existing_114_pre_review_pass.json": "d771f691d33a238aa18a69c6c9ba1474f2b470fbf87e7e9679ce6bae8daf022f"
+  }
+}

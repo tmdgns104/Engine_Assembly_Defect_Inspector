@@ -1,0 +1,582 @@
+{
+  "task": "JETSON-P0-002R2",
+  "date": "2026-09-16",
+  "status": "REACCEPTANCE_PARTIAL_RUNTIME_ERROR_REPRODUCED",
+  "A_CONTRACT_TESTS": {
+    "status": "PASS",
+    "count": 102,
+    "rerun": false,
+    "reason": "Runtime source unchanged; retain prior verified tests. New diagnostic scripts separately compiled/validated.",
+    "evidence": "runs/jetson_p0_002/tests_verified.json"
+  },
+  "B_INTEGRATED_RUNTIME_GATE": {
+    "status": "PASS",
+    "passed": 10,
+    "required": 10,
+    "classification": "INTEGRATED_RUNTIME_GATE_REACCEPTED_LAB",
+    "rounds": [
+      {
+        "case": "integrated_01",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_01.json"
+      },
+      {
+        "case": "integrated_02",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_02.json"
+      },
+      {
+        "case": "integrated_03",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_03.json"
+      },
+      {
+        "case": "integrated_04",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_04.json"
+      },
+      {
+        "case": "integrated_05",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_05.json"
+      },
+      {
+        "case": "integrated_06",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_06.json"
+      },
+      {
+        "case": "integrated_07",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_07.json"
+      },
+      {
+        "case": "integrated_08",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_08.json"
+      },
+      {
+        "case": "integrated_09",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_09.json"
+      },
+      {
+        "case": "integrated_10",
+        "process_exit": 0,
+        "functional_status": "PASS",
+        "stderr_markers": [],
+        "stderr": "",
+        "acceptance": "PASS",
+        "evidence": "runs/jetson_p0_002r2/integrated_10.json"
+      }
+    ],
+    "camera_before_and_after_model": true,
+    "memory_stages_per_round": 11
+  },
+  "C_ACTUAL_CAMERA_FRESH_FRAME": {
+    "case": "fresh",
+    "process_exit": 0,
+    "functional_status": "PASS",
+    "stderr_markers": [],
+    "stderr": "",
+    "acceptance": "PASS",
+    "evidence": "runs/jetson_p0_002r2/fresh.json",
+    "trigger_count": 10,
+    "status": "PASS",
+    "classification": "ACTUAL_CAMERA_FRESH_FRAME_LAB",
+    "incorrect_selections": {
+      "PRE_TRIGGER": 0,
+      "STALE": 0,
+      "DUPLICATE_FRAME": 0,
+      "PTS_REGRESSION": 0,
+      "CAMERA_EPOCH_CHANGED": 0
+    },
+    "preview_pretrigger_rejected": 10,
+    "selected_frames": [
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-3",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 3,
+        "source_pts_ns": 172402270,
+        "source_running_time_ns": 172402270,
+        "received_monotonic": 16880.89527187,
+        "estimated_source_monotonic": 16880.86189856,
+        "clock_mapping_uncertainty_ms": 0.01027199687086977,
+        "age_seconds": 0.033373309997841716,
+        "received_at": "2026-09-16T06:52:36.193536+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "a5d7fd0bccce425ca106bca87ea5c12b",
+        "trigger_to_frame_ms": 25.93781199902878,
+        "frame_age_at_select_ms": 33.62774699780857,
+        "selection_wait_ms": 59.56555899683735,
+        "selected_at_monotonic": 16880.895526307,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-5",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 5,
+        "source_pts_ns": 240408622,
+        "source_running_time_ns": 240408622,
+        "received_monotonic": 16880.961261324,
+        "estimated_source_monotonic": 16880.929905296,
+        "clock_mapping_uncertainty_ms": 0.010689000191632658,
+        "age_seconds": 0.0313560279973899,
+        "received_at": "2026-09-16T06:52:36.259522+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "7ac798d13ac14974b9bddc9e9c1a0d89",
+        "trigger_to_frame_ms": 0.5475750003824942,
+        "frame_age_at_select_ms": 31.59119999691029,
+        "selection_wait_ms": 32.138774997292785,
+        "selected_at_monotonic": 16880.961496496,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-7",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 7,
+        "source_pts_ns": 308409102,
+        "source_running_time_ns": 308409102,
+        "received_monotonic": 16881.029975373,
+        "estimated_source_monotonic": 16880.997904912,
+        "clock_mapping_uncertainty_ms": 0.010912001016549766,
+        "age_seconds": 0.03207046099851141,
+        "received_at": "2026-09-16T06:52:36.328236+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "494af501c077432dabf09aafd09f2765",
+        "trigger_to_frame_ms": 3.919298000255367,
+        "frame_age_at_select_ms": 32.307712997862836,
+        "selection_wait_ms": 36.2270109981182,
+        "selected_at_monotonic": 16881.030212625,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-10",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 10,
+        "source_pts_ns": 408417558,
+        "source_running_time_ns": 408417558,
+        "received_monotonic": 16881.130514015,
+        "estimated_source_monotonic": 16881.097912664,
+        "clock_mapping_uncertainty_ms": 0.012223998055560514,
+        "age_seconds": 0.03260135099844774,
+        "received_at": "2026-09-16T06:52:36.428775+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "ab774cc7947045dba9de9aaacc2da38e",
+        "trigger_to_frame_ms": 35.6751860017539,
+        "frame_age_at_select_ms": 32.840202999068424,
+        "selection_wait_ms": 68.51538900082232,
+        "selected_at_monotonic": 16881.130752867,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-13",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 13,
+        "source_pts_ns": 508413430,
+        "source_running_time_ns": 508413430,
+        "received_monotonic": 16881.230498567,
+        "estimated_source_monotonic": 16881.19790828,
+        "clock_mapping_uncertainty_ms": 0.012224001693539321,
+        "age_seconds": 0.03259028700267663,
+        "received_at": "2026-09-16T06:52:36.528762+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "7192cc685bbd42efab910b3e8a403b9c",
+        "trigger_to_frame_ms": 31.421529998624464,
+        "frame_age_at_select_ms": 32.83310700135189,
+        "selection_wait_ms": 64.25463699997636,
+        "selected_at_monotonic": 16881.230741387,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-16",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 16,
+        "source_pts_ns": 608415230,
+        "source_running_time_ns": 608415230,
+        "received_monotonic": 16881.333404101,
+        "estimated_source_monotonic": 16881.297910432,
+        "clock_mapping_uncertainty_ms": 0.012192002031952143,
+        "age_seconds": 0.035493668998242356,
+        "received_at": "2026-09-16T06:52:36.631662+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "6d01c47b275c4df5a70092af83dbbb9c",
+        "trigger_to_frame_ms": 31.273624001187272,
+        "frame_age_at_select_ms": 35.71997700055363,
+        "selection_wait_ms": 66.9936010017409,
+        "selected_at_monotonic": 16881.333630409,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-19",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 19,
+        "source_pts_ns": 712406206,
+        "source_running_time_ns": 712406206,
+        "received_monotonic": 16881.434550467,
+        "estimated_source_monotonic": 16881.401902496,
+        "clock_mapping_uncertainty_ms": 0.010528001439524814,
+        "age_seconds": 0.03264797099836869,
+        "received_at": "2026-09-16T06:52:36.732810+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "558bbcf7adb040c5867d7c693f3050e7",
+        "trigger_to_frame_ms": 34.93181700105197,
+        "frame_age_at_select_ms": 32.88787899873569,
+        "selection_wait_ms": 67.81969599978765,
+        "selected_at_monotonic": 16881.434790375,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-22",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 22,
+        "source_pts_ns": 812417558,
+        "source_running_time_ns": 812417558,
+        "received_monotonic": 16881.534691213,
+        "estimated_source_monotonic": 16881.501913527998,
+        "clock_mapping_uncertainty_ms": 0.011455998901510611,
+        "age_seconds": 0.032777685002656654,
+        "received_at": "2026-09-16T06:52:36.832952+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "852a8608a23c4d1ab9a101ec3557521d",
+        "trigger_to_frame_ms": 35.286655998788774,
+        "frame_age_at_select_ms": 33.001369003613945,
+        "selection_wait_ms": 68.28802500240272,
+        "selected_at_monotonic": 16881.534914897,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-25",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 25,
+        "source_pts_ns": 912434294,
+        "source_running_time_ns": 912434294,
+        "received_monotonic": 16881.634150635,
+        "estimated_source_monotonic": 16881.601931096,
+        "clock_mapping_uncertainty_ms": 0.009856001270236447,
+        "age_seconds": 0.032219538999925135,
+        "received_at": "2026-09-16T06:52:36.932406+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "2c4e1a03efe5430ab150f5643f3bf0c4",
+        "trigger_to_frame_ms": 30.83699600028922,
+        "frame_age_at_select_ms": 32.45170399895869,
+        "selection_wait_ms": 63.28869999924791,
+        "selected_at_monotonic": 16881.6343828,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      },
+      {
+        "frame_id": "03a43c81882548b69c1cd3d023bea0ce-27",
+        "camera_epoch": "03a43c81882548b69c1cd3d023bea0ce",
+        "sequence": 27,
+        "source_pts_ns": 980440326,
+        "source_running_time_ns": 980440326,
+        "received_monotonic": 16881.699348267,
+        "estimated_source_monotonic": 16881.669936711998,
+        "clock_mapping_uncertainty_ms": 0.010015999578172341,
+        "age_seconds": 0.029411555002297973,
+        "received_at": "2026-09-16T06:52:36.997605+00:00",
+        "freshness_method": "v4l2src PTS + segment running-time mapped to local monotonic; exposure unverified",
+        "sensor_exposure_timestamp_verified": false,
+        "trigger_id": "25ff09459bcb4a40a569c1987fb6be55",
+        "trigger_to_frame_ms": 0.0659869983792305,
+        "frame_age_at_select_ms": 29.61824600060936,
+        "selection_wait_ms": 29.68423299898859,
+        "selected_at_monotonic": 16881.699554958,
+        "freshness_basis": "GSTREAMER_PTS_MONOTONIC_ESTIMATE",
+        "exposure_time_verified": false
+      }
+    ],
+    "exposure_time_verified": false
+  },
+  "D_MODEL_FRESH_FRAME_SMOKE": {
+    "case": "model_cycle",
+    "process_exit": 0,
+    "functional_status": "PASS",
+    "stderr_markers": [
+      "NvMap"
+    ],
+    "stderr": "NvMapMemAllocInternalTagged: 1075072515 error 12\nNvMapMemHandleAlloc: error 0\n",
+    "acceptance": "FAIL",
+    "evidence": "runs/jetson_p0_002r2/model_cycle.json",
+    "status": "FAIL",
+    "functional_cycle": "PASS",
+    "acceptance_reason": "Functional cycle completed, but NvMap error 12 appeared on stderr. Do not promote an error-bearing run to clean runtime acceptance.",
+    "exact_error_stage": "UNCONFIRMED: process stderr has no timestamps; not attributable to warmup, capture or one of the 3 detections",
+    "inspection_id": "25f87ed9ea1145b2b66bb1da149137a8",
+    "trigger_id": "74977597c0604750b3c5e08c26d53951",
+    "pretrigger_warmup_detect_calls": 1,
+    "cycle_detect_calls": 3,
+    "recipe_decision": "REVIEW",
+    "human_view_and_calibration_approved": false,
+    "component_smoke_only": true,
+    "full_api_worker_lifecycle_acceptance": "NOT_RUN",
+    "assets": [
+      {
+        "asset_id": "71bf9becad044dec8a242a33db7ddcbf",
+        "inspection_id": "25f87ed9ea1145b2b66bb1da149137a8",
+        "kind": "raw",
+        "relative_path": "assets/25f87ed9ea1145b2b66bb1da149137a8/71bf9becad044dec8a242a33db7ddcbf.png",
+        "sha256": "3d245d40445c0ec5015badeea20247e9b8254e8c01f55f1cec20843d3a22768c",
+        "width": 1280,
+        "height": 720,
+        "bytes": 529924,
+        "capture_at": "2026-09-16T06:52:59.791043+00:00",
+        "view": "top",
+        "frame_id": "2756460729bc4a0fb7b589a12a9f1192-4"
+      },
+      {
+        "asset_id": "477a7b5b0ce84a0bbe6c5fde62e3d8fd",
+        "inspection_id": "25f87ed9ea1145b2b66bb1da149137a8",
+        "kind": "raw",
+        "relative_path": "assets/25f87ed9ea1145b2b66bb1da149137a8/477a7b5b0ce84a0bbe6c5fde62e3d8fd.png",
+        "sha256": "e3030854abb102c05676e20caac079cb0b1a97e4afa391c56733d90b1af91cb9",
+        "width": 1280,
+        "height": 720,
+        "bytes": 529382,
+        "capture_at": "2026-09-16T06:52:59.956154+00:00",
+        "view": "top",
+        "frame_id": "2756460729bc4a0fb7b589a12a9f1192-7"
+      },
+      {
+        "asset_id": "48fa62a809504a8a91460daeb16483da",
+        "inspection_id": "25f87ed9ea1145b2b66bb1da149137a8",
+        "kind": "raw",
+        "relative_path": "assets/25f87ed9ea1145b2b66bb1da149137a8/48fa62a809504a8a91460daeb16483da.png",
+        "sha256": "a8ced5a0540b150e52716c8dae1478d28b4ac97e93f89eb3646765dab8b252f1",
+        "width": 1280,
+        "height": 720,
+        "bytes": 537869,
+        "capture_at": "2026-09-16T06:53:00.124450+00:00",
+        "view": "top",
+        "frame_id": "2756460729bc4a0fb7b589a12a9f1192-12"
+      },
+      {
+        "asset_id": "96ecf0dd11054cb096e7cfc81f7a6dd0",
+        "inspection_id": "25f87ed9ea1145b2b66bb1da149137a8",
+        "kind": "overlay",
+        "relative_path": "assets/25f87ed9ea1145b2b66bb1da149137a8/96ecf0dd11054cb096e7cfc81f7a6dd0.jpg",
+        "sha256": "6d01b5f20fe97f2fc1f0295263d4bc2cb1e81e956600cd62c079cae43621b275",
+        "width": 1280,
+        "height": 720,
+        "bytes": 56846,
+        "capture_at": "2026-09-16T06:53:00.124450+00:00",
+        "view": "top",
+        "frame_id": "2756460729bc4a0fb7b589a12a9f1192-12"
+      }
+    ],
+    "sqlite_integrity": "ok",
+    "commit_returned_monotonic": 16905.15917851,
+    "published_monotonic": 16905.164094698,
+    "commit_before_publish": true,
+    "publication_count": 1,
+    "late_result_count": 0
+  },
+  "E_MOVING_CONVEYOR_PHYSICAL_ACCEPTANCE": "NOT_RUN",
+  "P0_003_ACTUAL_DEVICE_READY": false,
+  "cuda_nvmap": {
+    "integrated_gate_error_count": 0,
+    "model_cycle_nvmap_error_12": true,
+    "NVML_SUCCESS_assertion_reproduced": false,
+    "root_cause": "UNCONFIRMED",
+    "recovery_applied": false,
+    "post_error_additional_gpu_runs": 0
+  },
+  "environment": {
+    "executable": "/home/jetson/oned_device_bench/envs/app_v1/bin/python",
+    "sys_path": [
+      "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay",
+      "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002_reaccept/runtime",
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r2",
+      "/usr/lib/python310.zip",
+      "/usr/lib/python3.10",
+      "/usr/lib/python3.10/lib-dynload",
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages",
+      "/home/jetson/.local/lib/python3.10/site-packages",
+      "/usr/local/lib/python3.10/dist-packages",
+      "/usr/lib/python3/dist-packages",
+      "/usr/lib/python3.10/dist-packages",
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r2/integrated_01/tmp/tmpcvwkpe0p"
+    ],
+    "modules": {
+      "numpy": {
+        "version": "1.26.4",
+        "path": "/home/jetson/oned_device_bench/env_candidates/numpy_compat_001/overlay/numpy/__init__.py"
+      },
+      "torch": {
+        "version": "2.8.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/torch/__init__.py"
+      },
+      "cv2": {
+        "version": "5.0.0",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/cv2/__init__.py"
+      },
+      "ultralytics": {
+        "version": "8.4.118",
+        "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/__init__.py"
+      },
+      "tensorrt": {
+        "version": "10.3.0",
+        "path": "/usr/lib/python3.10/dist-packages/tensorrt/__init__.py"
+      }
+    },
+    "allocator_env": {
+      "PYTORCH_CUDA_ALLOC_CONF": null,
+      "PYTORCH_ALLOC_CONF": null,
+      "PYTORCH_NO_CUDA_MEMORY_CACHING": null
+    },
+    "cuda_version": "12.6",
+    "metadata_conflict": "OpenCV5 requires numpy>=2; overlay is numpy1.26.4"
+  },
+  "memory_kB_integrated_observation_range": {
+    "MemAvailable": [
+      3193324,
+      4138256
+    ],
+    "CmaFree": [
+      0,
+      6524
+    ],
+    "SwapFree": [
+      3649720,
+      3649720
+    ]
+  },
+  "fresh_frame_ms_observation_range": {
+    "trigger_to_frame_ms": [
+      0.0659869983792305,
+      35.6751860017539
+    ],
+    "frame_age_at_select_ms": [
+      29.61824600060936,
+      35.71997700055363
+    ],
+    "selection_wait_ms": [
+      29.68423299898859,
+      68.51538900082232
+    ]
+  },
+  "preservation": {
+    "remote_groups_equal": {
+      "/home/jetson/.config/Ultralytics/settings.json": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/coloredlogs.pth": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/cv2": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy-2.2.6.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/numpy.libs": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python-5.0.0.93.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/opencv_python.libs": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torch": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torch-2.8.0.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/torchvision-0.23.0.dist-info": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics": true,
+      "/home/jetson/.local/lib/python3.10/site-packages/ultralytics-8.4.118.dist-info": true,
+      "/home/jetson/oned_device_bench/data/app_v1/assets": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-shm": true,
+      "/home/jetson/oned_device_bench/data/app_v1/journal.sqlite3-wal": true,
+      "/home/jetson/oned_device_bench/envs/app_v1": true,
+      "/home/jetson/oned_device_bench/envs/app_v1/lib/python3.10/site-packages/distutils-precedence.pth": true,
+      "/home/jetson/oned_device_bench/releases/app_v007": true,
+      "/usr/lib/python3/dist-packages/matplotlib-3.5.1-nspkg.pth": true,
+      "/usr/lib/python3.10/dist-packages/tensorrt": true,
+      "/usr/lib/python3.10/dist-packages/tensorrt-10.3.0.dist-info": true,
+      "/home/jetson/oned_device_bench/candidates/app_v008_dev_p0_002": true,
+      "/home/jetson/oned_device_bench/diagnostics/p0_002r_cuda": true,
+      "/home/jetson/oned_device_bench/data/candidate_p0_002": true,
+      "/home/jetson/.nv/ComputeCache": true,
+      "/home/jetson/.cache/ultralytics": true,
+      "/usr/local/cuda/version.json": true,
+      "P0-001R_candidate_inventory": true,
+      "current_symlink": true
+    },
+    "all_remote_equal": true,
+    "windows_manifest_files": 366,
+    "windows_changed": [
+      "docs/STATUS.md",
+      "tasks/JETSON-P0-002R2.md"
+    ],
+    "unexpected_windows_changed": [],
+    "pc_mirror_files": 86,
+    "new_candidate_exact_copy": true,
+    "new_candidate_matches_local_source": true,
+    "inventory_evidence": "runs/jetson_p0_002r2/new_inventory.json",
+    "scope": "SHA256 content inventories of enumerated protected roots and known package/cache/settings paths; not a whole-OS filesystem write audit"
+  },
+  "new_remote_inventory_counts": {
+    "candidates/app_v008_dev_p0_002_reaccept": 32,
+    "data/candidate_p0_002_reaccept": 7,
+    "diagnostics/p0_002r2": 85
+  },
+  "source_edits": 0,
+  "dependency_changes": 0,
+  "camera_settings_changes": 0,
+  "allocator_changes": 0,
+  "git": {
+    "head_before": "f6403fca07cbb92ad89d59a1c3161ef0bb31a71b",
+    "head_after": "f6403fca07cbb92ad89d59a1c3161ef0bb31a71b",
+    "commit_push": false,
+    "diff_check": "See runs/jetson_p0_002r2/final_checks.json"
+  },
+  "limitations": [
+    "OpenCV5 metadata numpy>=2 conflict remains; NumPy1.26.4 is process-local.",
+    "Ten cold lab runs are not production reliability or root-cause recovery evidence.",
+    "Model-cycle stderr collected at process exit; exact emitting stage and simultaneous CUDA/CMA readings are unavailable.",
+    "Model smoke calls unchanged components directly and uses a local file publisher; no HTTP, PLC, physical calibration or conveyor acceptance."
+  ],
+  "next_task": "Separate bounded diagnosis of NvMap error in the integrated model cycle; no package/allocator changes without new authorization."
+}

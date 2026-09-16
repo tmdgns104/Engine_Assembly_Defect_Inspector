@@ -1,0 +1,10 @@
+{
+  "source": "D:\\OneDevice_Team_project\\tests\\test_fresh_frame_worker.py",
+  "source_sha256": "46527abab2eb50c51f3e5f8e1b5340efc9da9d26dea4665ca613750e6738d260",
+  "changes": [
+    "mock constructor accepts latency_enabled keyword",
+    "mock implements runtime_metadata; no real backend state"
+  ],
+  "assertions_unchanged": true,
+  "root_tests_modified": false
+}
