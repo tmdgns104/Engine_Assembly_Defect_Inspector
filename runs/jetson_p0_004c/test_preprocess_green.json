@@ -1,0 +1,96 @@
+{
+  "status": "PASS",
+  "tests": 13,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "test_results": [
+    {
+      "id": "test_trt_schema.SchemaTests.test_executable_schema_and_snapshot_provenance",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_missing_and_unknown_output_fields_fail_closed",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_mixed_null_and_adapter_contract_rejected",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_null_valid_but_factory_rejects_before_adapter_import",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_onnx_provenance_required_and_finite",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_tensor_shape_dtype_axes_and_size_fail_closed",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_asymmetric_padding",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_landscape",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_odd_rounding_split",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_portrait",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_square_scaleup",
+      "result": "PASS"
+    }
+  ],
+  "origins": {
+    "src.contracts.enums": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\enums.py",
+    "src.contracts.models": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\models.py",
+    "src.contracts.interfaces": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\interfaces.py",
+    "src.contracts": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\__init__.py",
+    "src.recipe": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\__init__.py",
+    "src.recipe.package": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\package.py",
+    "src.vision": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\__init__.py",
+    "src.vision.detector_factory": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\detector_factory.py",
+    "src.vision.pytorch_detector": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\pytorch_detector.py",
+    "src.decision": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\__init__.py",
+    "src.decision.bench": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\bench.py",
+    "src.decision.slots": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\slots.py",
+    "src.vision.tensorrt_preprocess": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\tensorrt_preprocess.py"
+  },
+  "candidate_source": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+  "python": "D:\\OneDevice_Team_project\\.venv\\Scripts\\python.exe",
+  "sys_path": [
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests",
+    "D:\\OneDevice_Team_project\\runs\\jetson_p0_003",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\tests",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c",
+    "C:\\Python313\\python313.zip",
+    "C:\\Python313\\DLLs",
+    "C:\\Python313\\Lib",
+    "C:\\Python313",
+    "D:\\OneDevice_Team_project\\.venv",
+    "D:\\OneDevice_Team_project\\.venv\\Lib\\site-packages"
+  ],
+  "forbidden_import_attempts": [],
+  "temporary_sqlite_connections": 0,
+  "existing_db_writes": 0,
+  "log": "test_executable_schema_and_snapshot_provenance (test_trt_schema.SchemaTests.test_executable_schema_and_snapshot_provenance) ... ok\ntest_missing_and_unknown_output_fields_fail_closed (test_trt_schema.SchemaTests.test_missing_and_unknown_output_fields_fail_closed) ... ok\ntest_mixed_null_and_adapter_contract_rejected (test_trt_schema.SchemaTests.test_mixed_null_and_adapter_contract_rejected) ... ok\ntest_null_valid_but_factory_rejects_before_adapter_import (test_trt_schema.SchemaTests.test_null_valid_but_factory_rejects_before_adapter_import) ... ok\ntest_onnx_provenance_required_and_finite (test_trt_schema.SchemaTests.test_onnx_provenance_required_and_finite) ... ok\ntest_tensor_shape_dtype_axes_and_size_fail_closed (test_trt_schema.SchemaTests.test_tensor_shape_dtype_axes_and_size_fail_closed) ... ok\ntest_asymmetric_padding (test_trt_preprocess.PreprocessTests.test_asymmetric_padding) ... ok\ntest_declared_fp16_and_noncontiguous_input (test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input) ... ok\ntest_invalid_images_and_dtype (test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype) ... ok\ntest_landscape (test_trt_preprocess.PreprocessTests.test_landscape) ... ok\ntest_odd_rounding_split (test_trt_preprocess.PreprocessTests.test_odd_rounding_split) ... ok\ntest_portrait (test_trt_preprocess.PreprocessTests.test_portrait) ... ok\ntest_square_scaleup (test_trt_preprocess.PreprocessTests.test_square_scaleup) ... ok\n\n----------------------------------------------------------------------\nRan 13 tests in 0.460s\n\nOK\n"
+}

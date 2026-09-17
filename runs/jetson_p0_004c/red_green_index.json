@@ -1,0 +1,254 @@
+[
+  {
+    "group": "schema",
+    "red_evidence": "test_schema_red.json",
+    "red_tests": [
+      {
+        "id": "test_trt_schema.SchemaTests.test_executable_schema_and_snapshot_provenance",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_schema.py\", line 55, in test_executable_schema_and_snapshot_provenance\n    package = load_package(self.root)\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\package.py\", line 180, in load_package\n    backend = validate_backend(manifest)\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\package.py\", line 60, in validate_backend\n    require(detector[\"task\"] == \"detect\" and detector[\"output\"] is None,\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            \"BACKEND_CONTRACT_INVALID: output/decode contract is still unresolved\")\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\package.py\", line 25, in require\n    raise PackageError(message)\nsrc.recipe.package.PackageError: BACKEND_CONTRACT_INVALID: output/decode contract is still unresolved\n"
+      },
+      {
+        "id": "test_trt_schema.SchemaTests.test_missing_and_unknown_output_fields_fail_closed",
+        "result": "FAIL",
+        "reason": "src.recipe.package.PackageError: BACKEND_CONTRACT_INVALID: output/decode contract is still unresolved\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_schema.py\", line 78, in test_missing_and_unknown_output_fields_fail_closed\n    with self.assertRaisesRegex(PackageError,'TENSORRT_CONTRACT_NON_EXECUTABLE'):\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"TENSORRT_CONTRACT_NON_EXECUTABLE\" does not match \"BACKEND_CONTRACT_INVALID: output/decode contract is still unresolved\"\n"
+      },
+      {
+        "id": "test_trt_schema.SchemaTests.test_mixed_null_and_adapter_contract_rejected",
+        "result": "PASS"
+      },
+      {
+        "id": "test_trt_schema.SchemaTests.test_null_valid_but_factory_rejects_before_adapter_import",
+        "result": "FAIL",
+        "reason": "src.contracts.interfaces.DetectorError: TENSORRT_BACKEND_NOT_IMPLEMENTED\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_schema.py\", line 50, in test_null_valid_but_factory_rejects_before_adapter_import\n    with self.assertRaisesRegex(DetectorError,'^TENSORRT_CONTRACT_NON_EXECUTABLE$'):\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"^TENSORRT_CONTRACT_NON_EXECUTABLE$\" does not match \"TENSORRT_BACKEND_NOT_IMPLEMENTED\"\n"
+      },
+      {
+        "id": "test_trt_schema.SchemaTests.test_onnx_provenance_required_and_finite",
+        "result": "PASS"
+      },
+      {
+        "id": "test_trt_schema.SchemaTests.test_tensor_shape_dtype_axes_and_size_fail_closed",
+        "result": "FAIL",
+        "reason": "src.recipe.package.PackageError: BACKEND_CONTRACT_INVALID: output/decode contract is still unresolved\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_schema.py\", line 88, in test_tensor_shape_dtype_axes_and_size_fail_closed\n    with self.assertRaisesRegex(PackageError,'TENSORRT_CONTRACT_NON_EXECUTABLE'):\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"TENSORRT_CONTRACT_NON_EXECUTABLE\" does not match \"BACKEND_CONTRACT_INVALID: output/decode contract is still unresolved\"\n"
+      }
+    ],
+    "green_evidence": "test_lifecycle_green.json"
+  },
+  {
+    "group": "preprocess",
+    "red_evidence": "test_preprocess_red.json",
+    "red_tests": [
+      {
+        "id": "test_trt_preprocess.PreprocessTests.test_asymmetric_padding",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 27, in test_asymmetric_padding\n    def test_asymmetric_padding(self):self.check_geometry((334,500),(428,640),(0,106,0,106))\n                                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+      },
+      {
+        "id": "test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 30, in test_declared_fp16_and_noncontiguous_input\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+      },
+      {
+        "id": "test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 38, in test_invalid_images_and_dtype\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+      },
+      {
+        "id": "test_trt_preprocess.PreprocessTests.test_landscape",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 23, in test_landscape\n    def test_landscape(self):self.check_geometry((720,1280),(360,640),(0,140,0,140))\n                             ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+      },
+      {
+        "id": "test_trt_preprocess.PreprocessTests.test_odd_rounding_split",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 26, in test_odd_rounding_split\n    def test_odd_rounding_split(self):self.check_geometry((333,500),(426,640),(0,107,0,107))\n                                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+      },
+      {
+        "id": "test_trt_preprocess.PreprocessTests.test_portrait",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 24, in test_portrait\n    def test_portrait(self):self.check_geometry((1280,720),(640,360),(140,0,140,0))\n                            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+      },
+      {
+        "id": "test_trt_preprocess.PreprocessTests.test_square_scaleup",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 25, in test_square_scaleup\n    def test_square_scaleup(self):self.check_geometry((10,10),(640,640),(0,0,0,0))\n                                  ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+      }
+    ],
+    "green_evidence": "test_lifecycle_green.json"
+  },
+  {
+    "group": "postprocess",
+    "red_evidence": "test_postprocess_red.json",
+    "red_tests": [
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_class_aware_nms",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 38, in test_class_aware_nms\n    result=self.process(raw([([100,100,40,40],0,.9),([100,100,40,40],0,.8),\n                             ([100,100,40,40],1,.7)]))\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_confidence_strict_boundary_and_single_label",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 33, in test_confidence_strict_boundary_and_single_label\n    result=self.process(outputs)\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_decode_and_class_mapping",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 25, in test_decode_and_class_mapping\n    detections=self.process(raw([([100,200,20,40],2,.9)]))\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_deterministic_ties_score_class_then_raw_index",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 64, in test_deterministic_ties_score_class_then_raw_index\n    result=self.process(raw(rows))\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_empty_is_valid",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 68, in test_empty_is_valid\n    def test_empty_is_valid(self):self.assertEqual(self.process(raw([])),())\n                                                   ~~~~~~~~~~~~^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_iou_equal_retained_greater_suppressed",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 45, in test_iou_equal_retained_greater_suppressed\n    self.assertEqual(len(self.process(outputs,iou=.5)),2)\n                         ~~~~~~~~~~~~^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_max_det_300",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 50, in test_max_det_300\n    self.assertEqual(len(self.process(raw(rows))),300)\n                         ~~~~~~~~~~~~^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_nms_happens_before_clipping",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 60, in test_nms_happens_before_clipping\n    self.assertEqual(len(self.process(raw(rows))),2)\n                         ~~~~~~~~~~~~^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_reject_name_shape_dtype_nonfinite_score_and_bad_box",
+        "result": "FAIL",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 82, in test_reject_name_shape_dtype_nonfinite_score_and_bad_box\n    self.process(outputs)\n    ~~~~~~~~~~~~^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      },
+      {
+        "id": "test_trt_postprocess.PostprocessTests.test_restore_padding_gain_then_clip",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 54, in test_restore_padding_gain_then_clip\n    result=self.process(raw([([320,320,660,360],0,.9)]),transform)\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_postprocess.py\", line 20, in process\n    from src.vision.tensorrt_postprocess import postprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_postprocess'\n"
+      }
+    ],
+    "green_evidence": "test_lifecycle_green.json"
+  },
+  {
+    "group": "detector",
+    "red_evidence": "test_detector_red.json",
+    "red_tests": [
+      {
+        "id": "test_trt_detector.DetectorTests.test_bad_input_recoverable_no_execute_then_good_input",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 93, in test_bad_input_recoverable_no_execute_then_good_input\n    detector=self.detector()\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 44, in detector\n    return create_detector(self.package,executor_factory=lambda package:self.executor,**kwargs)\nTypeError: create_detector() got an unexpected keyword argument 'executor_factory'\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_close_idempotent_and_no_execution_after_close",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 114, in test_close_idempotent_and_no_execution_after_close\n    detector=self.detector();detector.close();detector.close()\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 44, in detector\n    return create_detector(self.package,executor_factory=lambda package:self.executor,**kwargs)\nTypeError: create_detector() got an unexpected keyword argument 'executor_factory'\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_default_is_native_not_implemented_without_forbidden_import",
+        "result": "FAIL",
+        "reason": "src.contracts.interfaces.DetectorError: TENSORRT_BACKEND_NOT_IMPLEMENTED\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 53, in test_default_is_native_not_implemented_without_forbidden_import\n    with self.assertRaisesRegex(DetectorError,'^TENSORRT_NATIVE_RUNTIME_NOT_IMPLEMENTED$'):\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"^TENSORRT_NATIVE_RUNTIME_NOT_IMPLEMENTED$\" does not match \"TENSORRT_BACKEND_NOT_IMPLEMENTED\"\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_empty_valid",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 90, in test_empty_valid\n    self.assertEqual(self.detector().detect(self.frame).detections,())\n                     ~~~~~~~~~~~~~^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 44, in detector\n    return create_detector(self.package,executor_factory=lambda package:self.executor,**kwargs)\nTypeError: create_detector() got an unexpected keyword argument 'executor_factory'\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_invalid_output_fatal_even_if_executor_claims_usable",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 108, in test_invalid_output_fatal_even_if_executor_claims_usable\n    from src.contracts.interfaces import FatalDetectorError\nImportError: cannot import name 'FatalDetectorError' from 'src.contracts.interfaces' (D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\interfaces.py)\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_metadata_identities_detached_json_and_timing_default_off",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 69, in test_metadata_identities_detached_json_and_timing_default_off\n    detector=self.detector()\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 44, in detector\n    return create_detector(self.package,executor_factory=lambda package:self.executor,**kwargs)\nTypeError: create_detector() got an unexpected keyword argument 'executor_factory'\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_pt_close_only_addition_preserves_original_method_ast",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 129, in test_pt_close_only_addition_preserves_original_method_ast\n    instance.close();instance.close()\n    ^^^^^^^^^^^^^^\nAttributeError: 'PyTorchDetector' object has no attribute 'close'\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_real_preprocess_decode_result_and_identity",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 58, in test_real_preprocess_decode_result_and_identity\n    detector=self.detector()\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 44, in detector\n    return create_detector(self.package,executor_factory=lambda package:self.executor,**kwargs)\nTypeError: create_detector() got an unexpected keyword argument 'executor_factory'\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_timing_opt_in_host_only",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 84, in test_timing_opt_in_host_only\n    detector=self.detector(latency_enabled=True)\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 44, in detector\n    return create_detector(self.package,executor_factory=lambda package:self.executor,**kwargs)\nTypeError: create_detector() got an unexpected keyword argument 'executor_factory'\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_unknown_execution_error_invalidates_and_never_returns_empty",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 100, in test_unknown_execution_error_invalidates_and_never_returns_empty\n    from src.contracts.interfaces import FatalDetectorError\nImportError: cannot import name 'FatalDetectorError' from 'src.contracts.interfaces' (D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\interfaces.py)\n"
+      },
+      {
+        "id": "test_trt_detector.DetectorTests.test_wrapped_format_rejected_before_executor",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_detector.py\", line 124, in test_wrapped_format_rejected_before_executor\n    create_detector(load_package(self.root),executor_factory=lambda _:self.fail('executor created'))\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: create_detector() got an unexpected keyword argument 'executor_factory'\n"
+      }
+    ],
+    "green_evidence": "test_lifecycle_green.json"
+  },
+  {
+    "group": "lifecycle",
+    "red_evidence": "test_lifecycle_red.json",
+    "red_tests": [
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_camera_init_failure_closes_constructed_detector",
+        "result": "FAIL",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 103, in test_camera_init_failure_closes_constructed_detector\n    self.assertEqual(trace,['detector_close'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [] != ['detector_close']\n\nSecond list contains 1 additional elements.\nFirst extra element 0:\n'detector_close'\n\n- []\n+ ['detector_close']\n"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_cancel_has_precedence_no_duplicate_terminal",
+        "result": "PASS"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_cleanup_failure_after_normal_result_is_fault",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 112, in test_cleanup_failure_after_normal_result_is_fault\n    messages,trace,executor,_=run_worker(self.root/'package','normal',True)\n                              ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 67, in run_worker\n    worker_main(root,station,'generation',commands,results,previews,stopping,cancellation,SimpleNamespace(value=10.))\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py\", line 174, in worker_main\n    camera.close()\n    ~~~~~~~~~~~~^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 49, in close\n    if cleanup_error:raise CameraError('CAMERA_CLEANUP_FAILURE')\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc.contracts.interfaces.CameraError: CAMERA_CLEANUP_FAILURE\n"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_cleanup_failures_do_not_mask_primary",
+        "result": "ERROR",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 106, in test_cleanup_failures_do_not_mask_primary\n    messages,trace,executor,_=run_worker(self.root/'package',cleanup_error=True)\n                              ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 67, in run_worker\n    worker_main(root,station,'generation',commands,results,previews,stopping,cancellation,SimpleNamespace(value=10.))\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py\", line 174, in worker_main\n    camera.close()\n    ~~~~~~~~~~~~^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 49, in close\n    if cleanup_error:raise CameraError('CAMERA_CLEANUP_FAILURE')\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc.contracts.interfaces.CameraError: CAMERA_CLEANUP_FAILURE\n"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_context_mismatch_has_precedence_no_duplicate_terminal",
+        "result": "PASS"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_deadline_has_precedence_no_duplicate_terminal",
+        "result": "PASS"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_early_detector_init_failure_safe",
+        "result": "PASS"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_fatal_error_then_fault_no_next_job",
+        "result": "FAIL",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 80, in test_fatal_error_then_fault_no_next_job\n    self.assertEqual([m['type'] for m in messages],['ready','result','fault'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['ready', 'result', 'result', 'fault'] != ['ready', 'result', 'fault']\n\nFirst differing element 2:\n'result'\n'fault'\n\nFirst list contains 1 additional elements.\nFirst extra element 3:\n'fault'\n\n- ['ready', 'result', 'result', 'fault']\n?                     ----------\n\n+ ['ready', 'result', 'fault']\n"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_normal_cleanup_and_full_recipe_evidence",
+        "result": "FAIL",
+        "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 92, in test_normal_cleanup_and_full_recipe_evidence\n    self.assertEqual(trace,['camera_open','camera_close','detector_close'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['camera_open', 'camera_close'] != ['camera_open', 'camera_close', 'detector_close']\n\nSecond list contains 1 additional elements.\nFirst extra element 2:\n'detector_close'\n\n- ['camera_open', 'camera_close']\n+ ['camera_open', 'camera_close', 'detector_close']\n?                               ++++++++++++++++++\n\n"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_old_session_has_precedence_no_duplicate_terminal",
+        "result": "PASS"
+      },
+      {
+        "id": "test_trt_lifecycle.LifecycleTests.test_service_error_commit_before_fault_and_one_terminal",
+        "result": "PASS"
+      }
+    ],
+    "green_evidence": "test_lifecycle_green.json"
+  }
+]

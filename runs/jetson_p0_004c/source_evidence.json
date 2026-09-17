@@ -1,0 +1,150 @@
+{
+  "status": "SOURCE_EVIDENCE_RESOLVED_STATIC_ONLY",
+  "files": [
+    {
+      "relative": "ultralytics/utils/nms.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/utils/nms.py",
+      "size": 14618,
+      "sha256": "d336cff44861dd5c84e7b7020428d9f64b408d7c21cd4b3b17d772f4b455ef83"
+    },
+    {
+      "relative": "ultralytics/data/augment.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/data/augment.py",
+      "size": 144345,
+      "sha256": "c9475db798443f99534f5ff9370f1ee1421999bc8dc40020fb8d256180cdb2e3"
+    },
+    {
+      "relative": "ultralytics/nn/modules/head.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/modules/head.py",
+      "size": 88067,
+      "sha256": "c5c880204fe6dc31a01018e189482441fa20ddf3cf892c5b2826d664da138ccf"
+    },
+    {
+      "relative": "ultralytics/utils/tal.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/utils/tal.py",
+      "size": 24272,
+      "sha256": "41038cf3793481d90c04dc5c69f2d0dcf1c1c08c664c32298fe55dadfa7b1fb2"
+    },
+    {
+      "relative": "ultralytics/engine/model.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/engine/model.py",
+      "size": 58010,
+      "sha256": "3f0ce44726b709770f9ef0a26b34caacb1a6c731cc5dc8942525c9fb1819f5bc"
+    },
+    {
+      "relative": "ultralytics/nn/tasks.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/nn/tasks.py",
+      "size": 93886,
+      "sha256": "c961f4a75d167e297c9847316f91759aae4394fe0cc9a967520fdc72a6324cd6"
+    },
+    {
+      "relative": "ultralytics/models/yolo/model.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/models/yolo/model.py",
+      "size": 26057,
+      "sha256": "361e18643767be120b8791d7e06555cc169e5ec8c8e5c03386e866f0025e0e4c"
+    },
+    {
+      "relative": "ultralytics/cfg/__init__.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/cfg/__init__.py",
+      "size": 46634,
+      "sha256": "8a6d309343e487e45e0479da26c455810575fd4a20daab932e8b27c8e1b1ad9b"
+    },
+    {
+      "relative": "ultralytics/engine/predictor.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/engine/predictor.py",
+      "size": 26839,
+      "sha256": "a398a8ce75fcb4aebeb046a84ead92fd3a375b02542de309d7d1e2af52469e13"
+    },
+    {
+      "relative": "ultralytics/models/yolo/detect/predict.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/models/yolo/detect/predict.py",
+      "size": 5474,
+      "sha256": "2f4d4e817782da56d9d6864084727a9576a5d276370cc1811435622941a2385d"
+    },
+    {
+      "relative": "ultralytics/utils/ops.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/utils/ops.py",
+      "size": 34428,
+      "sha256": "79426eed013e1bb36936b52943c3c158b838e442843438d6fb811a624a039a92"
+    },
+    {
+      "relative": "ultralytics/cfg/default.yaml",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/ultralytics/cfg/default.yaml",
+      "size": 10148,
+      "sha256": "9ad9a3150cedb839f7c1a352d37b578aaccd2db107ad63cea2e0bafce2966b71"
+    },
+    {
+      "relative": "torchvision/ops/boxes.py",
+      "path": "/home/jetson/.local/lib/python3.10/site-packages/torchvision/ops/boxes.py",
+      "size": 18305,
+      "sha256": "d3f35e53bd69cf2775a79842942c07a439da0dbd80ad658b68990d1e82e5c5e2"
+    }
+  ],
+  "nms": {
+    "sources": [
+      "engine/model.py:251,507-515,1090",
+      "cfg/__init__.py:372-378",
+      "cfg/default.yaml",
+      "models/yolo/detect/predict.py:52-63",
+      "utils/nms.py:13-171,246-301",
+      "torchvision/ops/boxes.py:20-47"
+    ],
+    "agnostic_nms": false,
+    "max_det": 300,
+    "classes": null,
+    "multi_label": false,
+    "confidence": "strict >",
+    "suppression": "same class IoU > threshold",
+    "resolution": "Static model checkpoint reset excludes agnostic_nms/max_det/classes; predict custom/adapter kwargs do not override them; get_cfg merges defaults. Not new runtime observation.",
+    "max_nms": 30000,
+    "time_limit": "reference exists; candidate does not silently truncate on wall-clock timeout",
+    "ties": "candidate score desc,class id asc,raw index asc; not PT tie parity"
+  },
+  "preprocess": {
+    "sources": [
+      "engine/predictor.py:160-218",
+      "data/augment.py:1658-1805",
+      "utils/ops.py:122-163"
+    ],
+    "auto": false,
+    "scale_fill": false,
+    "scaleup": true,
+    "center": true,
+    "size": [
+      640,
+      640
+    ],
+    "gain": "min(640/h,640/w)",
+    "resized": "round(w*r),round(h*r)",
+    "padding": "remaining/2 then round(half-0.1),round(half+0.1)",
+    "color": "BGR->RGB",
+    "layout": "batch1 contiguous NCHW",
+    "normalize": "declared float then /255",
+    "restore": "after NMS subtract integer left/top, divide gain, clip"
+  },
+  "output": {
+    "sources": [
+      "nn/modules/head.py:78-86,139-207,223-229",
+      "model_static_evidence.json"
+    ],
+    "head": "Detect; static pickle opcodes identify class,nc=3,_end2end=False; no unpickle",
+    "layout": "BCN",
+    "box_format": "xywh",
+    "coordinate_space": "letterbox_pixels",
+    "class_score_semantics": "sigmoid_probabilities",
+    "objectness_semantics": "absent",
+    "feature_axis": 1,
+    "candidate_axis": 2,
+    "shape": "[1,4+nc,8400] selected static 640 stride8/16/32 family; future package must declare tensor name/dtype and match actual artifact, NOT shape autodetection",
+    "limits": "Source semantics established; historical ONNX is not accepted and native/parity tests NOT_RUN"
+  },
+  "framework_imports": 0,
+  "remote_writes": 0,
+  "approved_test_adaptation": {
+    "original": "runs/jetson_p0_004b/tests/test_backend_contract.py",
+    "copy": "runs/jetson_p0_004c/tests/test_backend_contract.py",
+    "replaced_error_expectations": 2,
+    "other_assertion_changes": 0,
+    "temporary_sqlite_only": true
+  }
+}

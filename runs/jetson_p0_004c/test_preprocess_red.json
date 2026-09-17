@@ -1,0 +1,71 @@
+{
+  "status": "FAIL",
+  "tests": 7,
+  "failures": 0,
+  "errors": 7,
+  "skips": 0,
+  "test_results": [
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_asymmetric_padding",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 27, in test_asymmetric_padding\n    def test_asymmetric_padding(self):self.check_geometry((334,500),(428,640),(0,106,0,106))\n                                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 30, in test_declared_fp16_and_noncontiguous_input\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 38, in test_invalid_images_and_dtype\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_landscape",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 23, in test_landscape\n    def test_landscape(self):self.check_geometry((720,1280),(360,640),(0,140,0,140))\n                             ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_odd_rounding_split",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 26, in test_odd_rounding_split\n    def test_odd_rounding_split(self):self.check_geometry((333,500),(426,640),(0,107,0,107))\n                                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_portrait",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 24, in test_portrait\n    def test_portrait(self):self.check_geometry((1280,720),(640,360),(140,0,140,0))\n                            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_square_scaleup",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 25, in test_square_scaleup\n    def test_square_scaleup(self):self.check_geometry((10,10),(640,640),(0,0,0,0))\n                                  ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n"
+    }
+  ],
+  "origins": {
+    "src.contracts.enums": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\enums.py",
+    "src.contracts.models": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\models.py",
+    "src.contracts.interfaces": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\interfaces.py",
+    "src.contracts": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\__init__.py",
+    "src.vision": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\__init__.py"
+  },
+  "candidate_source": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+  "python": "D:\\OneDevice_Team_project\\.venv\\Scripts\\python.exe",
+  "sys_path": [
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests",
+    "D:\\OneDevice_Team_project\\runs\\jetson_p0_003",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\tests",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c",
+    "C:\\Python313\\python313.zip",
+    "C:\\Python313\\DLLs",
+    "C:\\Python313\\Lib",
+    "C:\\Python313",
+    "D:\\OneDevice_Team_project\\.venv",
+    "D:\\OneDevice_Team_project\\.venv\\Lib\\site-packages"
+  ],
+  "forbidden_import_attempts": [],
+  "temporary_sqlite_connections": 0,
+  "existing_db_writes": 0,
+  "log": "test_asymmetric_padding (test_trt_preprocess.PreprocessTests.test_asymmetric_padding) ... ERROR\ntest_declared_fp16_and_noncontiguous_input (test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input) ... ERROR\ntest_invalid_images_and_dtype (test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype) ... ERROR\ntest_landscape (test_trt_preprocess.PreprocessTests.test_landscape) ... ERROR\ntest_odd_rounding_split (test_trt_preprocess.PreprocessTests.test_odd_rounding_split) ... ERROR\ntest_portrait (test_trt_preprocess.PreprocessTests.test_portrait) ... ERROR\ntest_square_scaleup (test_trt_preprocess.PreprocessTests.test_square_scaleup) ... ERROR\n\n======================================================================\nERROR: test_asymmetric_padding (test_trt_preprocess.PreprocessTests.test_asymmetric_padding)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 27, in test_asymmetric_padding\n    def test_asymmetric_padding(self):self.check_geometry((334,500),(428,640),(0,106,0,106))\n                                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n\n======================================================================\nERROR: test_declared_fp16_and_noncontiguous_input (test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 30, in test_declared_fp16_and_noncontiguous_input\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n\n======================================================================\nERROR: test_invalid_images_and_dtype (test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 38, in test_invalid_images_and_dtype\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n\n======================================================================\nERROR: test_landscape (test_trt_preprocess.PreprocessTests.test_landscape)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 23, in test_landscape\n    def test_landscape(self):self.check_geometry((720,1280),(360,640),(0,140,0,140))\n                             ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n\n======================================================================\nERROR: test_odd_rounding_split (test_trt_preprocess.PreprocessTests.test_odd_rounding_split)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 26, in test_odd_rounding_split\n    def test_odd_rounding_split(self):self.check_geometry((333,500),(426,640),(0,107,0,107))\n                                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n\n======================================================================\nERROR: test_portrait (test_trt_preprocess.PreprocessTests.test_portrait)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 24, in test_portrait\n    def test_portrait(self):self.check_geometry((1280,720),(640,360),(140,0,140,0))\n                            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n\n======================================================================\nERROR: test_square_scaleup (test_trt_preprocess.PreprocessTests.test_square_scaleup)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 25, in test_square_scaleup\n    def test_square_scaleup(self):self.check_geometry((10,10),(640,640),(0,0,0,0))\n                                  ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_preprocess.py\", line 8, in check_geometry\n    from src.vision.tensorrt_preprocess import preprocess\nModuleNotFoundError: No module named 'src.vision.tensorrt_preprocess'\n\n----------------------------------------------------------------------\nRan 7 tests in 0.006s\n\nFAILED (errors=7)\n"
+}

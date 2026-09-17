@@ -1,0 +1,16 @@
+{
+  "date": "2026-09-17",
+  "conversation": "https://chatgpt.com/c/6aa23182-dfe4-83ee-9ab4-be9e20b06b3b",
+  "kind": "advisory_review_of_report_not_independent_code_execution",
+  "result": "CPU_CANDIDATE_TESTED_ACCEPTED_WITH_EXPLICIT_LIMITS",
+  "reviewed": [
+    "Legacy optional close is only compatibility tolerance; all production factory adapters must implement close",
+    "Unknown native execution or post-execution output failure conservatively stops Worker",
+    "ERROR commit before fault/RECOVERY and terminal-result invariant",
+    "142 existing and 45 new tests, skip0; no native/device readiness claim"
+  ],
+  "clarification_sent_and_acknowledged": "validate_output_contract explicitly requires [1,4+nc,8400]. The common architecture is not arbitrary-model/output support. Different candidate counts or output topologies require additive schema and CPU tests before activation.",
+  "next_single_recommendation": "JETSON-P0-004D-0 Native TensorRT Executor & Target Build Preflight",
+  "next_scope": "Read-only static installation/API evidence; no native provider implementation, framework import, CUDA, camera, export/build, deployment or activation",
+  "authority": "Review does not grant new device or external-write permission"
+}

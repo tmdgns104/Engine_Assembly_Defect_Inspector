@@ -1,0 +1,109 @@
+{
+  "status": "FAIL",
+  "tests": 11,
+  "failures": 3,
+  "errors": 2,
+  "skips": 0,
+  "test_results": [
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_camera_init_failure_closes_constructed_detector",
+      "result": "FAIL",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 103, in test_camera_init_failure_closes_constructed_detector\n    self.assertEqual(trace,['detector_close'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [] != ['detector_close']\n\nSecond list contains 1 additional elements.\nFirst extra element 0:\n'detector_close'\n\n- []\n+ ['detector_close']\n"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_cancel_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_cleanup_failure_after_normal_result_is_fault",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 112, in test_cleanup_failure_after_normal_result_is_fault\n    messages,trace,executor,_=run_worker(self.root/'package','normal',True)\n                              ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 67, in run_worker\n    worker_main(root,station,'generation',commands,results,previews,stopping,cancellation,SimpleNamespace(value=10.))\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py\", line 174, in worker_main\n    camera.close()\n    ~~~~~~~~~~~~^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 49, in close\n    if cleanup_error:raise CameraError('CAMERA_CLEANUP_FAILURE')\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc.contracts.interfaces.CameraError: CAMERA_CLEANUP_FAILURE\n"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_cleanup_failures_do_not_mask_primary",
+      "result": "ERROR",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 106, in test_cleanup_failures_do_not_mask_primary\n    messages,trace,executor,_=run_worker(self.root/'package',cleanup_error=True)\n                              ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 67, in run_worker\n    worker_main(root,station,'generation',commands,results,previews,stopping,cancellation,SimpleNamespace(value=10.))\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py\", line 174, in worker_main\n    camera.close()\n    ~~~~~~~~~~~~^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 49, in close\n    if cleanup_error:raise CameraError('CAMERA_CLEANUP_FAILURE')\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc.contracts.interfaces.CameraError: CAMERA_CLEANUP_FAILURE\n"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_context_mismatch_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_deadline_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_early_detector_init_failure_safe",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_fatal_error_then_fault_no_next_job",
+      "result": "FAIL",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 80, in test_fatal_error_then_fault_no_next_job\n    self.assertEqual([m['type'] for m in messages],['ready','result','fault'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['ready', 'result', 'result', 'fault'] != ['ready', 'result', 'fault']\n\nFirst differing element 2:\n'result'\n'fault'\n\nFirst list contains 1 additional elements.\nFirst extra element 3:\n'fault'\n\n- ['ready', 'result', 'result', 'fault']\n?                     ----------\n\n+ ['ready', 'result', 'fault']\n"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_normal_cleanup_and_full_recipe_evidence",
+      "result": "FAIL",
+      "reason": "Traceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 92, in test_normal_cleanup_and_full_recipe_evidence\n    self.assertEqual(trace,['camera_open','camera_close','detector_close'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['camera_open', 'camera_close'] != ['camera_open', 'camera_close', 'detector_close']\n\nSecond list contains 1 additional elements.\nFirst extra element 2:\n'detector_close'\n\n- ['camera_open', 'camera_close']\n+ ['camera_open', 'camera_close', 'detector_close']\n?                               ++++++++++++++++++\n\n"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_old_session_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_service_error_commit_before_fault_and_one_terminal",
+      "result": "PASS"
+    }
+  ],
+  "origins": {
+    "src.contracts.enums": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\enums.py",
+    "src.contracts.models": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\models.py",
+    "src.contracts.interfaces": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\interfaces.py",
+    "src.contracts": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\__init__.py",
+    "src.vision": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\__init__.py",
+    "src.camera": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\camera\\__init__.py",
+    "src.camera.fresh_frame": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\camera\\fresh_frame.py",
+    "src.decision": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\__init__.py",
+    "src.decision.bench": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\bench.py",
+    "src.decision.slots": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\slots.py",
+    "src.decision.calibration": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\calibration.py",
+    "src.quality": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\quality\\__init__.py",
+    "src.quality.image": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\quality\\image.py",
+    "src.recipe": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\__init__.py",
+    "src.recipe.package": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\package.py",
+    "src.vision.inspection_worker": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py",
+    "src.vision.detector_factory": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\detector_factory.py",
+    "src.journal": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\journal\\__init__.py",
+    "apps.edge_service.bench": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\apps\\edge_service\\bench.py",
+    "src.journal.sqlite": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\journal\\sqlite.py",
+    "src.control": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\control\\__init__.py",
+    "src.control.mock_cell": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\control\\mock_cell.py",
+    "apps.edge_service.mock_port": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\apps\\edge_service\\mock_port.py",
+    "apps.edge_service.inspection": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\apps\\edge_service\\inspection.py",
+    "src.vision.pytorch_detector": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\pytorch_detector.py",
+    "src.vision.tensorrt_preprocess": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\tensorrt_preprocess.py",
+    "src.camera.gstreamer_camera": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\camera\\gstreamer_camera.py",
+    "src.vision.tensorrt_postprocess": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\tensorrt_postprocess.py",
+    "src.vision.tensorrt_detector": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\tensorrt_detector.py"
+  },
+  "candidate_source": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+  "python": "D:\\OneDevice_Team_project\\.venv\\Scripts\\python.exe",
+  "sys_path": [
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests",
+    "D:\\OneDevice_Team_project\\runs\\jetson_p0_003",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\tests",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c",
+    "C:\\Python313\\python313.zip",
+    "C:\\Python313\\DLLs",
+    "C:\\Python313\\Lib",
+    "C:\\Python313",
+    "D:\\OneDevice_Team_project\\.venv",
+    "D:\\OneDevice_Team_project\\.venv\\Lib\\site-packages"
+  ],
+  "forbidden_import_attempts": [],
+  "temporary_sqlite_connections": 10,
+  "existing_db_writes": 0,
+  "log": "test_camera_init_failure_closes_constructed_detector (test_trt_lifecycle.LifecycleTests.test_camera_init_failure_closes_constructed_detector) ... FAIL\ntest_cancel_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_cancel_has_precedence_no_duplicate_terminal) ... ok\ntest_cleanup_failure_after_normal_result_is_fault (test_trt_lifecycle.LifecycleTests.test_cleanup_failure_after_normal_result_is_fault) ... ERROR\ntest_cleanup_failures_do_not_mask_primary (test_trt_lifecycle.LifecycleTests.test_cleanup_failures_do_not_mask_primary) ... ERROR\ntest_context_mismatch_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_context_mismatch_has_precedence_no_duplicate_terminal) ... ok\ntest_deadline_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_deadline_has_precedence_no_duplicate_terminal) ... ok\ntest_early_detector_init_failure_safe (test_trt_lifecycle.LifecycleTests.test_early_detector_init_failure_safe) ... ok\ntest_fatal_error_then_fault_no_next_job (test_trt_lifecycle.LifecycleTests.test_fatal_error_then_fault_no_next_job) ... FAIL\ntest_normal_cleanup_and_full_recipe_evidence (test_trt_lifecycle.LifecycleTests.test_normal_cleanup_and_full_recipe_evidence) ... FAIL\ntest_old_session_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_old_session_has_precedence_no_duplicate_terminal) ... ok\ntest_service_error_commit_before_fault_and_one_terminal (test_trt_lifecycle.LifecycleTests.test_service_error_commit_before_fault_and_one_terminal) ... ok\n\n======================================================================\nERROR: test_cleanup_failure_after_normal_result_is_fault (test_trt_lifecycle.LifecycleTests.test_cleanup_failure_after_normal_result_is_fault)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 112, in test_cleanup_failure_after_normal_result_is_fault\n    messages,trace,executor,_=run_worker(self.root/'package','normal',True)\n                              ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 67, in run_worker\n    worker_main(root,station,'generation',commands,results,previews,stopping,cancellation,SimpleNamespace(value=10.))\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py\", line 174, in worker_main\n    camera.close()\n    ~~~~~~~~~~~~^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 49, in close\n    if cleanup_error:raise CameraError('CAMERA_CLEANUP_FAILURE')\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc.contracts.interfaces.CameraError: CAMERA_CLEANUP_FAILURE\n\n======================================================================\nERROR: test_cleanup_failures_do_not_mask_primary (test_trt_lifecycle.LifecycleTests.test_cleanup_failures_do_not_mask_primary)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 106, in test_cleanup_failures_do_not_mask_primary\n    messages,trace,executor,_=run_worker(self.root/'package',cleanup_error=True)\n                              ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 67, in run_worker\n    worker_main(root,station,'generation',commands,results,previews,stopping,cancellation,SimpleNamespace(value=10.))\n    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py\", line 174, in worker_main\n    camera.close()\n    ~~~~~~~~~~~~^^\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 49, in close\n    if cleanup_error:raise CameraError('CAMERA_CLEANUP_FAILURE')\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsrc.contracts.interfaces.CameraError: CAMERA_CLEANUP_FAILURE\n\n======================================================================\nFAIL: test_camera_init_failure_closes_constructed_detector (test_trt_lifecycle.LifecycleTests.test_camera_init_failure_closes_constructed_detector)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 103, in test_camera_init_failure_closes_constructed_detector\n    self.assertEqual(trace,['detector_close'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [] != ['detector_close']\n\nSecond list contains 1 additional elements.\nFirst extra element 0:\n'detector_close'\n\n- []\n+ ['detector_close']\n\n======================================================================\nFAIL: test_fatal_error_then_fault_no_next_job (test_trt_lifecycle.LifecycleTests.test_fatal_error_then_fault_no_next_job)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 80, in test_fatal_error_then_fault_no_next_job\n    self.assertEqual([m['type'] for m in messages],['ready','result','fault'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['ready', 'result', 'result', 'fault'] != ['ready', 'result', 'fault']\n\nFirst differing element 2:\n'result'\n'fault'\n\nFirst list contains 1 additional elements.\nFirst extra element 3:\n'fault'\n\n- ['ready', 'result', 'result', 'fault']\n?                     ----------\n\n+ ['ready', 'result', 'fault']\n\n======================================================================\nFAIL: test_normal_cleanup_and_full_recipe_evidence (test_trt_lifecycle.LifecycleTests.test_normal_cleanup_and_full_recipe_evidence)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests\\test_trt_lifecycle.py\", line 92, in test_normal_cleanup_and_full_recipe_evidence\n    self.assertEqual(trace,['camera_open','camera_close','detector_close'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: ['camera_open', 'camera_close'] != ['camera_open', 'camera_close', 'detector_close']\n\nSecond list contains 1 additional elements.\nFirst extra element 2:\n'detector_close'\n\n- ['camera_open', 'camera_close']\n+ ['camera_open', 'camera_close', 'detector_close']\n?                               ++++++++++++++++++\n\n\n----------------------------------------------------------------------\nRan 11 tests in 0.442s\n\nFAILED (failures=3, errors=2)\n"
+}

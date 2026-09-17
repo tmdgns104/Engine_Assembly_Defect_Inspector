@@ -1,0 +1,30 @@
+{
+  "changed": {
+    "src/contracts/interfaces.py": {
+      "before": "056e2fdb462b76af03cc688a35fa51f242c8faed5e60d15e0bd831017d35bef5",
+      "after": "21e4d0d049f56be7fe9400fc8e86047371f583380122f4041aa85cf52ef2189b"
+    },
+    "src/recipe/package.py": {
+      "before": "dd1f14117c8e51e88d035322089f6ea3b40bf3d1fc4de7e7dcae53e9f7358e8d",
+      "after": "fa91f5b97220ddcb2f33c5d6add4796246d5f4154a83898f5858f2568731c3b8"
+    },
+    "src/vision/detector_factory.py": {
+      "before": "b6d50599689f8a435a738359e55dd3e5485b9e8a2b691668d7ec74196b8b18b7",
+      "after": "22c5643ccf72ee26b5f687ac317ba90d7ed6bd60ce142cfeb6efd495609cf487"
+    },
+    "src/vision/inspection_worker.py": {
+      "before": "7001b9f2c3b347b5bd9e5962b36058957c239ed2974ed302b751156df30f940c",
+      "after": "946b775d82957a94c6ef213114da1646cc9f2ca40c42d059e767dde630d5881b"
+    },
+    "src/vision/pytorch_detector.py": {
+      "before": "e0bd7ed19a64c88b796b9c2a18ae5ee61828cef22e24b600a4e25f03e291a3a8",
+      "after": "b2b7ecc462dbedb4e24bdcd4c4a9f25965691acbca064e6adb1fbb630f3d7b54"
+    }
+  },
+  "created": {
+    "src/vision/tensorrt_detector.py": "386fe79ee98c533950f6bbac2944e2975b4ee4cfa57349f876389eaa7f69e878",
+    "src/vision/tensorrt_postprocess.py": "d68508e1e2d20b7c1efdd6e27d678e16cc9dba610b96ca3038c619b9156c205b",
+    "src/vision/tensorrt_preprocess.py": "031117e983f494a84bdc787143708f492b85e8f3feedf782afac4e40a836a319"
+  },
+  "deleted": []
+}

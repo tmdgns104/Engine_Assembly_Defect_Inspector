@@ -7,3 +7,9 @@
 # These two audited HTML snapshots already use CRLF; CR is part of their preserved EOL.
 /runs/jetson_p0_003/runtime/apps/edge_service/inspection.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /runs/jetson_p0_004b/candidate_runtime/apps/edge_service/inspection.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# C candidate and its frozen design evidence retain their reviewed byte identities.
+/runs/jetson_p0_004c/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tasks/JETSON-P0-004C-0.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/jetson/JETSON_TRT_EXECUTION_CONTRACT.md -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/docs/verification/JETSON-P0-004C-0.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

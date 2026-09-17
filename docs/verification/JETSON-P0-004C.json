@@ -1,0 +1,139 @@
+{
+  "task": "JETSON-P0-004C",
+  "status": "CPU_CANDIDATE_TESTED",
+  "parent_lineage": {
+    "file_count": 33,
+    "parent_sha256": "1946d3b95f9c3e8608e210005c04d4489146265e726b6f95d82e4b2e91a91db1",
+    "initial_sha256": "1946d3b95f9c3e8608e210005c04d4489146265e726b6f95d82e4b2e91a91db1",
+    "final_file_count": 36,
+    "final_sha256": "a2ea34eb73309b6488e10b450c197271db24b81e9bcbd4285c8a06bca686cb16",
+    "exact_initial_copy": true
+  },
+  "source_evidence": {
+    "status": "SOURCE_EVIDENCE_RESOLVED_STATIC_ONLY",
+    "file_count": 13,
+    "raw_evidence": "runs/jetson_p0_004c/source_evidence.json"
+  },
+  "candidate_changes": {
+    "modified": [
+      "src/contracts/interfaces.py",
+      "src/recipe/package.py",
+      "src/vision/detector_factory.py",
+      "src/vision/inspection_worker.py",
+      "src/vision/pytorch_detector.py"
+    ],
+    "created": [
+      "src/vision/tensorrt_detector.py",
+      "src/vision/tensorrt_postprocess.py",
+      "src/vision/tensorrt_preprocess.py"
+    ]
+  },
+  "tests": {
+    "existing_114_final": {
+      "tests": 114,
+      "status": "PASS",
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "forbidden_import_attempts": [],
+      "temporary_sqlite_connections": 36,
+      "existing_db_writes": 0
+    },
+    "backend_28": {
+      "tests": 28,
+      "status": "PASS",
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "forbidden_import_attempts": [],
+      "temporary_sqlite_connections": 1,
+      "existing_db_writes": 0
+    },
+    "lifecycle_green": {
+      "tests": 45,
+      "status": "PASS",
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "forbidden_import_attempts": [],
+      "temporary_sqlite_connections": 10,
+      "existing_db_writes": 0
+    }
+  },
+  "test_exceptions": {
+    "original_B_tests_unchanged": true,
+    "C_copy_error_expectations_changed": 2,
+    "other_assertion_changes": 0,
+    "fixture_root_only": [
+      "test_backend_contract",
+      "test_jetson_bench_prepare"
+    ],
+    "first_regression_attempt": "114 executed, 1 staging-path skip; preserved test_existing_114.json; fixed fixture location, not assertions"
+  },
+  "forbidden_execution": {
+    "torch_import": 0,
+    "ultralytics_import": 0,
+    "tensorrt_import": 0,
+    "gpu_cuda": 0,
+    "camera": 0,
+    "onnx_export": 0,
+    "trt_build": 0,
+    "jetson_deploy": 0,
+    "existing_db_write": 0,
+    "plc": 0,
+    "mqtt": 0
+  },
+  "temporary_test_db_writes": "ALLOWED_AND_OBSERVED; sqlite connection counts above, not SQL statement counts",
+  "native_runtime": "TENSORRT_NATIVE_RUNTIME_NOT_IMPLEMENTED",
+  "schema_null": "CONTRACT_VALID_NON_EXECUTABLE",
+  "schema_executable": "CPU_CONTRACT_ONLY",
+  "lifecycle": {
+    "normal": "stop acquisition -> camera close -> detector close",
+    "legacy_cleanup": "Generic legacy objects lacking close remain supported; both production factory adapters implement close.",
+    "fatal": "ERROR result -> fault in same FIFO -> no next job -> cleanup; Service durable ERROR then RECOVERY",
+    "cancel_deadline_context": "Existing cancel/quarantine precedence; one terminal event verified"
+  },
+  "preservation": {
+    "original_tracked": {
+      "checked": 474,
+      "changed": []
+    },
+    "c0": {
+      "checked": 3,
+      "changed": []
+    },
+    "pc_mirror": {
+      "checked": 86,
+      "changed": []
+    },
+    "B_parent_changed": 0,
+    "worktree_root_tracked_diff": [],
+    "head_changed_before_publication": 0,
+    "frozen_untracked_raw": "No writes performed; tracked frozen source/evidence covered by original_tracked. No new blanket hash claim for untracked raw.",
+    "jetson": {
+      "C_runtime_deployment": 0,
+      "C_framework_or_device_execution": 0,
+      "separate_human_approved_cleanup": {
+        "removed_files": 1158,
+        "retained_roots_unchanged": 7,
+        "remaining_files_unchanged": 3193,
+        "evidence": "D:/Jetson_Backup_20260917/cleanup_execution.json",
+        "new_documentation_files": 2
+      },
+      "scope_note": "Old diagnostics/candidates were archived and removed in the separately approved maintenance task; do not claim all Jetson files unchanged."
+    },
+    "static_source_evidence_hashes_verified": 13,
+    "git_diff_check": "PASS"
+  },
+  "limits": [
+    "No real engine reader/deserialize/bindings/buffers or execution",
+    "CPU deterministic NMS ties/float64 intermediates are not PT/GPU numeric parity",
+    "PT/ONNX hashes in synthetic package are declarations; no cross-artifact numeric lineage verified",
+    "OpenCV/NumPy Jetson metadata conflict and NvMap root cause remain unresolved",
+    "Fresh/Conveyor/engine-product physical acceptance not performed"
+  ],
+  "next_recommended_task": "JETSON-P0-004D-0: static native-executor binding and artifact staging preflight; no device execution without a separate task scope",
+  "READY_FOR_CHATGPT_REVIEW": true,
+  "chatgpt_review": "runs/jetson_p0_004c/chatgpt_review.json",
+  "publication_phase": "Separately authorized Jetson-only Git update; .gitattributes addition preserves C/C0 bytes. Acceptance preservation refers to pre-publication state."
+}

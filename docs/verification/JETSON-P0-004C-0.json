@@ -1,0 +1,173 @@
+{
+  "task": "JETSON-P0-004C-0",
+  "date": "2026-09-17",
+  "status": "PASS_DESIGN_ONLY",
+  "mode": "DESIGN_ONLY",
+  "scope": {
+    "original_workspace": "D:/OneDevice_Team_project",
+    "worktree": "D:/OneDevice_Worktrees/jetson-p0-004c0",
+    "branch": "jetson-p0-004c0-contract",
+    "head": "25b47124cb779553de2b7d67f9bc5f0d4a127447",
+    "repository_files_created": [
+      "tasks/JETSON-P0-004C-0.md",
+      "docs/jetson/JETSON_TRT_EXECUTION_CONTRACT.md",
+      "docs/verification/JETSON-P0-004C-0.json"
+    ],
+    "original_worktree_file_changes": 0,
+    "worktree_existing_tracked_changes": 0,
+    "git_metadata_change": "Created external worktree and branch; no commit or HEAD change",
+    "separate_user_request": "Global knowledge-capture policy/skill update and local receipt outside both project workspaces; not Jetson task changes"
+  },
+  "parent": {
+    "task": "JETSON-P0-004B",
+    "path": "runs/jetson_p0_004b/candidate_runtime",
+    "files": 33,
+    "inventory_canonical_sha256": "1946d3b95f9c3e8608e210005c04d4489146265e726b6f95d82e4b2e91a91db1",
+    "inventory_file_sha256": "39642bb6e1e978a876b602874e43ae1cd4825c5b312d62f2e268456320b59bbe",
+    "future_implementation_root": "Same relative candidate_runtime path in this isolated worktree; descendant inventory required",
+    "promotion": [
+      "P004B exact",
+      "P004C CPU candidate",
+      "P004D isolated artifact build",
+      "P004E parity",
+      "P004F authorized Jetson candidate",
+      "Separately accepted deployment"
+    ]
+  },
+  "selected_contract": {
+    "input": [
+      1,
+      3,
+      640,
+      640
+    ],
+    "layout": "NCHW",
+    "dynamic": false,
+    "precision": "FP16_CANDIDATE_TARGET_NOT_ACCEPTED",
+    "io_dtype": "DECLARED_AND_ENGINE_VERIFIED_NOT_INFERRED_FROM_BUILD_PRECISION",
+    "format": "trt_plan",
+    "autodetection": false,
+    "export_host": "Windows",
+    "build_host": "Jetson target",
+    "build_path": "PT -> isolated ONNX -> target TRT plan",
+    "runtime_requires_torch": false,
+    "runtime_requires_ultralytics": false,
+    "runtime_requires_onnx": false,
+    "runtime_requires_onnxruntime": false,
+    "nms_owner": "adapter",
+    "runtime_owner": "Vision Worker",
+    "fallback": "NONE",
+    "hidden_retry": "NONE"
+  },
+  "identity_contract": {
+    "manifest_model_version": "human logical label",
+    "detection_result_model_version": "source PT SHA; existing PyTorch self.model_hash preserved",
+    "artifact_sha256": "executed PT/plan identity",
+    "onnx_provenance": "future detector.provenance.source_onnx {sha256,export,export_environment}",
+    "manifest_hash": "load_package SHA256(raw manifest.json bytes); snapshot carries manifest_sha256",
+    "onnx_provenance_required_in_executable_branch": true
+  },
+  "schema_compatibility": {
+    "schema1": "UNCHANGED_LEGACY_AND_EXPLICIT_PYTORCH",
+    "schema2_null": "CONTRACT_VALID_NON_EXECUTABLE",
+    "schema2_future_explicit": "EXECUTABLE_CANDIDATE_REQUIRES_ACTIVATION_GATES",
+    "current_validator_modified": false,
+    "db_schema_migration": false,
+    "future_factory_null_branch_error": "TENSORRT_CONTRACT_NON_EXECUTABLE_BEFORE_ADAPTER_ACTIVATION"
+  },
+  "source_evidence": {
+    "pytorch_detector": "runs/jetson_p0_004b/candidate_runtime/src/vision/pytorch_detector.py:PyTorchDetector.detect/runtime_metadata",
+    "worker": "runs/jetson_p0_004b/candidate_runtime/src/vision/inspection_worker.py",
+    "package": "runs/jetson_p0_004b/candidate_runtime/src/recipe/package.py:validate_backend/load_package/snapshot",
+    "installed_cfg_local_path": "D:/OneDevice_Team_project/runs/jetson_p0_004a/installed_ultralytics/cfg/default.yaml",
+    "cfg_sha256": "9ad9a3150cedb839f7c1a352d37b578aaccd2db107ad63cea2e0bafce2966b71",
+    "agnostic_nms_default": false,
+    "max_det_default": 300,
+    "resolved_predictor_settings": "NOT_OBSERVED",
+    "nms_function_body": "NOT_IN_PRESERVED_CACHE",
+    "nms_mode": "SOURCE_BACKED_DEFAULT_CANDIDATE_ACTIVATION_BLOCKER",
+    "candidate_tie_order": "score descending, class ID, original candidate index; not claimed PT equivalence"
+  },
+  "preservation": {
+    "original_protected_files_checked": 442,
+    "original_changed": [],
+    "original_status_unchanged": true,
+    "original_dirty_before": {
+      "tracked": 12,
+      "untracked_entries": 75
+    },
+    "original_dirty_after": {
+      "tracked": 12,
+      "untracked_entries": 75
+    },
+    "worktree_tracked_files_checked": 474,
+    "worktree_changed": [],
+    "parent_mismatches": [],
+    "jetson": "NO_REMOTE_OPERATIONS_IN_C0; prior read-only audit evidence reused; no fresh C0 remote after-hash",
+    "pc_mirror": {
+      "files_checked": 86,
+      "changed": []
+    }
+  },
+  "execution_counts": {
+    "ssh": 0,
+    "framework_import": 0,
+    "cuda_init": 0,
+    "gpu_inference": 0,
+    "camera_open": 0,
+    "inspection_requests": 0,
+    "export": 0,
+    "engine_build": 0,
+    "trtexec": 0,
+    "package_activation": 0,
+    "db_writes": 0,
+    "environment_changes": 0,
+    "plc_outputs": 0,
+    "mqtt_publish": 0,
+    "commit": 0,
+    "push": 0
+  },
+  "validation": {
+    "runtime_tests": "NOT_RUN_DOCUMENT_ONLY",
+    "existing_114_plus_28": "HISTORICAL_P004B_NOT_RERUN",
+    "original_git_diff_check": "PASS",
+    "worktree_git_diff_check": "PASS",
+    "new_documents_whitespace": "PASS",
+    "json": "PASS",
+    "local_markdown_links": "PASS",
+    "exact_three_new_files": "PASS",
+    "contract_review": "SOURCE_REVIEW_AND_CHATGPT_REVIEW_COMPLETE; recommendations integrated"
+  },
+  "deferred": {
+    "cuda_binding": "P004C_INVENTORY",
+    "nms_and_raw_output_semantics": "P004C_SOURCE_EVIDENCE_BEFORE_NATIVE_ACTIVATION",
+    "export_builder_commands": "P004D",
+    "parser_compatibility": "UNKNOWN",
+    "required_plugins": "UNKNOWN",
+    "parity_numeric_tolerance": "DEFERRED_TO_EMPIRICAL_P004E_EVIDENCE",
+    "final_engine_model": "NOT_EVALUATED",
+    "nvmap_root_cause": "UNCONFIRMED",
+    "physical_conveyor_acceptance": "NOT_RUN"
+  },
+  "product_swap": {
+    "infrastructure": "PARTIAL",
+    "engine_acceptance": "BLOCKED",
+    "backlog": [
+      "same-class slot calibration",
+      "moving conveyor geometry",
+      "PLC disposition",
+      "multi-product tracking/reject correlation",
+      "evidence crash recovery"
+    ]
+  },
+  "next_recommended_single_task": "JETSON-P0-004C TensorRTDetector Candidate Implementation; source evidence + CPU TDD first",
+  "ready_for_chatgpt_review": true,
+  "lifecycle": {
+    "fatal_sequence": "ERROR then fault on same FIFO channel; durable finish before recovery for context-valid request",
+    "terminal_invariant": "AT_MOST_ONE_DURABLE_TERMINAL_RESULT",
+    "late_cancel_context": "EXISTING_CANCEL_QUARANTINE_PREVAILS",
+    "close": "FUTURE_ADDITIVE_IDEMPOTENT",
+    "pytorch_close": "NO_OP",
+    "cleanup": "DO_NOT_MASK_PRIMARY_FAILURE"
+  }
+}

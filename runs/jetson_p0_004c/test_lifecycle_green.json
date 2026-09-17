@@ -1,0 +1,240 @@
+{
+  "status": "PASS",
+  "tests": 45,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "test_results": [
+    {
+      "id": "test_trt_schema.SchemaTests.test_executable_schema_and_snapshot_provenance",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_missing_and_unknown_output_fields_fail_closed",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_mixed_null_and_adapter_contract_rejected",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_null_valid_but_factory_rejects_before_adapter_import",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_onnx_provenance_required_and_finite",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_schema.SchemaTests.test_tensor_shape_dtype_axes_and_size_fail_closed",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_asymmetric_padding",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_landscape",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_odd_rounding_split",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_portrait",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_preprocess.PreprocessTests.test_square_scaleup",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_class_aware_nms",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_confidence_strict_boundary_and_single_label",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_decode_and_class_mapping",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_deterministic_ties_score_class_then_raw_index",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_empty_is_valid",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_iou_equal_retained_greater_suppressed",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_max_det_300",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_nms_happens_before_clipping",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_reject_name_shape_dtype_nonfinite_score_and_bad_box",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_postprocess.PostprocessTests.test_restore_padding_gain_then_clip",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_bad_input_recoverable_no_execute_then_good_input",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_close_idempotent_and_no_execution_after_close",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_default_is_native_not_implemented_without_forbidden_import",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_empty_valid",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_invalid_output_fatal_even_if_executor_claims_usable",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_metadata_identities_detached_json_and_timing_default_off",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_pt_close_only_addition_preserves_original_method_ast",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_real_preprocess_decode_result_and_identity",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_timing_opt_in_host_only",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_unknown_execution_error_invalidates_and_never_returns_empty",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_detector.DetectorTests.test_wrapped_format_rejected_before_executor",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_camera_init_failure_closes_constructed_detector",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_cancel_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_cleanup_failure_after_normal_result_is_fault",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_cleanup_failures_do_not_mask_primary",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_context_mismatch_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_deadline_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_early_detector_init_failure_safe",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_fatal_error_then_fault_no_next_job",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_normal_cleanup_and_full_recipe_evidence",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_old_session_has_precedence_no_duplicate_terminal",
+      "result": "PASS"
+    },
+    {
+      "id": "test_trt_lifecycle.LifecycleTests.test_service_error_commit_before_fault_and_one_terminal",
+      "result": "PASS"
+    }
+  ],
+  "origins": {
+    "src.contracts.enums": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\enums.py",
+    "src.contracts.models": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\models.py",
+    "src.contracts.interfaces": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\interfaces.py",
+    "src.contracts": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\contracts\\__init__.py",
+    "src.recipe": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\__init__.py",
+    "src.recipe.package": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\recipe\\package.py",
+    "src.vision": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\__init__.py",
+    "src.vision.detector_factory": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\detector_factory.py",
+    "src.vision.pytorch_detector": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\pytorch_detector.py",
+    "src.decision": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\__init__.py",
+    "src.decision.bench": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\bench.py",
+    "src.decision.slots": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\slots.py",
+    "src.vision.tensorrt_preprocess": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\tensorrt_preprocess.py",
+    "src.camera": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\camera\\__init__.py",
+    "src.camera.fresh_frame": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\camera\\fresh_frame.py",
+    "src.decision.calibration": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\decision\\calibration.py",
+    "src.quality": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\quality\\__init__.py",
+    "src.quality.image": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\quality\\image.py",
+    "src.vision.inspection_worker": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\inspection_worker.py",
+    "src.journal": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\journal\\__init__.py",
+    "apps.edge_service.bench": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\apps\\edge_service\\bench.py",
+    "src.journal.sqlite": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\journal\\sqlite.py",
+    "src.control": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\control\\__init__.py",
+    "src.control.mock_cell": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\control\\mock_cell.py",
+    "apps.edge_service.mock_port": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\apps\\edge_service\\mock_port.py",
+    "apps.edge_service.inspection": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\apps\\edge_service\\inspection.py",
+    "src.vision.tensorrt_postprocess": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\tensorrt_postprocess.py",
+    "src.vision.tensorrt_detector": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\vision\\tensorrt_detector.py",
+    "src.camera.gstreamer_camera": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime\\src\\camera\\gstreamer_camera.py"
+  },
+  "candidate_source": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+  "python": "D:\\OneDevice_Team_project\\.venv\\Scripts\\python.exe",
+  "sys_path": [
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\candidate_runtime",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c\\tests",
+    "D:\\OneDevice_Team_project\\runs\\jetson_p0_003",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\tests",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0",
+    "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\jetson_p0_004c",
+    "C:\\Python313\\python313.zip",
+    "C:\\Python313\\DLLs",
+    "C:\\Python313\\Lib",
+    "C:\\Python313",
+    "D:\\OneDevice_Team_project\\.venv",
+    "D:\\OneDevice_Team_project\\.venv\\Lib\\site-packages"
+  ],
+  "forbidden_import_attempts": [],
+  "temporary_sqlite_connections": 10,
+  "existing_db_writes": 0,
+  "log": "test_executable_schema_and_snapshot_provenance (test_trt_schema.SchemaTests.test_executable_schema_and_snapshot_provenance) ... ok\ntest_missing_and_unknown_output_fields_fail_closed (test_trt_schema.SchemaTests.test_missing_and_unknown_output_fields_fail_closed) ... ok\ntest_mixed_null_and_adapter_contract_rejected (test_trt_schema.SchemaTests.test_mixed_null_and_adapter_contract_rejected) ... ok\ntest_null_valid_but_factory_rejects_before_adapter_import (test_trt_schema.SchemaTests.test_null_valid_but_factory_rejects_before_adapter_import) ... ok\ntest_onnx_provenance_required_and_finite (test_trt_schema.SchemaTests.test_onnx_provenance_required_and_finite) ... ok\ntest_tensor_shape_dtype_axes_and_size_fail_closed (test_trt_schema.SchemaTests.test_tensor_shape_dtype_axes_and_size_fail_closed) ... ok\ntest_asymmetric_padding (test_trt_preprocess.PreprocessTests.test_asymmetric_padding) ... ok\ntest_declared_fp16_and_noncontiguous_input (test_trt_preprocess.PreprocessTests.test_declared_fp16_and_noncontiguous_input) ... ok\ntest_invalid_images_and_dtype (test_trt_preprocess.PreprocessTests.test_invalid_images_and_dtype) ... ok\ntest_landscape (test_trt_preprocess.PreprocessTests.test_landscape) ... ok\ntest_odd_rounding_split (test_trt_preprocess.PreprocessTests.test_odd_rounding_split) ... ok\ntest_portrait (test_trt_preprocess.PreprocessTests.test_portrait) ... ok\ntest_square_scaleup (test_trt_preprocess.PreprocessTests.test_square_scaleup) ... ok\ntest_class_aware_nms (test_trt_postprocess.PostprocessTests.test_class_aware_nms) ... ok\ntest_confidence_strict_boundary_and_single_label (test_trt_postprocess.PostprocessTests.test_confidence_strict_boundary_and_single_label) ... ok\ntest_decode_and_class_mapping (test_trt_postprocess.PostprocessTests.test_decode_and_class_mapping) ... ok\ntest_deterministic_ties_score_class_then_raw_index (test_trt_postprocess.PostprocessTests.test_deterministic_ties_score_class_then_raw_index) ... ok\ntest_empty_is_valid (test_trt_postprocess.PostprocessTests.test_empty_is_valid) ... ok\ntest_iou_equal_retained_greater_suppressed (test_trt_postprocess.PostprocessTests.test_iou_equal_retained_greater_suppressed) ... ok\ntest_max_det_300 (test_trt_postprocess.PostprocessTests.test_max_det_300) ... ok\ntest_nms_happens_before_clipping (test_trt_postprocess.PostprocessTests.test_nms_happens_before_clipping) ... ok\ntest_reject_name_shape_dtype_nonfinite_score_and_bad_box (test_trt_postprocess.PostprocessTests.test_reject_name_shape_dtype_nonfinite_score_and_bad_box) ... ok\ntest_restore_padding_gain_then_clip (test_trt_postprocess.PostprocessTests.test_restore_padding_gain_then_clip) ... ok\ntest_bad_input_recoverable_no_execute_then_good_input (test_trt_detector.DetectorTests.test_bad_input_recoverable_no_execute_then_good_input) ... ok\ntest_close_idempotent_and_no_execution_after_close (test_trt_detector.DetectorTests.test_close_idempotent_and_no_execution_after_close) ... ok\ntest_default_is_native_not_implemented_without_forbidden_import (test_trt_detector.DetectorTests.test_default_is_native_not_implemented_without_forbidden_import) ... ok\ntest_empty_valid (test_trt_detector.DetectorTests.test_empty_valid) ... ok\ntest_invalid_output_fatal_even_if_executor_claims_usable (test_trt_detector.DetectorTests.test_invalid_output_fatal_even_if_executor_claims_usable) ... ok\ntest_metadata_identities_detached_json_and_timing_default_off (test_trt_detector.DetectorTests.test_metadata_identities_detached_json_and_timing_default_off) ... ok\ntest_pt_close_only_addition_preserves_original_method_ast (test_trt_detector.DetectorTests.test_pt_close_only_addition_preserves_original_method_ast) ... ok\ntest_real_preprocess_decode_result_and_identity (test_trt_detector.DetectorTests.test_real_preprocess_decode_result_and_identity) ... ok\ntest_timing_opt_in_host_only (test_trt_detector.DetectorTests.test_timing_opt_in_host_only) ... ok\ntest_unknown_execution_error_invalidates_and_never_returns_empty (test_trt_detector.DetectorTests.test_unknown_execution_error_invalidates_and_never_returns_empty) ... ok\ntest_wrapped_format_rejected_before_executor (test_trt_detector.DetectorTests.test_wrapped_format_rejected_before_executor) ... ok\ntest_camera_init_failure_closes_constructed_detector (test_trt_lifecycle.LifecycleTests.test_camera_init_failure_closes_constructed_detector) ... ok\ntest_cancel_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_cancel_has_precedence_no_duplicate_terminal) ... ok\ntest_cleanup_failure_after_normal_result_is_fault (test_trt_lifecycle.LifecycleTests.test_cleanup_failure_after_normal_result_is_fault) ... ok\ntest_cleanup_failures_do_not_mask_primary (test_trt_lifecycle.LifecycleTests.test_cleanup_failures_do_not_mask_primary) ... ok\ntest_context_mismatch_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_context_mismatch_has_precedence_no_duplicate_terminal) ... ok\ntest_deadline_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_deadline_has_precedence_no_duplicate_terminal) ... ok\ntest_early_detector_init_failure_safe (test_trt_lifecycle.LifecycleTests.test_early_detector_init_failure_safe) ... ok\ntest_fatal_error_then_fault_no_next_job (test_trt_lifecycle.LifecycleTests.test_fatal_error_then_fault_no_next_job) ... ok\ntest_normal_cleanup_and_full_recipe_evidence (test_trt_lifecycle.LifecycleTests.test_normal_cleanup_and_full_recipe_evidence) ... ok\ntest_old_session_has_precedence_no_duplicate_terminal (test_trt_lifecycle.LifecycleTests.test_old_session_has_precedence_no_duplicate_terminal) ... ok\ntest_service_error_commit_before_fault_and_one_terminal (test_trt_lifecycle.LifecycleTests.test_service_error_commit_before_fault_and_one_terminal) ... ok\n\n----------------------------------------------------------------------\nRan 45 tests in 0.997s\n\nOK\n"
+}
