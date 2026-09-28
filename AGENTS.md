@@ -7,7 +7,7 @@
 
 ## JETSON-RUNTIME-ONLY
 
-- Jetson은 실행 장비이며 개발 이력 보관소가 아니다. 목표 상주 Runtime은 `/home/jetson/oned_device_bench/current` 한 벌이다. 실제 release ID·해시로 적용을 확인한다.
+- Jetson은 실행 장비이며 개발 이력 보관소가 아니다. 상주 Runtime은 `/home/jetson/oned_device_bench/current` 한 벌이다(2026-09-28 전환 완료). 실제 release ID·해시로 적용을 확인한다.
 - 개발 소스·테스트·재생·촬영/학습 자료·검증 결과·과거 버전은 노트북에 보관한다. 기존 archive/backup 또는 `archives/jetson`을 사용한다.
 - 노트북의 기존 패키징/배포 스크립트를 확장해 명시적 allowlist/manifest로 필요한 코드·HMI·설정·자산·기동 점검만 배포한다. 전체 runs/fixes나 과거 후보를 영구 복사하지 않는다. 운영 import/self-test 의존성과 MOCK gateway를 이름만 보고 제외하지 않는다.
 - Jetson 네이티브 검증은 필요한 파일만 `/home/jetson/oned_device_bench/tmp/verify` 한 곳에 임시 반입한다. 결과·오류·버전 식별정보를 노트북으로 회수하고 무결성을 확인한 뒤 해당 임시 사본을 정리한다. 회수 실패 시 원본을 보존한다.

@@ -31,12 +31,14 @@ flowchart LR
 2026-09-28 정리 기준입니다. `jetson/apps`, `jetson/src`, `jetson/config`의 94개 파일은 실제 설치본 `area_clearance_v004_exit_native_support_dev_black_ref003`과 바이트가 같습니다. 경로를 인자로 받는 시작·관리 파일은 기존 실행기를 정리한 것입니다. 출처와 복사 해시는 [`source_baseline.json`](notebook/deployment/source_baseline.json), 배포 포함 목록은 [`runtime_allowlist.json`](notebook/deployment/runtime_allowlist.json)에 있습니다.
 
 - **개발 소스:** `jetson/`, `notebook/`. 앞으로 이 위치를 수정합니다.
-- **현재 Jetson 실행 경로:** 아직 `candidates/engine_dynamic_pose_002/fixes/ENGINE-PRODUCT-TRACK-ROBUSTNESS-002/runtime_candidate`입니다. `current` 전환 완료를 뜻하지 않습니다.
-- **현재 설치본 식별:** candidate manifest `624ac23530aae2e0969c221d466ca2c08bd3db836789902a9b4091ce0f76fc6f`; 점유 설정 `dd60948fdd5fd4c01f719e8dc7a891c35f5a5c0074a633f7054971014704e224`.
+- **현재 Jetson 실행 경로:** `/home/jetson/oned_device_bench/current`. 2026-09-28 실제 기동과 단독 카메라 Worker를 확인했습니다. 자산은 `assets`, 장치 설정은 `config`, 현재 검사 이력은 `data/engine_dynamic_pose_002`입니다.
+- **현재 실행 릴리스:** `engine-dev-4ea07192a7a54007`. 원본 candidate manifest `624ac23530aae2e0969c221d466ca2c08bd3db836789902a9b4091ce0f76fc6f`; 점유 설정 `dd60948fdd5fd4c01f719e8dc7a891c35f5a5c0074a633f7054971014704e224`. 검사 88건·이미지 352건의 DB 기록과 기존 이미지 조회를 보존했습니다.
 - **검증 한계:** v004 원본 재생은 통과했으나, 검정 매트 실물 회차에서 작은 손잡이 보존 후 완전 제거 시 자동 종료가 실패했습니다. ref003의 새 실물 연속 경로는 NOT_RUN입니다. 고정 빈 배경 의존 방식의 채택은 보류했으며 AUTO는 정지 상태입니다.
 - **출력:** MOCK / `physical_output_enabled=false`. PASS는 Result=0, FAIL·REVIEW·ERROR는 Result=1. 실제 PLC·생산 정확도 승인이 아닙니다.
 
 소스 정리·패키징 통과와 검사 기능의 실물 수용은 별개입니다. Pose REVIEW, 대용량 진단 기록 중 관측 지연의 기존 한계도 해결된 것으로 표시하지 않습니다.
+
+Jetson의 옛 코드·개발 자료는 노트북 백업을 확인한 뒤 승인된 34,141개 항목만 삭제했습니다(약 21.47GB 확보). 관리 영역에서 실행환경을 제외한 코드 파일은 `current`에만 있습니다. 옛 `candidates`에 남은 것은 보호된 검사 DB·Evidence 등 데이터이며 실행 후보가 아닙니다. 백업 대응표는 로컬 `archives/jetson/runtime_only_inventory.json`에 있습니다.
 
 ## 실행과 다른 장치 배포
 
@@ -44,6 +46,7 @@ flowchart LR
 - Jetson 모듈을 위에서 아래로 읽기: [`jetson/README.md`](jetson/README.md).
 - 파일 묶음 제작·장치별 설정·기동·복귀: [`notebook/deployment/README.md`](notebook/deployment/README.md).
 - 기존 테스트 화면: SSH 터널을 연결한 노트북에서 `http://127.0.0.1:18771/auto`.
+- 노트북 바로가기: [`notebook/OPEN_ENGINE_HCAM.cmd`](notebook/OPEN_ENGINE_HCAM.cmd). 장치 접속 설정은 Git 밖 `notebook/deployment/targets/current.json`에서 읽습니다.
 
 Git에는 소스·설정 형식·배포 목록을 보관합니다. TensorRT 모델, Pose bank, 승인 기준 이미지, 촬영 원본, 운영 DB는 별도 파일입니다. **Git clone만으로 모델·승인·장치 환경이 준비되지는 않습니다.** 필요한 운영 자산은 해시가 확인된 로컬 배포 묶음으로 전달하며, 장치마다 카메라와 실행환경을 확인합니다.
 

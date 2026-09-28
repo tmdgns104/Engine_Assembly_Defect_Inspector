@@ -1,5 +1,7 @@
 """노트북에서 실행하는 배포 경계 시험. 카메라·모델 추론은 시작하지 않는다."""
 import importlib.util
+import hashlib
+import io
 import json
 from pathlib import Path
 import tarfile
@@ -74,6 +76,35 @@ class PackageTests(unittest.TestCase):
         status['inspection_service']['diagnostic_capture']['state'] = 'SAVING'
         with self.assertRaises(RuntimeError):
             managed.assert_idle(status)
+
+    def test_deployer_rejects_archive_escape_and_unexpected_links(self):
+        spec = importlib.util.spec_from_file_location('deploy', HERE / 'deploy_area.py')
+        deploy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(deploy)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'bad.tar'
+            for name, link in [('../outside', None), ('current/escape', '/etc'),
+                               ('current/config', '../../outside')]:
+                with tarfile.open(path, 'w') as archive:
+                    member = tarfile.TarInfo(name)
+                    if link:
+                        member.type = tarfile.SYMTYPE
+                        member.linkname = link
+                        archive.addfile(member)
+                    else:
+                        archive.addfile(member, io.BytesIO(b''))
+                with self.assertRaises(ValueError):
+                    deploy.validate_bundle(path, hashlib.sha256(path.read_bytes()).hexdigest())
+
+    def test_deployer_checks_archive_hash_before_mutation(self):
+        spec = importlib.util.spec_from_file_location('deploy', HERE / 'deploy_area.py')
+        deploy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(deploy)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'invalid.tar'
+            path.write_bytes(b'not an approved bundle')
+            with self.assertRaisesRegex(ValueError, 'ARCHIVE_SHA256_MISMATCH'):
+                deploy.validate_bundle(path, '0' * 64)
 
 
 if __name__ == '__main__':

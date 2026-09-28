@@ -38,19 +38,19 @@ oned_device_bench/
 └─ tmp/verify/               필요한 Jetson 검증 동안만 임시 사용
 ```
 
-기존 Jetson의 `live_data`는 그대로 둡니다. `runtime.json`의 `data_root`를 기존 위치에 연결할 수 있습니다. 운영 DB를 복사·초기화하거나 기존 이력 경로를 임의로 바꾸지 않습니다. 기존 데이터 경로 연결은 코드가 과거 후보를 import한다는 의미가 아닙니다.
+현재 Jetson은 정상 종료 뒤 `live_data` 전체를 노트북에 백업하고 `data/engine_dynamic_pose_002`로 옮겼습니다. SQLite와 Evidence를 함께 보존했고 검사 88건·이미지 352건의 DB 행이 백업과 동일합니다. `runtime.json`의 `data_root`는 이 위치를 가리킵니다. 다른 기존 장치를 옮길 때는 그 장치의 데이터를 별도로 백업하며 현재 장치 DB를 복제해 시작하지 않습니다.
 
 `runtime.example.json`과 `station.example.json`을 읽고 **장치별** 설정을 코드 밖에 준비합니다. 예제 경로는 `oned_device_bench/config` 기준입니다. `station.json`의 카메라 by-id는 다른 장치에서 확인해야 합니다. 설정 예제를 복사해도 보정/빈 화면 승인 상태를 True로 만들지 않습니다.
 
 ## 확인·기동·종료
 
-아래는 정상 설치 후 명령입니다. 현재 장비의 자동 교체 완료 명령으로 오해하지 마세요. 이번 소스 정리만으로 기존 실행 중 프로세스를 바꾸지 않았습니다.
+현재 장치에서 확인한 관리 명령입니다. `current`의 실제 릴리스는 `engine-dev-4ea07192a7a54007`이며, 종료 판정 채택 보류 상태는 유지합니다.
 
 ```bash
 cd /home/jetson/oned_device_bench
 envs/app_v1/bin/python -B -X utf8 current/launch_live.py \
   --package assets/products/ENGINE_Z3005_5/dynamic_parts_005 \
-  --station config/station.json --data-root data --check-only
+  --station config/station.json --data-root data/engine_dynamic_pose_002 --check-only
 envs/app_v1/bin/python -B -X utf8 current/manage_live.py start --config config/runtime.json
 envs/app_v1/bin/python -B -X utf8 current/manage_live.py status --config config/runtime.json
 envs/app_v1/bin/python -B -X utf8 current/manage_live.py stop --config config/runtime.json
@@ -62,7 +62,7 @@ envs/app_v1/bin/python -B -X utf8 current/manage_live.py stop --config config/ru
 
 현재 장치에서 직접 확인한 Python·FastAPI·NumPy·OpenCV·TensorRT 버전은 [`environment.observed.json`](../../jetson/environment.observed.json)에 있습니다. 기존 `app_v1`과 NumPy overlay를 재사용하며, 이 관측 목록은 다른 Jetson의 자동 설치 스크립트가 아닙니다.
 
-노트북 브라우저 연결은 SSH 키를 별도 보관한 뒤 기존 SSH 터널을 사용합니다.
+노트북은 `device.example.json`을 Git 제외 경로 `targets/current.json`으로 복사해 실제 주소·기존 키 경로를 채운 뒤 `notebook/OPEN_ENGINE_HCAM.cmd`를 실행합니다. 내부 `open_live.ps1`은 현재 실행 경로와 release ID가 맞는지 확인합니다. 키를 새로 만들거나 보안 정책을 바꾸지 않습니다. 기존 `runs/engine_dynamic_pose_002/OPEN_ENGINE_HCAM.cmd`도 현재 바로가기로 연결했습니다. 수동 터널 명령은 다음과 같습니다.
 
 ```powershell
 ssh -N -L 18771:127.0.0.1:18771 <user>@<jetson-address>
@@ -72,8 +72,21 @@ ssh -N -L 18771:127.0.0.1:18771 <user>@<jetson-address>
 
 ## 실제 교체와 복귀 조건
 
-현재 후보의 종료 판정 채택이 보류되어 `current` 전환은 아직 실행하지 않았습니다. 검증된 배포 대상이 정해지면 기존 `verification/area_clearance/deploy_area.py`의 작업 중단 조건과 managed stop/start 순서를 유지하여 이 묶음을 설치합니다. **옛 deploy_area.py에 새 형식의 tar를 넘기지 않습니다.** 현재 버전은 옛 후보 형식만 받으며 단일 경로 설치 부분의 적용·실물 확인이 남아 있습니다.
+이번에는 현재 개발본의 알고리즘을 그대로 두고 `current` 전환을 실제 수행했습니다. `deploy_area.py`는 기존 area 배포기의 해시·정상 종료·카메라 소유 확인·managed start 순서를 재사용한 **최초 경로 전환용**입니다. `current/assets/config`가 이미 있으면 덮어쓰지 않고 중단합니다. 차후 코드 업데이트에 이 최초 설치 명령을 그대로 반복하지 않습니다.
+
+새 장치 최초 설치 순서는 노트북 패키징 → `tmp/deploy`에 패키지·이 배포기·장치 설정만 업로드 → 기존 관리 경로 정상 종료/카메라 해제 → 보존할 데이터와 환경 준비 → 아래 명령입니다. archive SHA와 station 내용은 배포 대상에 맞게 확인합니다. `station.example.json`과 다른 카메라 설정은 해당 장치용 묶음에 반영해야 합니다.
+
+```bash
+envs/app_v1/bin/python -B -X utf8 tmp/deploy/deploy_area.py \
+  --base /home/jetson/oned_device_bench \
+  --archive tmp/deploy/engine-runtime-layout-001.tar.gz --sha256 <노트북에서 확인한 SHA256> \
+  --station <기존 장치 station.json> --runtime-settings tmp/deploy/runtime.json
+```
 
 교체 전에는 현재 실행 명령·해시, 활성 검사/요청/저장, 복구 묶음의 노트북 백업을 확인합니다. 정상 종료와 카메라 해제를 확인한 뒤 제한된 임시 공간의 패키지를 교체하고, 실패 시 직전 코드·설정·경로로 복귀합니다. 운영 데이터와 Python 환경은 교체 대상이 아닙니다.
 
+현재 장치의 복귀 자료는 노트북 `archives/jetson/runtime_only_inventory.json`의 원본 경로→백업 tar member/기존 PC 파일 대응표에 있습니다. 종료된 현재 코드·설정을 보존한 뒤 필요한 직전 코드·모델·설정만 그 대응표로 복원하고, 같은 현재 운영 데이터를 연결하여 기동합니다. 예전 DB 백업으로 현재 DB를 덮어쓰지 않습니다. 이번 경로 전환 직전으로 되돌리는 경우 기존 `candidates/engine_dynamic_pose_002/manage_live.py start`를 사용하며 `live_data`는 현재 데이터 위치로 연결해야 합니다. DB 백업 tar는 장애 복구용이며 코드 rollback 때 자동 복원하지 않습니다.
+
 기존 파일 삭제는 **노트북 백업 검증 + 새 실행본 확인 + 정확한 삭제 목록/용량 제시 + 사용자 1회 승인** 뒤에만 합니다. 노트북에만 이전 버전을 보관하므로 현장 즉시 복귀에는 노트북 또는 별도 전달한 복구 묶음이 필요합니다.
+
+2026-09-28 정리 결과: 승인 목록 34,141개 항목 삭제, 실제 여유 공간 약 58.17GB → 79.64GB. `candidates`에는 이력 보존 대상 데이터 407파일만 남겼으며 실행 코드가 없습니다. `diagnostics`·`build_staging`에는 파일 없는 옛 디렉터리만 남아 있습니다. 미승인 경로를 추가 삭제하지 않았습니다. `tmp`는 비어 있고 `envs/app_v1`·NumPy overlay는 실제 사용 중이므로 보존합니다. 운영 코드의 옛 후보 경로 의존은 확인되지 않았습니다.

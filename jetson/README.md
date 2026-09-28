@@ -1,6 +1,6 @@
 # Jetson Orin Nano 실행 코드
 
-이 폴더가 Jetson 기능을 수정하는 원본입니다. 노트북에서 편집·검증하고 필요한 파일만 Jetson의 `/home/jetson/oned_device_bench/current`에 배포합니다. 현재 하드웨어의 `current` 전환은 아직 완료되지 않았습니다. 설치 상태와 알려진 실패는 [루트 안내](../README.md)를 확인하세요.
+이 폴더가 Jetson 기능을 수정하는 원본입니다. 노트북에서 편집·검증하고 필요한 파일만 Jetson의 `/home/jetson/oned_device_bench/current`에 배포합니다. 2026-09-28 현재 하드웨어도 이 경로로 전환했습니다. 설치 상태와 알려진 종료 판정 실패는 [루트 안내](../README.md)를 확인하세요.
 
 ## 위에서 아래로 읽는 순서
 

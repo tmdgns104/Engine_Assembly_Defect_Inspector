@@ -1,0 +1,5 @@
+{
+  "ssh_target": "jetson@your-device-address",
+  "remote_base": "/home/jetson/oned_device_bench",
+  "key_path": "%USERPROFILE%/.ssh/your-existing-key"
+}

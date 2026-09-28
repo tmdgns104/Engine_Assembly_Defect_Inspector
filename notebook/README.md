@@ -5,6 +5,7 @@
 | 위치 | 역할 / 시작점 |
 |---|---|
 | [`start_capture.cmd`](start_capture.cmd) | 기존 Engine Dataset Wizard V1을 실행하는 Windows 바로가기 |
+| [`OPEN_ENGINE_HCAM.cmd`](OPEN_ENGINE_HCAM.cmd) | Jetson의 `current` 시작 → SSH 터널 → 기존 `/auto` 화면. AUTO 운전은 자동 시작하지 않음 |
 | [`training/capture_windows/__main__.py`](training/capture_windows/__main__.py) | 인자 처리 → Tk 화면 생성 → 종료 |
 | [`training/capture_windows/wizard_app.py`](training/capture_windows/wizard_app.py) | 촬영 화면과 사용자 동작 |
 | [`training/capture_windows/camera.py`](training/capture_windows/camera.py) | 노트북 USB 카메라의 연결·프레임 수신 |
