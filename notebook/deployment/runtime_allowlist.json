@@ -15,6 +15,7 @@
     "apps/edge_service/integration_api.py",
     "apps/edge_service/lab_port.py",
     "apps/edge_service/mock_port.py",
+    "boot_live.py",
     "config/area_clearance.json",
     "config/plc_reference.json",
     "launch_live.py",

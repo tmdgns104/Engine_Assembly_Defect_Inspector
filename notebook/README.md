@@ -5,7 +5,7 @@
 | 위치 | 역할 / 시작점 |
 |---|---|
 | [`start_capture.cmd`](start_capture.cmd) | 기존 Engine Dataset Wizard V1을 실행하는 Windows 바로가기 |
-| [`OPEN_ENGINE_HCAM.cmd`](OPEN_ENGINE_HCAM.cmd) | Jetson의 `current` 시작 → SSH 터널 → 기존 `/auto` 화면. AUTO 운전은 자동 시작하지 않음 |
+| [`OPEN_ENGINE_HCAM.cmd`](OPEN_ENGINE_HCAM.cmd) | Jetson `current` 확인 → SSH 터널 → 기존 `/auto` 화면. Jetson 부팅 AUTO는 장치에서 관리 |
 | [`training/capture_windows/__main__.py`](training/capture_windows/__main__.py) | 인자 처리 → Tk 화면 생성 → 종료 |
 | [`training/capture_windows/wizard_app.py`](training/capture_windows/wizard_app.py) | 촬영 화면과 사용자 동작 |
 | [`training/capture_windows/camera.py`](training/capture_windows/camera.py) | 노트북 USB 카메라의 연결·프레임 수신 |
@@ -14,6 +14,7 @@
 | `training/datasets/` | 제품·촬영 순서 JSON. 촬영 이미지 폴더가 아님 |
 | `training/scripts/` | 데이터 검증·라벨 변환·학습/평가 도구. 명시적으로 실행할 때만 작동 |
 | [`deployment/`](deployment/README.md) | Jetson 운영 파일을 목록에 따라 묶는 노트북 전용 도구 |
+| [`deployment/maintain_tunnel.ps1`](deployment/maintain_tunnel.ps1) | 노트북 로그인 중 SSH 터널이 끊기면 다시 연결. 카메라·검사는 실행하지 않음 |
 | `tests/` | 합성 입력으로 실행하는 기존 촬영 도구 시험. Jetson 배포 제외 |
 
 호출 순서는 `start_capture.cmd → __main__.py → WizardApp → Collection/CameraClient → 저장·내보내기`입니다. 촬영 도구는 AI 자동 검사 화면이 아니며, 처음 시작할 때 카메라나 촬영을 자동 시작하지 않습니다.

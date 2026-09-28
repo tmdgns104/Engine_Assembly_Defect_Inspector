@@ -97,10 +97,6 @@ def main():
     if args.plc_bench:
         from src.control.omron_cip import OmronCipGateway
         gateway = OmronCipGateway('192.168.50.3', '192.168.50.2')
-        request = gateway.read_request()
-        if request.status != 'ACK' or request.value is not False:
-            gateway.close()
-            raise ValueError('VALID_PLC_REQUEST_LOW_REQUIRED_AT_START')
     runtime = build_runtime(package, station, args.data_root.resolve(), mode='production',
                             production_gateway=gateway)
     try:

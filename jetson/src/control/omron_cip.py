@@ -27,7 +27,8 @@ class OmronCipGateway:
         self.session = 0
         self.counter = 0
         self.last = {}
-        self._connect()
+        # The camera and HMI boot while the PLC is off. A read connects later;
+        # an uncertain write is never retried.
 
     def _connect(self):
         connection = socket.create_connection((self.host, 44818), self.timeout,
@@ -112,6 +113,8 @@ class OmronCipGateway:
     def _read_bool(self, tag):
         if tag not in self._ALLOWED_READS:
             raise ValueError('READ_TAG_NOT_ALLOWED')
+        if self.socket is None:
+            self._connect()
         data = self._message(0x4C, tag, struct.pack('<H', 1))
         if len(data) != 4:
             raise CipError('BOOL_REPLY_LENGTH_INVALID')
@@ -126,6 +129,7 @@ class OmronCipGateway:
         try:
             return IoResult('ACK', self._read_bool('Inspection_Request'))
         except Exception as error:
+            self.close()
             return IoResult('FAILED', error=type(error).__name__ + ':' + str(error))
 
     def _write_bool(self, tag, value):

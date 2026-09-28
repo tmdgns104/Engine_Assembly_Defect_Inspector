@@ -56,7 +56,7 @@ envs/app_v1/bin/python -B -X utf8 current/manage_live.py status --config config/
 envs/app_v1/bin/python -B -X utf8 current/manage_live.py stop --config config/runtime.json
 ```
 
-`--check-only`는 파일·해시·선택한 Gateway 조건만 확인하며 카메라·추론·DB를 열지 않습니다. 실제 시작 후 `/api/v1/release`는 **시작 시 확인한** release ID와 경로·해시를 표시합니다. `/api/v1/health`의 camera_ready와 단독 Worker, 실제 모델 로드, 이력·저장·선택한 Gateway 동작까지 확인해야 설치 완료입니다. AUTO 시작은 별도이며 자동으로 수행하지 않습니다.
+`--check-only`는 파일·해시·선택한 Gateway 조건만 확인하며 카메라·추론·DB를 열지 않습니다. 실제 시작 후 `/api/v1/release`는 **시작 시 확인한** release ID와 경로·해시를 표시합니다. `/api/v1/health`의 camera_ready와 단독 Worker, 실제 모델 로드, 이력·저장·선택한 Gateway 동작까지 확인해야 설치 완료입니다. 수동 `start`는 서버만 시작합니다. 이 벤치의 사용자 crontab `@reboot`는 `current/boot_live.py`를 호출해 PLC가 꺼져 있어도 서버를 준비하고, PLC Request=0·유효한 빈 작업면·카메라 준비를 확인한 뒤 AUTO를 시작합니다. 오류나 PLC 불명 상태에서 자동 복구/결과 전송은 하지 않습니다. 다른 장치에도 cron이 활성화되어 있는지 확인한 뒤 해당 장치 설정으로 등록해야 합니다.
 
 다른 Jetson의 JetPack/CUDA/TensorRT/GPU 조합이 같다고 가정하지 않습니다. 현 model.plan은 기존 Orin Nano, TensorRT 10.3 / CUDA 12.6 환경의 산출물입니다. 다른 환경의 기동·추론은 미검증이며 이 정리 과정에서 재빌드하지 않았습니다.
 
@@ -69,6 +69,14 @@ ssh -N -L 18771:127.0.0.1:18771 <user>@<jetson-address>
 ```
 
 화면: `http://127.0.0.1:18771/auto`. 주소·키·사용자명은 Git에 고정하지 않습니다.
+
+이 노트북에서는 `install_tunnel_task.ps1`로 현재 사용자 로그인 작업 `OneDeviceEngineTunnel`을 등록했습니다. `maintain_tunnel.ps1`은 기존 `targets/current.json`의 SSH 주소로 로컬 포트 18771만 유지하며 Jetson 재부팅으로 터널이 끊기면 다시 연결합니다. 현재 자동 대상은 유선 Jetson `192.168.50.2`이며 노트북 출발 주소 `192.168.50.1`을 확인했습니다. Tailscale 대상은 Git에서 제외된 `targets/remote_tailscale.json`에 외부 작업용으로 별도 보존합니다. 다른 노트북은 장치별 설정을 만든 뒤 아래 명령으로 등록합니다.
+
+```powershell
+powershell.exe -NoProfile -File notebook/deployment/install_tunnel_task.ps1
+```
+
+작업은 노트북 **사용자 로그인 중**에만 실행됩니다. 노트북이 꺼져 있거나 로그인 전에는 `127.0.0.1` 화면이 열리지 않지만 Jetson의 검사·PLC 연결은 독립적으로 계속됩니다. 터널의 일시 끊김 뒤 브라우저를 새로고침하면 같은 주소로 다시 접속합니다. 자동 연결을 중지하려면 작업 스케줄러에서 `OneDeviceEngineTunnel` 작업을 사용 안 함으로 바꾸고, 수동으로 연 터널은 기존 창/프로세스 소유자에게만 종료합니다.
 
 ## 실제 교체와 복귀 조건
 

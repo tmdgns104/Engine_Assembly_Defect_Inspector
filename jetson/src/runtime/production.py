@@ -32,6 +32,7 @@ class ProductionRuntime(IntegratedRuntime):
         self.connection_plan=json.loads((Path(__file__).resolve().parents[2]/'config/plc_reference.json').read_text(encoding='utf-8'))
         self.zone=zone or proposed_zone()
         self.operating=False; self.phase='STOPPED'; self.latest_packet=None
+        self.auto_stop_requested=False
         self.last_sequence=-1; self.last_time=0; self.epoch=None; self.worker_generation=None
         self.absent=[]; self.observation_times=deque(maxlen=40); self.history=deque(maxlen=30)
         self.gateway=gateway if gateway is not None else MockPlcGateway()
@@ -75,9 +76,18 @@ class ProductionRuntime(IntegratedRuntime):
             if not self.zone.get('confirmed') or self.zone.get('calibration_sha')!=calibration_sha(self.service.calibration):
                 raise ValueError('INSPECTION_ZONE_CONFIRMATION_REQUIRED')
             if self.handshake.state=='RESYNC_REQUIRED': raise ValueError('PLC_RESYNC_REQUIRED')
+            if self.gateway.backend != 'MOCK':
+                if self.handshake.state not in ('SYNC_LOW', 'ARMED'):
+                    raise ValueError('PLC_HANDSHAKE_NOT_IDLE')
+                request = self.gateway.read_request()
+                if request.status != 'ACK' or request.value is not False:
+                    raise ValueError('VALID_PLC_REQUEST_LOW_REQUIRED_AT_AUTO_START')
+                self.handshake.request = False
+                self.handshake.state = 'ARMED'
             if self.area_config_version and not self._area_approval_current(self._preview_area()):
                 raise ValueError('CURRENT_VALID_AREA_OBSERVATION_REQUIRED' if not self.area_reference_required
                                  else 'MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED')
+            self.auto_stop_requested=False
             self.operating=True; self.phase='IDLE'; self.last_sequence=-1; self.last_time=0
             # A new acquisition window must not inherit a stopped preview's age,
             # eligibility or FPS. Queue entries captured before START are not current.
@@ -92,6 +102,7 @@ class ProductionRuntime(IntegratedRuntime):
 
     def stop_auto(self):
         with self.lock,self.service.lock:
+            self.auto_stop_requested=True
             self.operating=False
             # An admitted request finishes under its original identity; STOP admits no next edge.
             if self.handshake.state=='REQUEST_LATCHED': self.handshake.fault('STOP_BEFORE_INSPECTION')
@@ -607,7 +618,8 @@ class ProductionRuntime(IntegratedRuntime):
             area=dict(area,state='UNKNOWN',reference_valid=False,clear_duration_s=0,
                       reason=('CURRENT_VALID_AREA_OBSERVATION_REQUIRED' if not self.area_reference_required
                               else 'MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED'))
-        value.update(mode='production',operating=self.operating,phase=self.phase,inspection_zone=self.zone,
+        value.update(mode='production',operating=self.operating,phase=self.phase,
+            auto_stop_requested=self.auto_stop_requested,inspection_zone=self.zone,
             area_clearance_enabled=bool(self.area_config_version),
             area_clearance_mode='DARK_SURFACE_SELF_OBSERVED' if not self.area_reference_required else 'STATIC_REFERENCE',
             area_occupancy=area,

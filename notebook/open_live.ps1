@@ -25,7 +25,6 @@ if ($null -eq $localRelease) {
     $tunnelArgs = @('-N','-L','18771:127.0.0.1:18771','-o','ExitOnForwardFailure=yes','-o','BatchMode=yes',
               '-o','ServerAliveInterval=15','-i',('"'+$keyPath+'"'),$target)
     $tunnel = Start-Process ssh -ArgumentList $tunnelArgs -WindowStyle Hidden -PassThru
-    $tunnel.Id | Set-Content -Encoding utf8 (Join-Path (Split-Path $DeviceConfig) 'live_tunnel.pid')
     for ($attempt=0; $attempt -lt 20; $attempt++) {
         try { $localRelease = Invoke-RestMethod 'http://127.0.0.1:18771/api/v1/release' -TimeoutSec 2; break }
         catch { Start-Sleep -Milliseconds 500 }
