@@ -26,10 +26,124 @@ def load_area_occupancy(path):
     path=Path(path)
     version='MISSING_AREA_CONFIG'
     try:
-        version=hashlib.sha256(path.read_bytes()).hexdigest()
+        raw=path.read_bytes()
+        version=hashlib.sha256(raw).hexdigest()
+        if json.loads(raw).get('mode')=='DARK_SURFACE_SELF_OBSERVED':
+            return DarkSurfaceOccupancy.from_config(path,raw)
         return BackgroundOccupancy.from_config(path)
     except (OSError,ValueError,KeyError,TypeError) as error:
         return UnavailableOccupancy(version,'AREA_REFERENCE_UNAVAILABLE:'+type(error).__name__)
+
+
+class DarkSurfaceOccupancy:
+    """Bench-only object check on the dark work surface in each native frame.
+
+    The surface edges are located again in every frame. No empty image is
+    retained, compared, learned or approved. An unrecognized surface is UNKNOWN.
+    """
+    def __init__(self, config, config_version):
+        self.config=config
+        self.config_version=config_version
+
+    @classmethod
+    def from_config(cls,path,raw=None):
+        raw=Path(path).read_bytes() if raw is None else raw
+        config=json.loads(raw)
+        if (config.get('mode')!='DARK_SURFACE_SELF_OBSERVED' or
+                config.get('roi')!='DYNAMIC_DARK_SURFACE_FULL_HEIGHT' or
+                config.get('color')!='BGR_UINT8' or config.get('shape')!=[720,1280,3] or
+                config.get('references')):
+            raise ValueError('UNSUPPORTED_DARK_SURFACE_CONFIG')
+        for key, expected in dict(clear_seconds=1.2,clear_minimum_frames=6,
+                                  maximum_gap_seconds=.5,maximum_age_seconds=1.).items():
+            if config.get(key)!=expected:
+                raise ValueError('UNSUPPORTED_AREA_CONTINUITY_POLICY:'+key)
+        return cls(config,hashlib.sha256(raw).hexdigest())
+
+    def evaluate(self,image):
+        import cv2
+        import numpy as np
+        started=perf_counter()
+        result=dict(config_version=self.config_version,
+                    reference_version='DARK_SURFACE_GEOMETRY_V1',
+                    reference_valid=False,classification='UNKNOWN',regions={})
+        if (image is None or image.dtype!=np.uint8 or
+                list(image.shape)!=self.config['shape']):
+            return dict(result,reason='IMAGE_GEOMETRY_OR_FORMAT_INVALID')
+        gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+        # Locate the current dark surface from many rows, not from one stored
+        # empty view. Side borders and the camera mount are outside this surface.
+        edges=[]
+        for y in range(120,640,8):
+            xs=np.flatnonzero(gray[y]<125)
+            if len(xs)>600:
+                edges.append((int(xs[0]),int(xs[-1])))
+        if len(edges)<40:
+            return dict(result,reason='DARK_SURFACE_GEOMETRY_UNKNOWN')
+        left=int(np.median([edge[0] for edge in edges]))
+        right=int(np.median([edge[1] for edge in edges]))
+        width=right-left
+        height,image_width=gray.shape
+        geometry=dict(left=left,right=right,valid_rows=len(edges),width=width)
+        result['regions']={'surface_geometry':geometry}
+        if not (.12*image_width<=left<=.22*image_width and
+                .74*image_width<=right<=.89*image_width and
+                .58*image_width<=width<=.72*image_width):
+            return dict(result,reason='DARK_SURFACE_GEOMETRY_UNKNOWN')
+        # A small side-border allowance prevents the white workbench edge from
+        # becoming a permanent object. The complete bottom exit stays observed.
+        inner_left,inner_right=left+18,right-12
+        interior=gray[120:640,inner_left:inner_right]
+        dark_fraction=float(np.count_nonzero(interior<125)/interior.size)
+        geometry['dark_fraction']=dark_fraction
+        if dark_fraction<.55:
+            return dict(result,reason='DARK_SURFACE_NOT_RECOGNIZED')
+        hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+        # The mat's illuminated texture can reach moderate saturation. The
+        # retained gold handle has a much stronger color signal at the exit.
+        foreground=np.logical_or(gray>135,
+            np.logical_and(hsv[:,:,1]>100,hsv[:,:,2]>90)).astype(np.uint8)
+        foreground[:,:inner_left]=0
+        foreground[:,inner_right:]=0
+        # A tiny camera translation can reveal a uniform bright strip above
+        # the work surface. It is a frame border, not a localized object. A
+        # wider strip invalidates geometry instead of being ignored.
+        top_border=0
+        for y in range(6):
+            if np.count_nonzero(foreground[y,inner_left:inner_right])<.8*(inner_right-inner_left):
+                break
+            top_border+=1
+        if top_border>5:
+            return dict(result,reason='DARK_SURFACE_TOP_BORDER_CHANGED')
+        foreground[:top_border,:]=0
+        # The camera mount can leave a few horizontal pixels at the top edge
+        # when the view shifts. Ignore only a wide, <=5 px tall edge sliver;
+        # a local object extending farther into the work surface still blocks.
+        count,labels,stats,_=cv2.connectedComponentsWithStats(foreground,8)
+        for index in range(1,count):
+            _,component_y,component_width,component_height,_=stats[index]
+            if (component_y==0 and component_height<=5 and
+                    component_width>=50 and component_width>=10*component_height):
+                foreground[labels==index]=0
+
+        def largest(mask,y_offset=0):
+            count,_,stats,_=cv2.connectedComponentsWithStats(mask,8)
+            if count<=1:return 0,None
+            index=int(stats[1:,4].argmax())+1
+            box=stats[index,:4].tolist()
+            box[1]+=y_offset
+            return int(stats[index,4]),box
+
+        whole,whole_box=largest(foreground)
+        bottom,bottom_box=largest(foreground[-64:],height-64)
+        result['regions'].update(largest_component_pixels=whole,
+            largest_component_box=whole_box,bottom_component_pixels=bottom,
+            bottom_component_box=bottom_box,foreground_pixels=int(foreground.sum()))
+        result['comparison_ms']=(perf_counter()-started)*1000
+        result['reference_valid']=True
+        if whole>=80 or bottom>=30:
+            return dict(result,classification='OCCUPIED',reason='DARK_SURFACE_OBJECT_PRESENT')
+        return dict(result,classification='MATCH',reason='DARK_SURFACE_NO_OBJECT')
 
 
 class BackgroundOccupancy:

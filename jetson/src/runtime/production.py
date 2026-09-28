@@ -27,13 +27,15 @@ from src.tracking.contracts import TrackState,WindowRelation,TrackingReason
 
 
 class ProductionRuntime(IntegratedRuntime):
-    def __init__(self,*args,zone=None,area_config_version=None,**kwargs):
+    def __init__(self,*args,zone=None,area_config_version=None,
+                 area_reference_required=True,gateway=None,**kwargs):
         self.connection_plan=json.loads((Path(__file__).resolve().parents[2]/'config/plc_reference.json').read_text(encoding='utf-8'))
         self.zone=zone or proposed_zone()
         self.operating=False; self.phase='STOPPED'; self.latest_packet=None
         self.last_sequence=-1; self.last_time=0; self.epoch=None; self.worker_generation=None
         self.absent=[]; self.observation_times=deque(maxlen=40); self.history=deque(maxlen=30)
-        self.gateway=MockPlcGateway(); self.handshake=RequestHandshake(self.gateway,self._event)
+        self.gateway=gateway if gateway is not None else MockPlcGateway()
+        self.handshake=RequestHandshake(self.gateway,self._event)
         self.pending_started=None; self.published_ids=set(); self.inspected_tracks=set()
         self.window_event=None; self.eligible=False; self.last_transition=None
         self.request_wait_seconds=8.; self.observation_stale_seconds=2.
@@ -41,6 +43,7 @@ class ProductionRuntime(IntegratedRuntime):
         self._reset_departure_candidate()
         self._diagnostic_events=None
         self.area_config_version = area_config_version
+        self.area_reference_required=area_reference_required
         self.area_approval = None
         self.area_window = ClearWindow()
         self.area_observation = None
@@ -71,9 +74,10 @@ class ProductionRuntime(IntegratedRuntime):
             if not self.service.status()['ready']: raise ValueError('CAMERA_MODELS_REFERENCE_JOURNAL_REQUIRED')
             if not self.zone.get('confirmed') or self.zone.get('calibration_sha')!=calibration_sha(self.service.calibration):
                 raise ValueError('INSPECTION_ZONE_CONFIRMATION_REQUIRED')
-            if self.handshake.state=='RESYNC_REQUIRED': raise ValueError('MOCK_RESYNC_REQUIRED')
+            if self.handshake.state=='RESYNC_REQUIRED': raise ValueError('PLC_RESYNC_REQUIRED')
             if self.area_config_version and not self._area_approval_current(self._preview_area()):
-                raise ValueError('MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED')
+                raise ValueError('CURRENT_VALID_AREA_OBSERVATION_REQUIRED' if not self.area_reference_required
+                                 else 'MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED')
             self.operating=True; self.phase='IDLE'; self.last_sequence=-1; self.last_time=0
             # A new acquisition window must not inherit a stopped preview's age,
             # eligibility or FPS. Queue entries captured before START are not current.
@@ -118,6 +122,8 @@ class ProductionRuntime(IntegratedRuntime):
 
     def mock_action(self,action,body):
         with self.lock,self.service.lock:
+            if self.gateway.backend != 'MOCK':
+                raise ValueError('MOCK_ACTION_UNAVAILABLE_WITH_REAL_PLC')
             if action=='request':
                 if type(body.get('value')) is not bool: raise ValueError('BOOL_REQUIRED')
                 self.gateway.request=body['value']
@@ -172,13 +178,18 @@ class ProductionRuntime(IntegratedRuntime):
         return area
 
     def _area_approval_current(self, area):
-        return bool(area and self.area_approval and area.get('reference_valid') and
-            area.get('config_version') == self.area_config_version and
-            all(area.get(k) == self.area_approval[k] for k in ('generation','camera_epoch','config_version')))
+        if not area or not area.get('reference_valid') or area.get('config_version')!=self.area_config_version:
+            return False
+        if not self.area_reference_required:
+            return True
+        return bool(self.area_approval and all(area.get(k)==self.area_approval[k]
+            for k in ('generation','camera_epoch','config_version')))
 
     def approve_area_reference(self, empty_confirmed=False, setup_unchanged=False):
         """One maintenance approval per Worker/epoch; never called by the lifecycle."""
         with self.lock, self.service.lock:
+            if not self.area_reference_required:
+                raise ValueError('NO_STATIC_REFERENCE_IN_DARK_SURFACE_MODE')
             if self.operating or self.coordinator.active_cycle or self.service.active:
                 raise ValueError('STOP_AND_IDLE_REQUIRED')
             area = self._preview_area()
@@ -397,6 +408,15 @@ class ProductionRuntime(IntegratedRuntime):
         if self.error:
             self._diagnostic_reason='HALTED_'+self.error; return
         tracker=self.coordinator._tracker
+        if (provider.status==ProviderStatus.PRODUCT_OBSERVED and
+                tracker._state==TrackState.WAIT_AREA_CLEAR and
+                self.handshake.token is None and
+                self.area_observation and
+                self.area_observation.get('frame_id')==packet['frame_id'] and
+                self.area_observation.get('state')=='OCCUPIED' and
+                tracker.resume_short_ambiguity(provider.observations[0].bbox,packet['monotonic_s'])):
+            self._event({'event':'PRODUCTION_TRACK_RESUMED','track_id':tracker._track_id,
+                'reason':'SHORT_AMBIGUITY_SAME_PRODUCT','frame_id':packet['frame_id']})
         if provider.status==ProviderStatus.AMBIGUOUS_FOREGROUND:
             self.eligible=False; self.phase='AMBIGUOUS_HOLD'
             if tracker._track_id is not None:
@@ -511,7 +531,7 @@ class ProductionRuntime(IntegratedRuntime):
             camera_epoch=self.epoch,worker_generation=self.service.generation,
             package_manifest_sha=self.service.package.manifest_hash,inspection_zone=self.zone,
             sequence=packet.get('sequence',-1),monotonic_s=packet.get('monotonic_s',0),
-            product_box=None,authority='WHOLE_PRODUCT_TRACK_AND_LATCHED_MOCK_REQUEST',
+            product_box=None,authority='WHOLE_PRODUCT_TRACK_AND_LATCHED_PLC_REQUEST',
             trigger_reason='REQUEST_TRACK_TIMEOUT_DIAGNOSTIC' if not self.eligible else 'TRACK_IN_ZONE_AND_PLC_EDGE')
         if self.eligible:
             box=packet['provider']['observations'][0]['bbox']
@@ -577,25 +597,37 @@ class ProductionRuntime(IntegratedRuntime):
 
     def status(self):
         value=super().status()
+        with self.lock:
+            plc_status=self.handshake.status()
         packet=self.latest_packet
         fresh=bool(packet and time.monotonic()-packet['processed_monotonic']<2 and self.service.status()['camera_ready'])
         area=self.area_observation if fresh else self._preview_area()
         area_approved=self._area_approval_current(area)
         if area and not area_approved:
             area=dict(area,state='UNKNOWN',reference_valid=False,clear_duration_s=0,
-                      reason='MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED')
+                      reason=('CURRENT_VALID_AREA_OBSERVATION_REQUIRED' if not self.area_reference_required
+                              else 'MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED'))
         value.update(mode='production',operating=self.operating,phase=self.phase,inspection_zone=self.zone,
             area_clearance_enabled=bool(self.area_config_version),
+            area_clearance_mode='DARK_SURFACE_SELF_OBSERVED' if not self.area_reference_required else 'STATIC_REFERENCE',
             area_occupancy=area,
-            area_reference_approved=area_approved,
+            area_reference_approved=area_approved if self.area_reference_required else False,
+            area_observation_valid=area_approved,
             area_wait_reason=self.area_wait_reason,last_retirement=self.last_retirement,
             area_wait_limit_exceeded=bool(self.area_wait_started is not None and time.monotonic()-self.area_wait_started>60),
             departure_edge=self.departure_edge,
             departure_clearance_eligible=self.departure_clearance_eligible,
             eligible=self.eligible and fresh,latest_frame=packet if fresh else None,stale_observation=not fresh,
-            history=list(self.history),plc=self.handshake.status(),
+            history=list(self.history),plc=plc_status,
             observation_fps=((len(self.observation_times)-1)/(self.observation_times[-1]-self.observation_times[0])
                 if fresh and len(self.observation_times)>1 else None),
             human_acceptance='PENDING',physical_output_enabled=False,
-            real_plc='COMMISSIONING_REQUIRED',connection_plan=self.connection_plan,per_product_manual_controls=False)
+            real_plc='BENCH_TAG_ACCESS_ONLY' if self.gateway.backend!='MOCK' else 'COMMISSIONING_REQUIRED',
+            connection_plan=self.connection_plan,per_product_manual_controls=False)
         return value
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            self.gateway.close()

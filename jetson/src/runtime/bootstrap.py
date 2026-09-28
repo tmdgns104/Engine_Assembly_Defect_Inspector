@@ -11,7 +11,8 @@ from src.tracking.contracts import InspectionWindow, SingleActiveTrackerConfig
 
 
 def build_runtime(package_root, station, data_root, mode='mock', diagnostic_devices=False,
-                  tracker_config=None, recovery_policy=None, package_self_test_replay=False, auto_profile=None):
+                  tracker_config=None, recovery_policy=None, package_self_test_replay=False, auto_profile=None,
+                  production_gateway=None):
     if mode not in ('mock','auto','production'):
         raise ValueError('REAL_PLC_NOT_IMPLEMENTED')
     if mode == 'auto':
@@ -55,12 +56,23 @@ def build_runtime(package_root, station, data_root, mode='mock', diagnostic_devi
             zone=json.loads(row[0]) if row else proposed_zone()
             area_path=Path(__file__).resolve().parents[2]/'config/area_clearance.json'
             area_version=None
+            area_reference_required=True
             if not diagnostic_devices and not package_self_test_replay:
-                area_version=hashlib.sha256(area_path.read_bytes()).hexdigest() if area_path.exists() else 'MISSING_AREA_CONFIG'
+                if area_path.exists():
+                    raw=area_path.read_bytes()
+                    area_mode=json.loads(raw).get('mode')
+                    # The real PLC bench may use only the reference-free dark
+                    # surface mode; old static references remain development-only.
+                    if production_gateway is None or area_mode=='DARK_SURFACE_SELF_OBSERVED':
+                        area_version=hashlib.sha256(raw).hexdigest()
+                        area_reference_required=area_mode!='DARK_SURFACE_SELF_OBSERVED'
+                elif production_gateway is None:
+                    area_version='MISSING_AREA_CONFIG'
             config=production_tracker_config(zone,wait_area_clear=bool(area_version))
             coordinator=VisionRuntimeCoordinator(uuid.uuid4().hex,config)
             return ProductionRuntime(service,coordinator,WorkerObservationSource(),LocalResultOutput(),log_owner,config,
-                recovery_policy or FaultPolicy(),zone=zone,area_config_version=area_version)
+                recovery_policy or FaultPolicy(),zone=zone,area_config_version=area_version,
+                area_reference_required=area_reference_required,gateway=production_gateway)
         if mode == 'auto':
             auto_profile=service.station['auto_profile']
             config=validate_profile(auto_profile,service.package)
@@ -75,5 +87,7 @@ def build_runtime(package_root, station, data_root, mode='mock', diagnostic_devi
         finally:
             observation.close()
             plc.close()
+            if production_gateway is not None:
+                production_gateway.close()
             log_owner.close()
         raise

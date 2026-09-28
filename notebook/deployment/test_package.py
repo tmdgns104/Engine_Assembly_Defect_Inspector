@@ -31,6 +31,7 @@ class PackageTests(unittest.TestCase):
                 manifest = json.load(bundle.extractfile('current/release.json'))
             self.assertIn('current/apps/edge_service/auto_hmi.html', names)
             self.assertIn('current/src/vision/diagnostic_capture.py', names)
+            self.assertIn('current/src/control/omron_cip.py', names)
             self.assertIn('assets/products/ENGINE_Z3005_5/dynamic_parts_005/self_test.png', names)
             self.assertIn('assets/products/ENGINE_Z3005_5/dynamic_parts_005/pose/reference_bank.npz', names)
             self.assertIn('assets/products/ENGINE_Z3005_5/envelope_v007_fp16/model.plan', names)

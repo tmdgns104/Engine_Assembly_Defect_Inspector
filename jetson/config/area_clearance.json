@@ -1,67 +1,12 @@
 {
-  "version": "area_clearance_v004_exit_native_support_dev_black_ref003",
-  "reference_version": "bench_empty_H01_H02_D05_LIVE_v002_BLACK_20260928_ref003",
-  "shape": [
-    720,
-    1280,
-    3
-  ],
+  "version": "area_clearance_dark_surface_v001_bench",
+  "mode": "DARK_SURFACE_SELF_OBSERVED",
+  "reference_version": "DARK_SURFACE_GEOMETRY_V1",
+  "shape": [720, 1280, 3],
   "color": "BGR_UINT8",
-  "roi": "FULL_NATIVE_IMAGE_NO_MASK",
-  "references": [
-    {
-      "id": "H01-000028",
-      "path": "area_references/H01_000028.png",
-      "sha256": "07ec86af524000b7c97b9796b737780e8586f0d63d00ac9a0cda3524e816823d",
-      "source": "verified independent empty HCAM raw; operator empty confirmation and visual review; retrospective development use"
-    },
-    {
-      "id": "H02-000035",
-      "path": "area_references/H02_000035.png",
-      "sha256": "cb7d907b9c14d7934ae6d5ec6cbf6c2bce2e4ed4fcfc1b5e04fad2851dbeed1a",
-      "source": "verified independent empty HCAM raw; operator empty confirmation and visual review; retrospective development use"
-    },
-    {
-      "id": "D05-000211",
-      "path": "area_references/D05_000211.png",
-      "sha256": "bdcb572dc7dcb5dbf5b0e8b9b986f671484475b2537c509c699da0947bdee877",
-      "source": "verified independent empty HCAM raw; operator empty confirmation and visual review; retrospective development use"
-    },
-    {
-      "id": "LIVE-20260926T094306Z-000012",
-      "path": "area_references/LIVE_20260926_094306_000012.png",
-      "sha256": "ae2f9619bbbca1d342ecda80c2f69dd31cb09c806edc287a62f6e5210d883f92",
-      "source": "Current operator confirmed engine and handle removed, unchanged camera/table; visually reviewed native raw frame from AREA_EMPTY_MAINTENANCE_01; maintenance only, no automatic adaptation"
-    },
-    {
-      "id": "LIVE-BLACK-20260928T011808Z-000000",
-      "path": "area_references/LIVE_BLACK_20260928_011808_000000.png",
-      "sha256": "bd6d540e1c4353238a1d28f059df952c0150fd0d058ecf32bfb30a60230c5eea",
-      "source": "Operator confirmed engine, hand and handle absent and camera fixed on 2026-09-28; visually reviewed one lossless Worker raw from AREA_EMPTY_BLACK_MAINTENANCE_01; manual maintenance only, no automatic adaptation"
-    },
-    {
-      "id": "LIVE-BLACK-20260928T014836Z-000000",
-      "path": "area_references/LIVE_BLACK_20260928_014836_000000.png",
-      "sha256": "6bd8355e885dba5d53e14a64cb0af5dc59dac839edf86a0abfbff266ddd65ab2",
-      "source": "Operator confirmed empty and current camera/mat fixed on 2026-09-28; visually reviewed lossless single Worker raw AREA_EMPTY_BLACK_MAINTENANCE_02; manual maintenance, not auto adaptation"
-    },
-    {
-      "id": "LIVE-BLACK-20260928T020254Z-000000",
-      "path": "area_references/LIVE_BLACK_20260928_020254_000000.png",
-      "sha256": "71da0044c0a6672b6816eae56bd070504e20349fdf59a473823e3c1f930dfdda",
-      "source": "User explicitly confirmed engine/hand/handle completely removed; reviewed empty failure raw AREA_BLACK_EMPTY_FALSE_OCCUPIED_01, 1 pixel mat-edge change; manual reference maintenance, no automatic learning"
-    }
-  ],
-  "illumination_kernel_pixels": 41,
-  "exit_illumination_kernel_pixels": 129,
-  "exit_band_pixels": 64,
-  "pixel_difference": 30,
-  "occupied_component_pixels": 200,
-  "occupied_fraction": 0.006,
-  "max_raw_mean_difference": 60,
+  "roi": "DYNAMIC_DARK_SURFACE_FULL_HEIGHT",
   "clear_seconds": 1.2,
   "clear_minimum_frames": 6,
   "maximum_gap_seconds": 0.5,
-  "maximum_age_seconds": 1.0,
-  "live_approval": "REQUIRED_EACH_WORKER_START"
+  "maximum_age_seconds": 1.0
 }

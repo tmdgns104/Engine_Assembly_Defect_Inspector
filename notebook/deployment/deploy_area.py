@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import shutil
 import socket
 import subprocess
 import sys
@@ -119,15 +120,114 @@ def install_first_layout(base, archive, expected_sha, station, settings_path):
             'auto_started': False, 'archive_sha256': expected_sha}
 
 
+def update_current(base, archive, expected_sha, settings_path):
+    """Replace current code and the reviewed area policy; preserve other assets/data/env."""
+    base = base.resolve(strict=True)
+    archive = archive.resolve(strict=True)
+    upload = base / 'tmp/deploy'
+    stage = base / 'current.next'
+    rollback = upload / 'rollback-current'
+    current = base / 'current'
+    runtime_path = base / 'config/runtime.json'
+    if (archive.parent != upload or settings_path.resolve(strict=True).parent != upload
+            or not current.is_dir() or current.is_symlink()
+            or stage.exists() or stage.is_symlink() or rollback.exists() or rollback.is_symlink()):
+        raise ValueError('CURRENT_UPDATE_PATH_OR_STAGE_INVALID')
+    old_release = json.loads((current / 'release.json').read_text(encoding='utf-8'))
+    area_name = 'assets/runtime_config/area_clearance.json'
+    area_path = base / area_name
+    old_area = area_path.read_bytes()
+    if digest(old_area) != old_release['files'].get(area_name):
+        raise ValueError('CURRENT_AREA_CONFIG_DRIFT')
+    for name, expected in old_release['files'].items():
+        if name.startswith('current/') and digest((base / name).read_bytes()) != expected:
+            raise ValueError('CURRENT_CODE_DRIFT: ' + name)
+    old_settings = runtime_path.read_bytes()
+    before = json.loads(old_settings)
+    after = json.loads(settings_path.read_bytes())
+    if (after.get('plc_bench') is not True or
+            {k: v for k, v in after.items() if k != 'plc_bench'} !=
+            {k: v for k, v in before.items() if k != 'plc_bench'}):
+        raise ValueError('ONLY_PLC_BENCH_SETTING_MAY_CHANGE')
+    release = validate_bundle(archive, expected_sha)
+    with tarfile.open(archive) as bundle:
+        new_area = bundle.extractfile(area_name).read()
+    new_area_value = json.loads(new_area)
+    if (new_area != old_area and
+            (new_area_value.get('mode') != 'DARK_SURFACE_SELF_OBSERVED'
+             or new_area_value.get('references') or
+             new_area_value.get('roi') != 'DYNAMIC_DARK_SURFACE_FULL_HEIGHT')):
+        raise ValueError('ONLY_REVIEWED_DARK_SURFACE_AREA_CHANGE_ALLOWED')
+    for name, expected in release['files'].items():
+        if (not name.startswith('current/') and name != area_name
+                and digest((base / name).read_bytes()) != expected):
+            raise ValueError('PRESERVED_ASSET_OR_CONFIG_MISMATCH: ' + name)
+    require_stopped(before.get('port', 18771))
+    area_backup = upload / 'area-clearance-before-update.json'
+    if area_backup.exists():
+        raise FileExistsError('AREA_CONFIG_BACKUP_ALREADY_EXISTS')
+    area_backup.write_bytes(old_area)
+    stage.mkdir()
+    try:
+        with tarfile.open(archive) as bundle:
+            for member in bundle.getmembers():
+                if member.name == 'current/config' or not member.name.startswith('current/'):
+                    continue
+                destination = stage / PurePosixPath(member.name).relative_to('current')
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with destination.open('xb') as target:
+                    target.write(bundle.extractfile(member).read())
+                destination.chmod(0o644)
+        (stage / 'config').symlink_to('../assets/runtime_config')
+        current.rename(rollback)
+        try:
+            stage.rename(current)
+            if new_area != old_area:
+                incoming = upload / 'area-clearance-incoming.json'
+                incoming.write_bytes(new_area)
+                os.replace(incoming, area_path)
+            runtime_path.write_bytes(settings_path.read_bytes())
+            resolved = {key: str((runtime_path.parent / after[key]).resolve())
+                        for key in ('package', 'station', 'data_root', 'pythonpath')}
+            env = dict(os.environ, PYTHONPATH=resolved['pythonpath'])
+            subprocess.run([sys.executable, '-B', '-X', 'utf8', str(current / 'launch_live.py'),
+                            '--package', resolved['package'], '--station', resolved['station'],
+                            '--data-root', resolved['data_root'], '--check-only', '--plc-bench'],
+                           env=env, cwd=current, check=True)
+        except Exception:
+            runtime_path.write_bytes(old_settings)
+            if area_path.read_bytes() != old_area:
+                restore = upload / 'area-clearance-restore.json'
+                restore.write_bytes(old_area)
+                os.replace(restore, area_path)
+            if current.exists() and (current / 'release.json').exists():
+                current.rename(stage)
+            rollback.rename(current)
+            raise
+    finally:
+        if stage.exists() and stage.is_dir() and not stage.is_symlink():
+            shutil.rmtree(stage)
+    return {'release_id': release['release_id'], 'runtime_path': str(current),
+            'rollback_path': str(rollback), 'auto_started': False,
+            'archive_sha256': expected_sha, 'area_config_sha256': digest(new_area),
+            'area_config_backup': str(area_backup)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base', type=Path, required=True)
     parser.add_argument('--archive', type=Path, required=True)
     parser.add_argument('--sha256', required=True)
-    parser.add_argument('--station', type=Path, required=True)
+    parser.add_argument('--station', type=Path)
     parser.add_argument('--runtime-settings', type=Path, required=True)
+    parser.add_argument('--update-current', action='store_true')
     args = parser.parse_args()
-    result = install_first_layout(args.base, args.archive, args.sha256, args.station, args.runtime_settings)
+    if args.update_current:
+        result = update_current(args.base, args.archive, args.sha256, args.runtime_settings)
+    else:
+        if args.station is None:
+            parser.error('--station is required for first install')
+        result = install_first_layout(args.base, args.archive, args.sha256, args.station, args.runtime_settings)
     print(json.dumps(result), flush=True)
 
 

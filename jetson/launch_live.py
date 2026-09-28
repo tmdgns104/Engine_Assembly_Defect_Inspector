@@ -15,18 +15,30 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def check_files(package, station):
-    """추론·DB·카메라를 시작하기 전에 필요한 파일과 MOCK 경계를 확인한다."""
+def check_files(package, station, *, plc_bench=False):
+    """추론·DB·카메라를 시작하기 전에 파일과 PLC 벤치 경계를 확인한다."""
     station_value = json.loads(station.read_text(encoding='utf-8'))
     config = ROOT / 'config'
     plc = json.loads((config / 'plc_reference.json').read_text(encoding='utf-8'))
     if plc['backend'] != 'MOCK' or plc['physical_output_enabled'] is not False:
         raise ValueError('MOCK_ONLY_RELEASE')
+    if plc_bench and (plc.get('planned_plc_ip') != '192.168.50.3'
+                      or plc.get('planned_jetson_lan_ip') != '192.168.50.2'
+                      or plc.get('tags') != {
+                          'Inspection_Request': 'PLC_TO_JETSON_BOOL',
+                          'Jetson_Result': 'JETSON_TO_PLC_BOOL_FALSE_OK_TRUE_NG',
+                          'Jetson_Done': 'JETSON_TO_PLC_BOOL'}):
+        raise ValueError('PLC_BENCH_TAG_CONTRACT_MISMATCH')
     area = json.loads((config / 'area_clearance.json').read_text(encoding='utf-8'))
-    for reference in area['references']:
-        path = (config / reference['path']).resolve()
-        if not path.is_relative_to(config.resolve()) or sha256(path) != reference['sha256']:
-            raise ValueError('AREA_REFERENCE_HASH_MISMATCH')
+    if area.get('mode') == 'DARK_SURFACE_SELF_OBSERVED':
+        if (area.get('references') or area.get('roi') != 'DYNAMIC_DARK_SURFACE_FULL_HEIGHT'
+                or area.get('shape') != [720, 1280, 3]):
+            raise ValueError('DARK_SURFACE_CONFIG_INVALID')
+    else:
+        for reference in area['references']:
+            path = (config / reference['path']).resolve()
+            if not path.is_relative_to(config.resolve()) or sha256(path) != reference['sha256']:
+                raise ValueError('AREA_REFERENCE_HASH_MISMATCH')
     manifest = json.loads((package / 'manifest.json').read_text(encoding='utf-8'))
     for item in manifest['files'].values():
         path = (package / item['path']).resolve()
@@ -51,7 +63,9 @@ def check_files(package, station):
         'runtime_path': str(ROOT), 'package_path': str(package),
         'package_manifest_sha256': sha256(package / 'manifest.json'),
         'area_config_sha256': sha256(config / 'area_clearance.json'),
-        'station_sha256': sha256(station), 'backend': 'MOCK',
+        'station_sha256': sha256(station),
+        'backend': 'OMRON_CIP_BENCH' if plc_bench else 'MOCK',
+        'network_plc_writes_enabled': bool(plc_bench),
         'physical_output_enabled': False,
     }
 
@@ -61,6 +75,8 @@ def add_arguments(parser):
     parser.add_argument('--station', type=Path, required=True, help='장치별 카메라·검사 설정 JSON')
     parser.add_argument('--data-root', type=Path, required=True, help='Journal/Evidence 저장 폴더; 코드 밖에 둔다')
     parser.add_argument('--port', type=int, default=18771)
+    parser.add_argument('--plc-bench', action='store_true',
+                        help='192.168.50.3의 세 검증된 태그만 사용; 실제 PLC 결과/Done 쓰기')
 
 
 def main():
@@ -69,7 +85,7 @@ def main():
     parser.add_argument('--check-only', action='store_true', help='파일만 확인; 카메라/DB/모델 실행 없음')
     args = parser.parse_args()
     package = args.package.resolve()
-    station, identity = check_files(package, args.station.resolve())
+    station, identity = check_files(package, args.station.resolve(), plc_bench=args.plc_bench)
     identity['data_root'] = str(args.data_root.resolve())
     if args.check_only:
         print(json.dumps(identity, ensure_ascii=False))
@@ -77,7 +93,16 @@ def main():
     from src.runtime.bootstrap import build_runtime
     from apps.edge_service.integration_api import create_integrated_app
     import uvicorn
-    runtime = build_runtime(package, station, args.data_root.resolve(), mode='production')
+    gateway = None
+    if args.plc_bench:
+        from src.control.omron_cip import OmronCipGateway
+        gateway = OmronCipGateway('192.168.50.3', '192.168.50.2')
+        request = gateway.read_request()
+        if request.status != 'ACK' or request.value is not False:
+            gateway.close()
+            raise ValueError('VALID_PLC_REQUEST_LOW_REQUIRED_AT_START')
+    runtime = build_runtime(package, station, args.data_root.resolve(), mode='production',
+                            production_gateway=gateway)
     try:
         # 모델 의존 패키지 envelope는 운영자 선택 목록에 노출하지 않는다.
         app = create_integrated_app(runtime, {package.parent.name + '/' + package.name: package})

@@ -95,6 +95,8 @@ def main():
     command = [sys.executable, '-B', '-X', 'utf8', str(ROOT / 'launch_live.py'),
                '--package', settings['package'], '--station', settings['station'],
                '--data-root', str(data), '--port', str(port)]
+    if settings.get('plc_bench') is True:
+        command.append('--plc-bench')
     env = dict(os.environ, PYTHONPATH=settings['pythonpath'])
     subprocess.run(command + ['--check-only'], env=env, cwd=ROOT, check=True)
     with (data / 'live_server.log').open('ab') as log:

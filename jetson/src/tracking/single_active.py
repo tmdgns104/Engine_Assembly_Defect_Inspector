@@ -37,6 +37,7 @@ class SingleActiveTracker:
         self._zone_count = 0
         self._zone_inside = False
         self._last_box = None
+        self._pre_ambiguity_state = None
 
     def _update(self, event: InspectionWindowEvent | None = None) -> TrackingUpdate:
         frame = self._last_frame
@@ -47,6 +48,10 @@ class SingleActiveTracker:
         )
 
     def _lose(self, reason: TrackingReason) -> TrackingUpdate:
+        if (reason == TrackingReason.AMBIGUOUS_ACTIVE_OBSERVATIONS and
+                self._inspection_id is None and
+                self._state in (TrackState.TRACKING, TrackState.INSPECTION_READY)):
+            self._pre_ambiguity_state = self._state
         self._state = TrackState.WAIT_AREA_CLEAR if self.config.wait_area_clear else TrackState.LOST
         self._reason = reason
         return self._update()
@@ -55,8 +60,40 @@ class SingleActiveTracker:
         """Preserve a bound identity without accepting a reappearance as that product."""
         if not self.config.wait_area_clear or self._track_id is None or self._state == TrackState.LOST:
             raise TrackingError(TrackingReason.INVALID_STATE_TRANSITION)
+        if (reason == TrackingReason.AMBIGUOUS_ACTIVE_OBSERVATIONS and
+                self._inspection_id is None and
+                self._state in (TrackState.TRACKING, TrackState.INSPECTION_READY)):
+            self._pre_ambiguity_state = self._state
         self._state = TrackState.WAIT_AREA_CLEAR
         self._reason = reason
+
+    def resume_short_ambiguity(self, box: NormalizedBox, observed_s: float) -> bool:
+        """Resume an uninspected identity after a brief, spatially matched ambiguity."""
+        if (self._state != TrackState.WAIT_AREA_CLEAR or
+                self._reason != TrackingReason.AMBIGUOUS_ACTIVE_OBSERVATIONS or
+                self._inspection_id is not None or self._last_box is None or
+                self._pre_ambiguity_state not in (TrackState.TRACKING, TrackState.INSPECTION_READY)):
+            return False
+        elapsed = observed_s - self._last_observed_s
+        if not 0 <= elapsed <= .5:
+            return False
+        previous = self._last_box
+        distance = math.hypot(box.center_x-previous.center_x,
+                              box.center_y-previous.center_y)
+        limit = self.config.max_center_step_norm
+        if self.config.max_center_speed_norm_s is not None:
+            limit += self.config.max_center_speed_norm_s * elapsed
+        if distance > limit:
+            return False
+        intersection = max(0,min(previous.x2,box.x2)-max(previous.x1,box.x1))*max(
+            0,min(previous.y2,box.y2)-max(previous.y1,box.y1))
+        union = previous.width*previous.height+box.width*box.height-intersection
+        if self.config.free_motion and union and intersection/union < .02 and distance > .12:
+            return False
+        self._state = self._pre_ambiguity_state
+        self._pre_ambiguity_state = None
+        self._reason = None
+        return True
 
     def _position(self, box: NormalizedBox) -> tuple[float, WindowRelation | None]:
         window = self.config.inspection_window

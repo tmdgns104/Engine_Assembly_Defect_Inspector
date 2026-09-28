@@ -68,7 +68,7 @@ class RequestHandshake:
         self.publication='NOT_STARTED'; self.reason=None; self.published_at=None
     def record(self,name,**extra):
         self.event(dict(event=name,plc_request_token=self.token,inspection_id=self.inspection_id,
-            publication_backend='MOCK',publication_status=self.publication,**extra))
+            publication_backend=self.gateway.backend,publication_status=self.publication,**extra))
     def fault(self,reason,publication=None):
         self.state='RESYNC_REQUIRED'; self.reason=reason
         if publication: self.publication=publication
