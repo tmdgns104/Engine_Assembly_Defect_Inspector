@@ -1,0 +1,18 @@
+{
+  "backend": "MOCK",
+  "physical_output_enabled": false,
+  "contract_confirmed": false,
+  "hardware_status": "HARDWARE_NOT_VERIFIED",
+  "plc_model": "OMRON NX1P2-9024DT1",
+  "planned_plc_ip": "192.168.50.3",
+  "planned_jetson_lan_ip": "192.168.50.2",
+  "subnet": null,
+  "interface": null,
+  "tags": {
+    "Inspection_Request": "PLC_TO_JETSON_BOOL",
+    "Jetson_Result": "JETSON_TO_PLC_BOOL_FALSE_OK_TRUE_NG",
+    "Jetson_Done": "JETSON_TO_PLC_BOOL"
+  },
+  "request_early_off_consumption": "PLC_HANDSHAKE_CONTRACT_REQUIRED",
+  "real_gateway": "NOT_IMPLEMENTED_UNTIL_VERIFIED_NX1P2_ACCESS"
+}

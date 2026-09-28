@@ -1,0 +1,4 @@
+# Existing Windows capture environment, observed 2026-09-28; Python 3.13 x64 + Tk.
+numpy==2.5.2
+opencv-python==5.0.0.93
+Pillow==12.3.0

@@ -1,0 +1,12 @@
+{
+  "display_schema_version": 1,
+  "product_name": "Engine Model Top View Dataset V1",
+  "scenario_labels": {
+    "NORMAL": "정상",
+    "MISSING_PIPE_LEFT": "왼쪽 파이프 누락",
+    "MISSING_PIPE_RIGHT": "오른쪽 파이프 누락",
+    "MISSING_EXHAUST_TOP": "상단 배기구 누락",
+    "MISSING_SYMBOL_MODULE": "문양 모듈 누락",
+    "MISSING_ALL_TARGETS": "검사 대상 전체 누락"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "label_schema_version": 1,
+  "product_id": "engine_model_top_v0",
+  "classes": [
+    {
+      "id": 0,
+      "name": "gray_pipe"
+    },
+    {
+      "id": 1,
+      "name": "exhaust_top"
+    },
+    {
+      "id": 2,
+      "name": "symbol_module"
+    }
+  ],
+  "normal_expected_counts": {
+    "gray_pipe": 2,
+    "exhaust_top": 1,
+    "symbol_module": 1
+  },
+  "rules": {
+    "gray_pipe": "보이는 회색 파이프 하나당 box 1개. 정상 2개, 한쪽 누락 1개, 전체 누락 0개. 파이프 그림자는 포함하지 않음.",
+    "exhaust_top": "보이는 회색 상단 배기구 전체를 box 1개로 표시.",
+    "symbol_module": "검은 문양이 붙은 회색 모듈 전체를 box 1개로 표시. 문양만 따로 box하지 않음.",
+    "missing": "누락 부품은 box 없음.",
+    "occlusion": "가림/경계 불명은 needs_review."
+  },
+  "excluded_classes": [
+    "PASS",
+    "FAIL",
+    "REVIEW",
+    "ERROR"
+  ],
+  "annotation_status": "NOT_STARTED"
+}

@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "recipe_id": "ENGINE_DYNAMIC_4_SLOTS",
+  "version": "dynamic_pose_002",
+  "coordinate_space": "normalized_image",
+  "alignment_mode": "engine_affine",
+  "visibility_mode": "human_per_request",
+  "rule": "presence_count",
+  "reference_class": null,
+  "presence_confidence": 0.5,
+  "reference_confidence": 0.5,
+  "slot_overlap": 0.4,
+  "reference_iou": 0.65,
+  "observation_count": 3,
+  "required_views": [
+    "top"
+  ],
+  "orientation_verified": false,
+  "all_targets_missing_reason_code": "ALL_TARGET_PARTS_MISSING",
+  "slots": [
+    {
+      "id": "pipe_left",
+      "display": "PIPE LEFT",
+      "allowed_classes": [
+        "gray_pipe"
+      ],
+      "expected_count": 1,
+      "missing_reason_code": "LEFT_PIPE_MISSING",
+      "region": [
+        0.341725492477417,
+        0.10092981126573351,
+        0.5227100849151611,
+        0.4268614027235243
+      ]
+    },
+    {
+      "id": "pipe_right",
+      "display": "PIPE RIGHT",
+      "allowed_classes": [
+        "gray_pipe"
+      ],
+      "expected_count": 1,
+      "missing_reason_code": "RIGHT_PIPE_MISSING",
+      "region": [
+        0.512630033493042,
+        0.09681977166069879,
+        0.6831451892852783,
+        0.42438829210069445
+      ]
+    },
+    {
+      "id": "exhaust",
+      "display": "EXHAUST",
+      "allowed_classes": [
+        "exhaust_top"
+      ],
+      "expected_count": 1,
+      "missing_reason_code": "EXHAUST_TOP_MISSING",
+      "region": [
+        0.4281295299530029,
+        0.40686607360839844,
+        0.5943921089172364,
+        0.6944533030192057
+      ]
+    },
+    {
+      "id": "symbol",
+      "display": "SYMBOL",
+      "allowed_classes": [
+        "symbol_module"
+      ],
+      "expected_count": 1,
+      "missing_reason_code": "SYMBOL_MODULE_MISSING",
+      "region": [
+        0.41883025169372556,
+        0.24681180318196613,
+        0.6032417774200439,
+        0.5602043999565972
+      ]
+    }
+  ],
+  "region_provenance": {
+    "status": "D001_REFERENCE_AFFINE_PER_FRAME",
+    "reference": "D001",
+    "human_acceptance_required": true,
+    "source": "approved E01/E02 train labels only"
+  },
+  "engine_pose": {
+    "path": "pose/pose_reference.json",
+    "sha256": "1787dd7206b45f4ae4b6484a4b1883d2543f2c3da2d5e283f9c0e97c263e8afe",
+    "envelope_package": "../envelope_v007_fp16",
+    "envelope_manifest_sha256": "f8a5f3492abc532663611fa2539fe59cc7b2620e382831338c45f30ea510c51d"
+  }
+}

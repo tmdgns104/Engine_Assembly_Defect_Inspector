@@ -1,0 +1,21 @@
+{
+    "station_id":  "jetson-engine-package-bench",
+    "cell_id":  "engine-dynamic-pose-002",
+    "app_release":  "engine_dynamic_pose_002",
+    "camera_device":  "/dev/v4l/by-id/usb-Jieli_Technology_USB_Composite_Device-video-index0",
+    "frame_spacing_seconds":  0.15,
+    "max_frame_age_seconds":  0.35,
+    "inspection_timeout_seconds":  15,
+    "startup_timeout_seconds":  90,
+    "fresh_frame":  {
+                        "max_trigger_to_frame_ms":  3000,
+                        "inspection_window_ms":  3000,
+                        "boundary_epsilon_ms":  0,
+                        "acceptance_scope":  "LAB_ONLY_UNMEASURED_CONVEYOR"
+                    },
+    "quality":  {
+                    "min_blur_variance":  25,
+                    "min_mean_brightness":  35,
+                    "max_mean_brightness":  225
+                }
+}

@@ -11,6 +11,7 @@ venv/
 data/raw/
 data/processed/
 data/proxy/raw/
+data/engine/raw/
 data/proxy/smoke/
 training/outputs/
 models/*.pt
@@ -21,6 +22,7 @@ runs/
 *.cache
 /datasets/
 .cache/
+/dist/engine_dataset_wizard/
 
 # Generated baseline plots, predictions and checkpoints (metadata stays reviewable)
 /training/experiments/*/baseline/
@@ -44,3 +46,41 @@ journal/*.db
 *.sqlite3-wal
 *.sqlite3-shm
 /deployment/products/*/*/self_test.png
+
+# Current device-separated layout: source in jetson/ and notebook/.
+/archives/
+/dist/
+/runtime/
+/runtime-data/
+/.idea/
+/Ultralytics/
+/data/
+/verification/
+# Historical local source is retained for old evidence; Git history preserves it.
+/apps/
+/src/
+/scripts/
+/tests/
+/training/
+/deployment/
+/config/
+/models/
+/recipes/
+# Runtime data and binary assets travel in verified deployment bundles, not Git.
+/notebook/data/
+/notebook/logs/
+/notebook/.venv/
+/notebook/deployment/products/**/model.plan
+/notebook/deployment/products/**/*.png
+/notebook/deployment/products/**/*.npz
+/jetson/config/area_references/
+/notebook/deployment/*.tar.gz
+/notebook/deployment/*.partial
+*.plan
+*.db
+# Device-specific settings/credentials are not shared defaults.
+/notebook/deployment/targets/
+**/runtime.local.json
+**/station.local.json
+*.pem
+*.key

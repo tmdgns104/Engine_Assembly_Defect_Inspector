@@ -1,0 +1,29 @@
+{
+  "review_challenge_schema_version": 1,
+  "product_id": "engine_model_top_v0",
+  "purpose": "review_challenge",
+  "included_in_main_plan": false,
+  "wizard_capture_supported": true,
+  "output_root": "data/engine/raw/<STATION>/collections/<COLLECTION>/sessions",
+  "challenges": [
+    {
+      "id": "LIGHT_LEFT_WEAK"
+    },
+    {
+      "id": "LIGHT_RIGHT_WEAK"
+    },
+    {
+      "id": "BOTH_TOO_DIM"
+    },
+    {
+      "id": "POSITION_OUT_OF_RANGE"
+    },
+    {
+      "id": "OCCLUSION"
+    },
+    {
+      "id": "OTHER_PART_MISSING"
+    }
+  ],
+  "limitations": "Main과 별도 phase. REVIEW Ground Truth; 자동 training/annotation 제외. CONVEYOR_MOVING은 motion_pilot 예약값이며 현재 비활성."
+}

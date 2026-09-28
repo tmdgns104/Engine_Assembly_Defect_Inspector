@@ -1,0 +1,44 @@
+{
+  "guide_schema_version": 1,
+  "setup": "Top View 카메라 1대 고정 · 엔진만 회전합니다. 좌/우 조명 2개를 준비하세요. 0°: 상단 배기구가 화면 위쪽, V8/문양 패널이 화면 아래쪽. 화면 기준 시계 방향이 +각도입니다. 엔진은 화면 약 70~80%를 차지하고 모든 회전에서 전체가 영상 안에 있어야 합니다. 실제 부품의 LEFT/RIGHT는 0°에서 표식으로 정한 물리 자리이며 회전 후 화면 좌우가 아닙니다.",
+  "review_checks": "각 사진의 실제 부품 수량·제거 슬롯·Engine 목표각도·Crank 목표·전체 엔진 가시성·초점·손 가림·반사를 사람이 확인하세요. 각도와 Crank는 센서 검증이 아니며 품질 경고 확인만으로 확정하지 않습니다.",
+  "conditions": [
+    {
+      "id": "BALANCED",
+      "label": "BALANCED · 좌100 / 우100",
+      "instruction": "왼쪽100 / 오른쪽100 기준 조명. 두 조명 위치와 카메라는 고정하고 손을 빼세요."
+    },
+    {
+      "id": "ASYMMETRIC",
+      "label": "ASYMMETRIC · Station별 우세 조명",
+      "instruction": "Station 설정의 LEFT_DOMINANT 또는 RIGHT_DOMINANT를 사용하세요. 매우 어두운 조명은 별도 Challenge입니다."
+    }
+  ],
+  "steps": [
+    {
+      "scenario": "NORMAL",
+      "instruction": "정상 [NORMAL] · 촬영 Ground Truth PASS. 남길 수량: 회색 파이프 2, 상단 배기구 1, 문양 모듈 1. 제거 슬롯: 없음. 다른 부품은 모두 복원하세요. 부품 상태·Crank를 유지하며 해당 Engine 목표각도로 돌리고 손을 빼세요."
+    },
+    {
+      "scenario": "MISSING_PIPE_LEFT",
+      "instruction": "왼쪽 파이프 누락 [MISSING_PIPE_LEFT] · 촬영 Ground Truth FAIL. 남길 수량: 회색 파이프 1, 상단 배기구 1, 문양 모듈 1. 제거 슬롯: PIPE_LEFT. 다른 부품은 모두 복원하세요. 부품 상태·Crank를 유지하며 해당 Engine 목표각도로 돌리고 손을 빼세요."
+    },
+    {
+      "scenario": "MISSING_PIPE_RIGHT",
+      "instruction": "오른쪽 파이프 누락 [MISSING_PIPE_RIGHT] · 촬영 Ground Truth FAIL. 남길 수량: 회색 파이프 1, 상단 배기구 1, 문양 모듈 1. 제거 슬롯: PIPE_RIGHT. 다른 부품은 모두 복원하세요. 부품 상태·Crank를 유지하며 해당 Engine 목표각도로 돌리고 손을 빼세요."
+    },
+    {
+      "scenario": "MISSING_EXHAUST_TOP",
+      "instruction": "상단 배기구 누락 [MISSING_EXHAUST_TOP] · 촬영 Ground Truth FAIL. 남길 수량: 회색 파이프 2, 상단 배기구 0, 문양 모듈 1. 제거 슬롯: EXHAUST_TOP. 다른 부품은 모두 복원하세요. 부품 상태·Crank를 유지하며 해당 Engine 목표각도로 돌리고 손을 빼세요."
+    },
+    {
+      "scenario": "MISSING_SYMBOL_MODULE",
+      "instruction": "문양 모듈 누락 [MISSING_SYMBOL_MODULE] · 촬영 Ground Truth FAIL. 남길 수량: 회색 파이프 2, 상단 배기구 1, 문양 모듈 0. 제거 슬롯: SYMBOL_MODULE. 다른 부품은 모두 복원하세요. 부품 상태·Crank를 유지하며 해당 Engine 목표각도로 돌리고 손을 빼세요."
+    },
+    {
+      "scenario": "MISSING_ALL_TARGETS",
+      "instruction": "검사 대상 전체 누락 [MISSING_ALL_TARGETS] · 촬영 Ground Truth FAIL. 남길 수량: 회색 파이프 0, 상단 배기구 0, 문양 모듈 0. 제거 슬롯: PIPE_LEFT, PIPE_RIGHT, EXHAUST_TOP, SYMBOL_MODULE. 다른 부품은 모두 복원하세요. 부품 상태·Crank를 유지하며 해당 Engine 목표각도로 돌리고 손을 빼세요."
+    }
+  ],
+  "completion_message": "촬영·사람 검토 단계입니다. 부품 위치 라벨링과 학습은 별도입니다. Test Reserved는 최종 평가 전까지 독립 보관하세요."
+}

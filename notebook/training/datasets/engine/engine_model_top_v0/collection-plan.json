@@ -1,0 +1,563 @@
+{
+  "collection_plan_schema_version": 3,
+  "plan_id": "ENGINE_TOP_360_V0",
+  "plan_version": 3,
+  "product_id": "engine_model_top_v0",
+  "traversal": "state_major",
+  "rotation_guide": "0°: 상단 배기구가 화면 위쪽, V8/문양 패널이 화면 아래쪽. 화면 기준 시계 방향이 +각도입니다. 목표 각도 안내이며 실제 각도는 센서로 검증하지 않습니다.",
+  "rounds": [
+    {
+      "id": "E01",
+      "label": "E01 · Train 기준 조명",
+      "purpose": "train_candidate",
+      "condition_id": "BALANCED",
+      "placement_ids": [
+        "ANGLE_000",
+        "ANGLE_030",
+        "ANGLE_060",
+        "ANGLE_090",
+        "ANGLE_120",
+        "ANGLE_150",
+        "ANGLE_180",
+        "ANGLE_210",
+        "ANGLE_240",
+        "ANGLE_270",
+        "ANGLE_300",
+        "ANGLE_330"
+      ]
+    },
+    {
+      "id": "E02",
+      "label": "E02 · Train 비대칭 조명",
+      "purpose": "train_candidate",
+      "condition_id": "ASYMMETRIC",
+      "placement_ids": [
+        "ANGLE_000",
+        "ANGLE_030",
+        "ANGLE_060",
+        "ANGLE_090",
+        "ANGLE_120",
+        "ANGLE_150",
+        "ANGLE_180",
+        "ANGLE_210",
+        "ANGLE_240",
+        "ANGLE_270",
+        "ANGLE_300",
+        "ANGLE_330"
+      ]
+    },
+    {
+      "id": "E03",
+      "label": "E03 · Validation 별도 획득",
+      "purpose": "validation_candidate",
+      "condition_id": "BALANCED",
+      "placement_ids": [
+        "ANGLE_015",
+        "ANGLE_045",
+        "ANGLE_075",
+        "ANGLE_105",
+        "ANGLE_135",
+        "ANGLE_165",
+        "ANGLE_195",
+        "ANGLE_225",
+        "ANGLE_255",
+        "ANGLE_285",
+        "ANGLE_315",
+        "ANGLE_345"
+      ]
+    },
+    {
+      "id": "E04",
+      "label": "E04 · Final Test 별도 획득·예약",
+      "purpose": "test_reserved",
+      "condition_id": "BALANCED",
+      "placement_ids": [
+        "ANGLE_008",
+        "ANGLE_038",
+        "ANGLE_068",
+        "ANGLE_098",
+        "ANGLE_128",
+        "ANGLE_158",
+        "ANGLE_188",
+        "ANGLE_218",
+        "ANGLE_248",
+        "ANGLE_278",
+        "ANGLE_308",
+        "ANGLE_338"
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "BALANCED",
+      "label": "BALANCED · 좌100 / 우100",
+      "instruction": "왼쪽100 / 오른쪽100 기준 조명. 두 조명 위치와 카메라는 고정하고 손을 빼세요.",
+      "requires_lamp": false,
+      "lamp_xy": [
+        -0.8,
+        -0.5
+      ]
+    },
+    {
+      "id": "ASYMMETRIC",
+      "label": "ASYMMETRIC · 좌100 / 우약70",
+      "instruction": "왼쪽100 / 오른쪽 약70. 이번 계획은 오른쪽을 약하게 고정합니다. 카메라·조명 위치는 움직이지 마세요. 매우 어둡거나 심한 반사는 본수집에 쓰지 않습니다.",
+      "requires_lamp": true,
+      "lamp_xy": [
+        0.8,
+        -0.5
+      ]
+    }
+  ],
+  "placements": [
+    {
+      "id": "ANGLE_000",
+      "label": "목표 각도 000°",
+      "instruction": "0° 기준에서 시계 방향으로 0° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 0
+    },
+    {
+      "id": "ANGLE_008",
+      "label": "목표 각도 008°",
+      "instruction": "0° 기준에서 시계 방향으로 8° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 8
+    },
+    {
+      "id": "ANGLE_015",
+      "label": "목표 각도 015°",
+      "instruction": "0° 기준에서 시계 방향으로 15° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 15
+    },
+    {
+      "id": "ANGLE_030",
+      "label": "목표 각도 030°",
+      "instruction": "0° 기준에서 시계 방향으로 30° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 30
+    },
+    {
+      "id": "ANGLE_038",
+      "label": "목표 각도 038°",
+      "instruction": "0° 기준에서 시계 방향으로 38° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 38
+    },
+    {
+      "id": "ANGLE_045",
+      "label": "목표 각도 045°",
+      "instruction": "0° 기준에서 시계 방향으로 45° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 45
+    },
+    {
+      "id": "ANGLE_060",
+      "label": "목표 각도 060°",
+      "instruction": "0° 기준에서 시계 방향으로 60° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 60
+    },
+    {
+      "id": "ANGLE_068",
+      "label": "목표 각도 068°",
+      "instruction": "0° 기준에서 시계 방향으로 68° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 68
+    },
+    {
+      "id": "ANGLE_075",
+      "label": "목표 각도 075°",
+      "instruction": "0° 기준에서 시계 방향으로 75° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 75
+    },
+    {
+      "id": "ANGLE_090",
+      "label": "목표 각도 090°",
+      "instruction": "0° 기준에서 시계 방향으로 90° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 90
+    },
+    {
+      "id": "ANGLE_098",
+      "label": "목표 각도 098°",
+      "instruction": "0° 기준에서 시계 방향으로 98° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 98
+    },
+    {
+      "id": "ANGLE_105",
+      "label": "목표 각도 105°",
+      "instruction": "0° 기준에서 시계 방향으로 105° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 105
+    },
+    {
+      "id": "ANGLE_120",
+      "label": "목표 각도 120°",
+      "instruction": "0° 기준에서 시계 방향으로 120° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 120
+    },
+    {
+      "id": "ANGLE_128",
+      "label": "목표 각도 128°",
+      "instruction": "0° 기준에서 시계 방향으로 128° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 128
+    },
+    {
+      "id": "ANGLE_135",
+      "label": "목표 각도 135°",
+      "instruction": "0° 기준에서 시계 방향으로 135° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 135
+    },
+    {
+      "id": "ANGLE_150",
+      "label": "목표 각도 150°",
+      "instruction": "0° 기준에서 시계 방향으로 150° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 150
+    },
+    {
+      "id": "ANGLE_158",
+      "label": "목표 각도 158°",
+      "instruction": "0° 기준에서 시계 방향으로 158° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 158
+    },
+    {
+      "id": "ANGLE_165",
+      "label": "목표 각도 165°",
+      "instruction": "0° 기준에서 시계 방향으로 165° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 165
+    },
+    {
+      "id": "ANGLE_180",
+      "label": "목표 각도 180°",
+      "instruction": "0° 기준에서 시계 방향으로 180° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 180
+    },
+    {
+      "id": "ANGLE_188",
+      "label": "목표 각도 188°",
+      "instruction": "0° 기준에서 시계 방향으로 188° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 188
+    },
+    {
+      "id": "ANGLE_195",
+      "label": "목표 각도 195°",
+      "instruction": "0° 기준에서 시계 방향으로 195° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 195
+    },
+    {
+      "id": "ANGLE_210",
+      "label": "목표 각도 210°",
+      "instruction": "0° 기준에서 시계 방향으로 210° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 210
+    },
+    {
+      "id": "ANGLE_218",
+      "label": "목표 각도 218°",
+      "instruction": "0° 기준에서 시계 방향으로 218° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 218
+    },
+    {
+      "id": "ANGLE_225",
+      "label": "목표 각도 225°",
+      "instruction": "0° 기준에서 시계 방향으로 225° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 225
+    },
+    {
+      "id": "ANGLE_240",
+      "label": "목표 각도 240°",
+      "instruction": "0° 기준에서 시계 방향으로 240° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 240
+    },
+    {
+      "id": "ANGLE_248",
+      "label": "목표 각도 248°",
+      "instruction": "0° 기준에서 시계 방향으로 248° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 248
+    },
+    {
+      "id": "ANGLE_255",
+      "label": "목표 각도 255°",
+      "instruction": "0° 기준에서 시계 방향으로 255° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 255
+    },
+    {
+      "id": "ANGLE_270",
+      "label": "목표 각도 270°",
+      "instruction": "0° 기준에서 시계 방향으로 270° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 270
+    },
+    {
+      "id": "ANGLE_278",
+      "label": "목표 각도 278°",
+      "instruction": "0° 기준에서 시계 방향으로 278° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 278
+    },
+    {
+      "id": "ANGLE_285",
+      "label": "목표 각도 285°",
+      "instruction": "0° 기준에서 시계 방향으로 285° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 285
+    },
+    {
+      "id": "ANGLE_300",
+      "label": "목표 각도 300°",
+      "instruction": "0° 기준에서 시계 방향으로 300° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 300
+    },
+    {
+      "id": "ANGLE_308",
+      "label": "목표 각도 308°",
+      "instruction": "0° 기준에서 시계 방향으로 308° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 308
+    },
+    {
+      "id": "ANGLE_315",
+      "label": "목표 각도 315°",
+      "instruction": "0° 기준에서 시계 방향으로 315° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 315
+    },
+    {
+      "id": "ANGLE_330",
+      "label": "목표 각도 330°",
+      "instruction": "0° 기준에서 시계 방향으로 330° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 330
+    },
+    {
+      "id": "ANGLE_338",
+      "label": "목표 각도 338°",
+      "instruction": "0° 기준에서 시계 방향으로 338° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 338
+    },
+    {
+      "id": "ANGLE_345",
+      "label": "목표 각도 345°",
+      "instruction": "0° 기준에서 시계 방향으로 345° 목표. 엔진만 돌리고 회전 중심·카메라는 고정하세요. 실제 각도는 사람이 맞추며 센서 확인이 아닙니다.",
+      "dx": 0,
+      "dy": 0,
+      "angle_deg": 345
+    }
+  ],
+  "state_order": [
+    "NORMAL",
+    "MISSING_PIPE_LEFT",
+    "MISSING_PIPE_RIGHT",
+    "MISSING_EXHAUST_TOP",
+    "MISSING_SYMBOL_MODULE",
+    "MISSING_ALL_TARGETS"
+  ],
+  "references": [
+    "NORMAL",
+    "MISSING_ALL_TARGETS"
+  ],
+  "quality": {
+    "version": 1,
+    "settle_seconds": 1.2,
+    "timeout_seconds": 8,
+    "stable_frames": 3,
+    "motion_mae": 5,
+    "blur_variance": 20,
+    "dark_mean": 28,
+    "bright_fraction": 0.18,
+    "similar_hash_distance": 2
+  },
+  "crank_schedule": {
+    "E01": [
+      {
+        "crank_phase_id": "CRANK_000",
+        "placement_ids": [
+          "ANGLE_000",
+          "ANGLE_120",
+          "ANGLE_240"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_090",
+        "placement_ids": [
+          "ANGLE_030",
+          "ANGLE_150",
+          "ANGLE_270"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_180",
+        "placement_ids": [
+          "ANGLE_060",
+          "ANGLE_180",
+          "ANGLE_300"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_270",
+        "placement_ids": [
+          "ANGLE_090",
+          "ANGLE_210",
+          "ANGLE_330"
+        ]
+      }
+    ],
+    "E02": [
+      {
+        "crank_phase_id": "CRANK_045",
+        "placement_ids": [
+          "ANGLE_000",
+          "ANGLE_120",
+          "ANGLE_240"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_135",
+        "placement_ids": [
+          "ANGLE_030",
+          "ANGLE_150",
+          "ANGLE_270"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_225",
+        "placement_ids": [
+          "ANGLE_060",
+          "ANGLE_180",
+          "ANGLE_300"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_315",
+        "placement_ids": [
+          "ANGLE_090",
+          "ANGLE_210",
+          "ANGLE_330"
+        ]
+      }
+    ],
+    "E03": [
+      {
+        "crank_phase_id": "CRANK_000",
+        "placement_ids": [
+          "ANGLE_015",
+          "ANGLE_135",
+          "ANGLE_255"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_090",
+        "placement_ids": [
+          "ANGLE_045",
+          "ANGLE_165",
+          "ANGLE_285"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_180",
+        "placement_ids": [
+          "ANGLE_075",
+          "ANGLE_195",
+          "ANGLE_315"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_270",
+        "placement_ids": [
+          "ANGLE_105",
+          "ANGLE_225",
+          "ANGLE_345"
+        ]
+      }
+    ],
+    "E04": [
+      {
+        "crank_phase_id": "CRANK_045",
+        "placement_ids": [
+          "ANGLE_008",
+          "ANGLE_128",
+          "ANGLE_248"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_135",
+        "placement_ids": [
+          "ANGLE_038",
+          "ANGLE_158",
+          "ANGLE_278"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_225",
+        "placement_ids": [
+          "ANGLE_068",
+          "ANGLE_188",
+          "ANGLE_308"
+        ]
+      },
+      {
+        "crank_phase_id": "CRANK_315",
+        "placement_ids": [
+          "ANGLE_098",
+          "ANGLE_218",
+          "ANGLE_338"
+        ]
+      }
+    ]
+  }
+}

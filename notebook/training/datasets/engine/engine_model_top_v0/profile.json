@@ -1,0 +1,85 @@
+{
+  "profile_schema_version": 2,
+  "product_id": "engine_model_top_v0",
+  "profile_version": 2,
+  "objects": [
+    "gray_pipe",
+    "exhaust_top",
+    "symbol_module"
+  ],
+  "slots": {
+    "PIPE_LEFT": "gray_pipe",
+    "PIPE_RIGHT": "gray_pipe",
+    "EXHAUST_TOP": "exhaust_top",
+    "SYMBOL_MODULE": "symbol_module"
+  },
+  "scenarios": {
+    "NORMAL": {
+      "expected_counts": {
+        "gray_pipe": 2,
+        "exhaust_top": 1,
+        "symbol_module": 1
+      },
+      "removed_slots": [],
+      "unexpected_object": false
+    },
+    "MISSING_PIPE_LEFT": {
+      "expected_counts": {
+        "gray_pipe": 1,
+        "exhaust_top": 1,
+        "symbol_module": 1
+      },
+      "removed_slots": [
+        "PIPE_LEFT"
+      ],
+      "unexpected_object": false
+    },
+    "MISSING_PIPE_RIGHT": {
+      "expected_counts": {
+        "gray_pipe": 1,
+        "exhaust_top": 1,
+        "symbol_module": 1
+      },
+      "removed_slots": [
+        "PIPE_RIGHT"
+      ],
+      "unexpected_object": false
+    },
+    "MISSING_EXHAUST_TOP": {
+      "expected_counts": {
+        "gray_pipe": 2,
+        "exhaust_top": 0,
+        "symbol_module": 1
+      },
+      "removed_slots": [
+        "EXHAUST_TOP"
+      ],
+      "unexpected_object": false
+    },
+    "MISSING_SYMBOL_MODULE": {
+      "expected_counts": {
+        "gray_pipe": 2,
+        "exhaust_top": 1,
+        "symbol_module": 0
+      },
+      "removed_slots": [
+        "SYMBOL_MODULE"
+      ],
+      "unexpected_object": false
+    },
+    "MISSING_ALL_TARGETS": {
+      "expected_counts": {
+        "gray_pipe": 0,
+        "exhaust_top": 0,
+        "symbol_module": 0
+      },
+      "removed_slots": [
+        "PIPE_LEFT",
+        "PIPE_RIGHT",
+        "EXHAUST_TOP",
+        "SYMBOL_MODULE"
+      ],
+      "unexpected_object": false
+    }
+  }
+}

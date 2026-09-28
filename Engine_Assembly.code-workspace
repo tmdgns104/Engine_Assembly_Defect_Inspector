@@ -1,0 +1,25 @@
+{
+  "folders": [
+    {"name": "1 Jetson Orin Nano · 실행 코드", "path": "jetson"},
+    {"name": "2 Notebook · 촬영 개발 배포", "path": "notebook"},
+    {"name": "3 계약과 기록", "path": "docs"},
+    {"name": "4 기구 설계", "path": "hardware"}
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.venv": true,
+      "runs": true,
+      "archives": true,
+      "data": true,
+      "dist": true,
+      "deployment/products": true
+    },
+    "search.exclude": {
+      "**/runs/**": true,
+      "**/archives/**": true,
+      "**/data/**": true,
+      "**/dist/**": true
+    }
+  }
+}
