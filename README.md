@@ -6,7 +6,7 @@ VS Code에서는 [`Engine_Assembly.code-workspace`](Engine_Assembly.code-workspa
 
 | 폴더 | 실행 장치 / 역할 | 처음 읽을 파일 |
 |---|---|---|
-| [`jetson/`](jetson/README.md) | Jetson Orin Nano: 카메라, AI 검사, 제품 추적, 결과 저장, 운영 화면, MOCK 요청 처리 | [`launch_live.py`](jetson/launch_live.py) → [`bootstrap.py`](jetson/src/runtime/bootstrap.py) |
+| [`jetson/`](jetson/README.md) | Jetson Orin Nano: 카메라, AI 검사, 제품 추적, 결과 저장, 운영 화면, MOCK/PLC 벤치 요청 처리 | [`launch_live.py`](jetson/launch_live.py) → [`bootstrap.py`](jetson/src/runtime/bootstrap.py) |
 | [`notebook/`](notebook/README.md) | Windows 노트북: 개발, 학습용 촬영·데이터 준비·학습, Jetson 배포 묶음 제작 | [`start_capture.cmd`](notebook/start_capture.cmd), [`deployment/`](notebook/deployment/README.md) |
 | `hardware/` | 카메라 설치물·치수·기구 설계 | 해당 설치물 안내 |
 | `docs/`, `tasks/` | 계약·과거 결정·작업 기록. 예전 문서의 경로는 당시 기준 | 현재 소스 설명은 위 두 README 우선 |
@@ -19,7 +19,7 @@ flowchart LR
   J --> R[Runtime: 제품·요청·검사 순서]
   R --> W[Worker 하나: 카메라·AI]
   W --> S[검사 Service: 저장·결과]
-  S --> M[MOCK Result → Done]
+  S --> M[선택한 Gateway: MOCK 또는 PLC 벤치 Result → Done]
   B[노트북 브라우저] --> H[Jetson 운영 화면 /auto]
   H --> R
 ```
@@ -28,13 +28,13 @@ flowchart LR
 
 ## 현재 버전과 검증 상태
 
-2026-09-28 정리 기준입니다. `jetson/apps`, `jetson/src`, `jetson/config`의 94개 파일은 실제 설치본 `area_clearance_v004_exit_native_support_dev_black_ref003`과 바이트가 같습니다. 경로를 인자로 받는 시작·관리 파일은 기존 실행기를 정리한 것입니다. 출처와 복사 해시는 [`source_baseline.json`](notebook/deployment/source_baseline.json), 배포 포함 목록은 [`runtime_allowlist.json`](notebook/deployment/runtime_allowlist.json)에 있습니다.
+2026-09-28 실제 PLC 벤치 3제품 시험 기준입니다. 이전 v004 복사본은 이력이고, 실제 실행본은 아래 release입니다. 과거 출처는 [`source_baseline.json`](notebook/deployment/source_baseline.json), 현재 배포 포함 목록은 [`runtime_allowlist.json`](notebook/deployment/runtime_allowlist.json)에 있습니다.
 
 - **개발 소스:** `jetson/`, `notebook/`. 앞으로 이 위치를 수정합니다.
 - **현재 Jetson 실행 경로:** `/home/jetson/oned_device_bench/current`. 2026-09-28 실제 기동과 단독 카메라 Worker를 확인했습니다. 자산은 `assets`, 장치 설정은 `config`, 현재 검사 이력은 `data/engine_dynamic_pose_002`입니다.
-- **현재 실행 릴리스:** `engine-dev-4ea07192a7a54007`. 원본 candidate manifest `624ac23530aae2e0969c221d466ca2c08bd3db836789902a9b4091ce0f76fc6f`; 점유 설정 `dd60948fdd5fd4c01f719e8dc7a891c35f5a5c0074a633f7054971014704e224`. 검사 88건·이미지 352건의 DB 기록과 기존 이미지 조회를 보존했습니다.
-- **검증 한계:** v004 원본 재생은 통과했으나, 검정 매트 실물 회차에서 작은 손잡이 보존 후 완전 제거 시 자동 종료가 실패했습니다. ref003의 새 실물 연속 경로는 NOT_RUN입니다. 고정 빈 배경 의존 방식의 채택은 보류했으며 AUTO는 정지 상태입니다.
-- **출력:** MOCK / `physical_output_enabled=false`. PASS는 Result=0, FAIL·REVIEW·ERROR는 Result=1. 실제 PLC·생산 정확도 승인이 아닙니다.
+- **현재 실행 릴리스:** `engine-dev-1203e23f30adda37`. 점유 설정 `088a68566bbb4e3f6de63ec547c117b0077a38a1af0773a32459b70d20f2a5f1`은 검정 작업면을 매 프레임 관측하며 고정 빈 기준 이미지를 사용하지 않습니다. 모델 package manifest는 `03bb926b2e54bd17b1a1033200218bc33e8595e15916e2885aae05d802cc6675`입니다.
+- **실물 검증:** 같은 AUTO 세션에서 Track 1 PASS→Track 2 FAIL→Track 3 PASS를 별도 검사·PLC 요청으로 처리하고, 각각 완전 제거 후 자동 종료했습니다. 세 번째의 짧은 모호성 복귀도 실제 Journal에 기록됐습니다. 세부 근거는 노트북 로컬 `runs/engine_dynamic_pose_002/fixes/ENGINE-PRODUCT-TRACK-ROBUSTNESS-002/RESULT_KO.md`에만 보관합니다.
+- **출력:** 현재 장치는 `OMRON_CIP_BENCH`로 실제 PLC의 세 BOOL 태그만 시험하며 `physical_output_enabled=false`입니다. PASS는 Result=0, FAIL·REVIEW·ERROR는 Result=1입니다. 실제 컨베이어·포토센서·물리 출력·생산 정확도는 미검증입니다. AUTO는 시험 후 정지했습니다.
 
 소스 정리·패키징 통과와 검사 기능의 실물 수용은 별개입니다. Pose REVIEW, 대용량 진단 기록 중 관측 지연의 기존 한계도 해결된 것으로 표시하지 않습니다.
 

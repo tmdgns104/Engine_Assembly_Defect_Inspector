@@ -16,7 +16,7 @@ Git에는 바이너리 자산을 넣지 않습니다. 로컬 배포 묶음에는
 
 - `products/ENGINE_Z3005_5/dynamic_parts_005`: model.plan, manifest/recipe/설정, 기동 self_test.png, Pose reference JSON·D001 이미지·bank.
 - `products/ENGINE_Z3005_5/envelope_v007_fp16`: 모델과 manifest/설정/기동 self-test. 두 제품 폴더의 상대 위치를 유지합니다.
-- `jetson/config/area_references`: 현재 개발본에서 읽는 기준 이미지. **현 방식 채택은 보류 상태**이며 기준을 더 등록하라는 안내가 아닙니다.
+- `jetson/config/area_clearance.json`: 현재 검정 작업면 점유 설정. 고정 빈 기준 이미지를 읽지 않으며 다른 작업면에서 동일 성능은 미검증입니다.
 
 필수 파일이 없으면 패키징은 실패합니다. Git clone 뒤 임의의 모델이나 빈 이미지로 대체하지 않습니다. 이미 보관한 해시 검증 배포 묶음에서 같은 자산을 복원합니다.
 
@@ -27,7 +27,7 @@ oned_device_bench/
 ├─ current/                  실행 Python·HMI·release.json 한 벌
 │  └─ config -> ../assets/runtime_config
 ├─ assets/
-│  ├─ runtime_config/        점유·MOCK 설정과 기준 이미지
+│  ├─ runtime_config/        점유 설정과 실제 참조 자산
 │  └─ products/              모델·Recipe·Pose·기동 self-test
 ├─ config/
 │  ├─ runtime.json           이 장치의 자산·설정·데이터·overlay 경로
@@ -44,19 +44,19 @@ oned_device_bench/
 
 ## 확인·기동·종료
 
-현재 장치에서 확인한 관리 명령입니다. `current`의 실제 릴리스는 `engine-dev-4ea07192a7a54007`이며, 종료 판정 채택 보류 상태는 유지합니다.
+현재 장치에서 확인한 관리 명령입니다. `current`의 실제 릴리스는 `engine-dev-1203e23f30adda37`이며, 실제 PLC 세 BOOL 태그만 쓰는 벤치 시험 모드입니다.
 
 ```bash
 cd /home/jetson/oned_device_bench
 envs/app_v1/bin/python -B -X utf8 current/launch_live.py \
   --package assets/products/ENGINE_Z3005_5/dynamic_parts_005 \
-  --station config/station.json --data-root data/engine_dynamic_pose_002 --check-only
+  --station config/station.json --data-root data/engine_dynamic_pose_002 --check-only --plc-bench
 envs/app_v1/bin/python -B -X utf8 current/manage_live.py start --config config/runtime.json
 envs/app_v1/bin/python -B -X utf8 current/manage_live.py status --config config/runtime.json
 envs/app_v1/bin/python -B -X utf8 current/manage_live.py stop --config config/runtime.json
 ```
 
-`--check-only`는 파일·해시·MOCK 조건만 확인하며 카메라·추론·DB를 열지 않습니다. 실제 시작 후 `/api/v1/release`는 **시작 시 확인한** release ID와 경로·해시를 표시합니다. `/api/v1/health`의 camera_ready와 단독 Worker, 실제 모델 로드, 이력·저장·MOCK 기본 동작까지 확인해야 설치 완료입니다. AUTO 시작과 장면 승인은 별도이며 자동으로 수행하지 않습니다.
+`--check-only`는 파일·해시·선택한 Gateway 조건만 확인하며 카메라·추론·DB를 열지 않습니다. 실제 시작 후 `/api/v1/release`는 **시작 시 확인한** release ID와 경로·해시를 표시합니다. `/api/v1/health`의 camera_ready와 단독 Worker, 실제 모델 로드, 이력·저장·선택한 Gateway 동작까지 확인해야 설치 완료입니다. AUTO 시작은 별도이며 자동으로 수행하지 않습니다.
 
 다른 Jetson의 JetPack/CUDA/TensorRT/GPU 조합이 같다고 가정하지 않습니다. 현 model.plan은 기존 Orin Nano, TensorRT 10.3 / CUDA 12.6 환경의 산출물입니다. 다른 환경의 기동·추론은 미검증이며 이 정리 과정에서 재빌드하지 않았습니다.
 
@@ -72,7 +72,7 @@ ssh -N -L 18771:127.0.0.1:18771 <user>@<jetson-address>
 
 ## 실제 교체와 복귀 조건
 
-이번에는 현재 개발본의 알고리즘을 그대로 두고 `current` 전환을 실제 수행했습니다. `deploy_area.py`는 기존 area 배포기의 해시·정상 종료·카메라 소유 확인·managed start 순서를 재사용한 **최초 경로 전환용**입니다. `current/assets/config`가 이미 있으면 덮어쓰지 않고 중단합니다. 차후 코드 업데이트에 이 최초 설치 명령을 그대로 반복하지 않습니다.
+`deploy_area.py`는 기존 area 배포기의 해시·정상 종료·카메라 소유 확인을 재사용합니다. 최초 설치와 기존 `current` 업데이트를 구분합니다. 최초 설치 모드는 `current/assets/config`가 이미 있으면 덮어쓰지 않고 중단합니다.
 
 새 장치 최초 설치 순서는 노트북 패키징 → `tmp/deploy`에 패키지·이 배포기·장치 설정만 업로드 → 기존 관리 경로 정상 종료/카메라 해제 → 보존할 데이터와 환경 준비 → 아래 명령입니다. archive SHA와 station 내용은 배포 대상에 맞게 확인합니다. `station.example.json`과 다른 카메라 설정은 해당 장치용 묶음에 반영해야 합니다.
 
@@ -81,6 +81,16 @@ envs/app_v1/bin/python -B -X utf8 tmp/deploy/deploy_area.py \
   --base /home/jetson/oned_device_bench \
   --archive tmp/deploy/engine-runtime-layout-001.tar.gz --sha256 <노트북에서 확인한 SHA256> \
   --station <기존 장치 station.json> --runtime-settings tmp/deploy/runtime.json
+```
+
+이미 `current`가 있는 장치에서는 활성 검사·요청·저장을 확인하고 managed stop 후, 노트북에 직전 release 패키지를 보존한 상태로 `--update-current`를 사용합니다. 임시 업로드 경로는 `tmp/deploy` 한 곳이며, 업데이트 설정은 기존 `runtime.json`에서 `plc_bench` 선택만 달라질 수 있습니다. 배포기는 코드 해시와 보존 자산을 확인하고 직전 `current`를 임시 복구본으로 둡니다. 새 release로 managed start·camera_ready·Gateway·HMI·이력 경로를 확인한 뒤 임시 복구본/업로드 파일을 노트북 백업과 대조해 정리합니다.
+
+```bash
+envs/app_v1/bin/python -B -X utf8 tmp/deploy/deploy_area.py \
+  --base /home/jetson/oned_device_bench \
+  --archive tmp/deploy/PACKAGE.tar.gz --sha256 SHA256_FROM_PC \
+  --runtime-settings tmp/deploy/runtime.json --update-current
+envs/app_v1/bin/python -B -X utf8 current/manage_live.py start --config config/runtime.json
 ```
 
 교체 전에는 현재 실행 명령·해시, 활성 검사/요청/저장, 복구 묶음의 노트북 백업을 확인합니다. 정상 종료와 카메라 해제를 확인한 뒤 제한된 임시 공간의 패키지를 교체하고, 실패 시 직전 코드·설정·경로로 복귀합니다. 운영 데이터와 Python 환경은 교체 대상이 아닙니다.
