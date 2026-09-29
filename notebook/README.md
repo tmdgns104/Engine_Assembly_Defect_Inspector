@@ -14,7 +14,7 @@
 | `training/datasets/` | 제품·촬영 순서 JSON. 촬영 이미지 폴더가 아님 |
 | `training/scripts/` | 데이터 검증·라벨 변환·학습/평가 도구. 명시적으로 실행할 때만 작동 |
 | [`deployment/`](deployment/README.md) | Jetson 운영 파일을 목록에 따라 묶는 노트북 전용 도구 |
-| [`deployment/maintain_tunnel.ps1`](deployment/maintain_tunnel.ps1) | 노트북 로그인 중 SSH 터널이 끊기면 다시 연결. 카메라·검사는 실행하지 않음 |
+| [`deployment/maintain_tunnel.ps1`](deployment/maintain_tunnel.ps1) | 노트북 로그인 중 유선 우선·Tailscale 대체 SSH 터널을 유지. 카메라·검사는 실행하지 않음 |
 | `tests/` | 합성 입력으로 실행하는 기존 촬영 도구 시험. Jetson 배포 제외 |
 
 호출 순서는 `start_capture.cmd → __main__.py → WizardApp → Collection/CameraClient → 저장·내보내기`입니다. 촬영 도구는 AI 자동 검사 화면이 아니며, 처음 시작할 때 카메라나 촬영을 자동 시작하지 않습니다.

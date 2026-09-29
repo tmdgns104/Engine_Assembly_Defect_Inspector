@@ -70,7 +70,7 @@ ssh -N -L 18771:127.0.0.1:18771 <user>@<jetson-address>
 
 화면: `http://127.0.0.1:18771/auto`. 주소·키·사용자명은 Git에 고정하지 않습니다.
 
-이 노트북에서는 `install_tunnel_task.ps1`로 현재 사용자 로그인 작업 `OneDeviceEngineTunnel`을 등록했습니다. `maintain_tunnel.ps1`은 기존 `targets/current.json`의 SSH 주소로 로컬 포트 18771만 유지하며 Jetson 재부팅으로 터널이 끊기면 다시 연결합니다. 현재 자동 대상은 유선 Jetson `192.168.50.2`이며 노트북 출발 주소 `192.168.50.1`을 확인했습니다. Tailscale 대상은 Git에서 제외된 `targets/remote_tailscale.json`에 외부 작업용으로 별도 보존합니다. 다른 노트북은 장치별 설정을 만든 뒤 아래 명령으로 등록합니다.
+이 노트북에서는 `install_tunnel_task.ps1`로 현재 사용자 로그인 작업 `OneDeviceEngineTunnel`을 등록했습니다. `maintain_tunnel.ps1`은 Git 제외 `targets/current.json`의 유선 주소를 우선 사용하고, 유선 연결이 없으면 `targets/remote_tailscale.json`의 Tailscale 주소로 같은 로컬 포트 18771을 연결합니다. Jetson 재부팅으로 터널이 끊겨도 다시 연결하고, 유선이 복구되면 두 번 확인한 뒤 유선으로 돌아옵니다. 한 시점에는 SSH 터널 한 개만 로컬 포트를 소유합니다. 두 파일은 같은 Jetson의 기존 키와 실행 경로를 가리켜야 합니다. Tailscale 설정 파일이 없으면 유선 연결만 유지합니다. 다른 노트북은 장치별 설정을 만든 뒤 아래 명령으로 등록합니다.
 
 ```powershell
 powershell.exe -NoProfile -File notebook/deployment/install_tunnel_task.ps1
