@@ -1,6 +1,6 @@
 # GITHUB-DEPLOYMENT-001 — GitHub에서 두 장비로 설치
 
-Status: LOCAL_CHECKOUT_VERIFIED / PUBLICATION_PENDING — 2026-09-30
+Status: PUBLISHED / CHECKOUT_VERIFIED / FRESH_HARDWARE_UNVERIFIED — 2026-09-30
 
 ## 요구와 범위
 
@@ -31,6 +31,15 @@ Status: LOCAL_CHECKOUT_VERIFIED / PUBLICATION_PENDING — 2026-09-30
 - Linux 테스트는 실제 파일 복사, 111파일 해시, `current/config` 링크, `launch_live --check-only`, 기존 설치 거부까지 수행했다. x86_64 WSL이며 Orin GPU/카메라 검증은 아니다.
 - aarch64/Python 3.10 의존성 wheel 전체 해석/다운로드 PASS. Windows Python 3.13 새 venv에 촬영 의존성 설치 PASS.
 - 모델·Pose·해시를 가진 JSON의 CRLF 바이트는 `.gitattributes -text`로 보존한다. 소스의 LF 정규화로 배포 release ID는 `engine-dev-82b71a21ad98dda7`이며, 기존 장치의 `engine-dev-745e95e832c6b402`와 구분한다.
-- 공개 이력/새 tree 감사: 1,168 objects, 텍스트 blob 784개, credential pattern 발견 0, 대용량 제한 위반/압축파일/보호 자료 열람 0. `git diff --cached --check` PASS.
+- 최종 구현 tree 공개 감사: 1,169 objects, 텍스트 blob 785개, credential pattern 발견 0, 대용량 제한 위반/압축파일/보호 자료 열람 0. `git diff --cached --check` PASS.
 - 검증 중 별도 촬영 작업이 소스를 추가 수정했다. 이번 출판은 검증 snapshot으로 고정하고 이후 worktree 변경·기구 설계 작업은 보존한다. 별도 EXE는 build input과 snapshot 해시가 불일치해 새 배포로 업로드하지 않는다.
 - 새 장치 실물 실행, 실제 컨베이어 연속 운전/기존 미해결 PLC·점유 문제는 UNVERIFIED/OPEN이다. 상세: `docs/verification/GITHUB-DEPLOYMENT-001.json`.
+
+## GitHub 반영 확인
+
+- 공개 `master` 구현 commit: `ce49b15ba67064f3651679cfa57280afca9bf4bb`. push 성공 후 `git ls-remote` SHA가 로컬과 동일했다.
+- GitHub Contents API에서 두 model.plan의 실제 크기 10,092,164 / 13,556,092 bytes와 Git blob ID를 확인했다.
+- [GitHub Actions 36658234340](https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector/actions/runs/36658234340) SUCCESS: Ubuntu 22.04/Python 3.10 새 checkout·의존성 설치·모델/자산 검사·배포 회귀·bundle 생성·shell syntax.
+- Windows 새 venv에서도 `pip check`와 촬영 GUI 집중 5건 PASS. 깨끗한 소스에서 만든 bundle은 111파일 / 21,229,569 bytes이며 파일별 해시를 다시 확인했다.
+- 모델 포함 다운로드·새 설치 파일 검증·합성 회귀·원격 출판 기준은 PASS. 새로운 물리 장치의 GPU/카메라 수용은 여전히 UNVERIFIED이며 이 Task에서 기존 장비를 변경하지 않았다.
+- 후속 완료 기록 commit은 문서만 갱신하며 이미 통과한 구현 CI를 반복하지 않는다.

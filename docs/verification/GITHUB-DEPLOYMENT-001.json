@@ -1,7 +1,20 @@
 {
   "task": "GITHUB-DEPLOYMENT-001",
   "date": "2026-09-30",
-  "status": "LOCAL_CHECKOUT_VERIFIED_PUBLICATION_PENDING",
+  "status": "PUBLISHED_CHECKOUT_VERIFIED_FRESH_HARDWARE_UNVERIFIED",
+  "publication": {
+    "repository": "https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector",
+    "visibility": "PUBLIC",
+    "branch": "master",
+    "implementation_commit": "ce49b15ba67064f3651679cfa57280afca9bf4bb",
+    "local_remote_sha_match": true,
+    "github_model_blobs": {
+      "dynamic_parts_005": "da07d5304d5c91f12609a6d6cea324b5370af563",
+      "envelope_v007_fp16": "24121472a95b73f141a2b5a9fe86c3d6c830fe54"
+    },
+    "github_actions": "https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector/actions/runs/36658234340",
+    "github_actions_conclusion": "success"
+  },
   "snapshot": "Git index exported through git archive, without ignored local files",
   "model_storage": "ordinary Git blobs, included in clone and Download ZIP",
   "models": [
@@ -16,8 +29,10 @@
     "final_linux_installer_tests": {"passed": 5, "seconds": 70.584, "log": "dist/github-deployment-001/final-linux-install.txt"},
     "aarch64_python310_dependency_wheels": "PASS: all pinned runtime requirements and transitive dependencies resolved/downloaded",
     "windows_python313_new_environment_install": "PASS: numpy 2.5.2, OpenCV 5.0.0.93, Pillow 12.3.0",
+    "windows_new_environment_gui_tests": {"passed": 5, "seconds": 20.864, "pip_check": "PASS", "log": "dist/github-deployment-001/new-env-gui-tests.txt"},
+    "clean_snapshot_bundle": {"release_id": "engine-dev-82b71a21ad98dda7", "bytes": 21229569, "sha256": "82fdae80b8ce3d7881d467446d0badacb0fa125dc3eed2edfc618cdb12aa5056"},
     "git_diff_check": "PASS: byte-preserved CRLF assets use explicit cr-at-eol attributes",
-    "publication_audit": {"reachable_objects": 1168, "text_blobs_checked": 784, "credential_pattern_findings": 0, "oversize_files": 0, "archives": 0, "protected_objects_read": 0}
+    "publication_audit": {"tree": "db8a29f32c66798daa5d4701b570e474eff51ce9", "reachable_objects": 1169, "text_blobs_checked": 785, "credential_pattern_findings": 0, "oversize_files": 0, "archives": 0, "protected_objects_read": 0}
   },
   "preservation": {
     "original_local_products": "preserved under notebook/deployment/products, excluded from new packaging",
