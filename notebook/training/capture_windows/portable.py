@@ -26,6 +26,18 @@ def ensure_standard_streams():
             setattr(sys, name, open(os.devnull, 'w', encoding='utf-8'))
 
 
+def camera_diagnostic_stage(stage):
+    """Local opt-in startup timings; never writes images or enables a camera."""
+    directory = os.environ.get('ENGINE_CAPTURE_CAMERA_CHECK_LOG')
+    if not directory:
+        return
+    from datetime import timezone
+    folder = Path(directory)
+    folder.mkdir(parents=True, exist_ok=True)
+    with (folder / f'process-{os.getpid()}.log').open('a', encoding='utf-8') as stream:
+        stream.write(f'{datetime.now(timezone.utc).isoformat()} {stage}\n')
+
+
 def show_startup_error(message):
     # A native dialog still works when Tcl/Tk itself cannot initialize.
     if sys.platform == 'win32':

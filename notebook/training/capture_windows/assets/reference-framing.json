@@ -1,0 +1,23 @@
+{
+  "purpose": "initial_visual_alignment_not_detection_label",
+  "reference_image": "normal_reference.png",
+  "reference_image_sha256": "6dc94539570259d7747d8cc2b4d5fb0ed3d782b6b5a881408f427cd80c39f561",
+  "reference_size": [1280, 720],
+  "reference_capture_id": "S20260917T071743_74784EDF_E0001_20260917T071743304527Z_4688a6d717ab",
+  "source_setup_id": "SETUPDD7C08CED9464C7E",
+  "source_setup_event_sha256": "bfa01a30fcdaad201d7c147f9d5ab1472743319f5b15f5bbd03e55b4a0a73ba4",
+  "split": "train",
+  "round_id": "E01",
+  "alignment_roi": [0.3816568047337278, 0.07631578947368421, 0.2736686390532544, 0.8263157894736842],
+  "envelope_roi": [0.005917159763313609, 0.007894736842105263, 0.9881656804733727, 0.9842105263157894],
+  "semantics": "reuse the recorded reference setup, not measured object extent; frame-to-frame placement may differ and a new camera needs first-time visual alignment",
+  "annotation_bbox": false,
+  "tail_extension": {
+    "reference_pixels": 40,
+    "shaft_width_fraction_of_box": 0.24,
+    "anchor": "original_box_bottom_center",
+    "reason": "user confirmed the tail protrudes while the remaining box fits; extend shaft only, retain center and body scale",
+    "guidance_only": true
+  },
+  "current_setup_verified": false
+}

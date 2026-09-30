@@ -3,6 +3,12 @@ import math
 from src.decision.engine_dynamic import box_of,SLOTS
 
 
+def motion_cycle_matches(binding, cycle, track_id):
+    """Fail closed if the live single-active identity changed before durable storage."""
+    return (cycle is not None and binding.get('cycle_id')==cycle.cycle_id
+            and binding.get('track_id') is not None and binding['track_id']==track_id)
+
+
 def verify_observations(result,observations,binding,generation,package_sha):
     reasons=[]; checks=[]; previous=binding.get('product_box')
     epoch=binding['camera_epoch']; last_sequence=binding.get('sequence',-1)

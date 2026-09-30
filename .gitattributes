@@ -1,5 +1,10 @@
 # Jetson launch scripts must retain Unix line endings on Windows checkouts.
 *.sh text eol=lf
+/jetson/** text eol=lf
+/jetson/products/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/jetson/runtime.example.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/jetson/station.example.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/notebook/training/capture_windows/assets/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 
 # Frozen diagnostic source snapshots retain their audited byte hashes on every checkout.
 /runs/jetson_p0_003/runtime/** -text

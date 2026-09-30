@@ -1,0 +1,34 @@
+# ENGINE-CONVEYOR-MOTION-001 · 이동 검사 개발 모드
+
+2026-09-29 종료 체크포인트 — **PARTIAL_BLOCKED / 컨베이어 입고 후 재개**: Jetson `current`는 `engine-dev-745e95e832c6b402` (`OMRON_CIP_BENCH`, `CONVEYOR_MOTION_PLC_BENCH`, 물리 출력 비활성), 설정 SHA256 `57e76f9630ff46fbec2c1a477eeb69f3ba1cc62a65c4678425e04502d99e4475`이다. 패키지는 `archives/jetson/engine-plc-always-on-001/engine-plc-always-on-timeout-fix.tar.gz` SHA256 `18d4cf5a43178b2c840efe90d536d82c2b1a80581190dc57f4910628367e7434`로 노트북에 보존했다. 직전 릴리스에서 Jetson 실제 재부팅 후 `@reboot`로 AUTO·단독 HCAM·PLC `ARMED`가 수동 조작 없이 켜졌고, 최신 릴리스는 같은 부팅 코드를 변경하지 않은 채 managed 배포 후 `boot_live.py`로 AUTO가 재가동됐다. 최신 릴리스 자체의 추가 물리 재부팅은 하지 않았다. 노트북 `OneDeviceEngineTunnel` 예약 작업은 배터리에서도 계속 실행되도록 수정했고 `/auto` HTTP 200 및 Edge 화면 복구를 확인했다.
+
+PLC 실물 벤치 재시험: 새 Track 1에 요청 상승이 결합되고 78ms 뒤 첫 유효 프레임, 440ms 동안 고유 3프레임(1981/1982/1983)이 저장됐다. 실제 중심 이동이 없어서 `REVIEW(CONVEYOR_MOTION_NOT_CONFIRMED)`였고, durable 저장 약 1,175ms 뒤 PLC `Jetson_Result=1`, `Jetson_Done=1` 읽기 확인, PhotoSensor OFF 후 `Done=0`을 확인했다. 사용자의 Sysmac 화면은 `Jetson_Result=0`으로 보여 직접 CIP 읽기(반복해서 1)와 불일치하며 PLC 내부 변수/온라인 모니터 연결은 **미해결**이다. 앞선 실패 회차는 Track 부재의 요청 무한 대기와 유효 프레임 0장의 REVIEW 저장 실패로 분리했고, 제한시간 진단 및 0장 `ERROR` 저장으로 최소 수정했다. 관련 42개 시험 통과. 현재 빈 Live에서도 우측 상단 경계 변화가 `DARK_SURFACE_OBJECT_PRESENT`로 남아 Track 1은 `WAIT_AREA_CLEAR`; 수동 삭제로 성공 처리하지 않았다. 실제 이동 중 PASS, 자동 retire→다음 제품, 실제 컨베이어 성능은 **미검증**이다. 컨베이어 설치 후 현재 작업면의 점유 기준과 PLC 변수 모니터를 먼저 대조해 이어간다.
+
+2026-09-29 PLC 상시 AUTO 후속: `engine-dev-92ea335890a447e0`을 Jetson `current`에 적용했다. `CONVEYOR_MOTION_PLC_BENCH`와 `OMRON_CIP_BENCH`를 명시적으로 선택하고, 실제 PLC 요청 상승 시 그때 추적 중인 Track/Cycle을 고정해 같은 제품의 전체 시야 유효 3프레임을 검사한다. PLC가 아직 꺼진 상태에서도 빈 화면·카메라가 준비되면 AUTO 추적을 시작하고, 유효한 Request=0을 확인한 뒤에만 요청을 받는다. PLC 응답 불명확·진행 중 통신 손실은 결과 성공으로 처리하지 않는다. 기존 정지/개발 MOCK 설정은 유지한다. PC 관련 40개 테스트, 이동 PASS/REVIEW 저장 사례 재생, 설정 점검 통과. 장치에서 실제 릴리스·카메라 단독 Worker·AUTO/PLC `ARMED`·Request=0을 확인했다. 실제 재부팅 및 새 릴리스의 PLC 요청→Result/Done 주기는 아직 확인 중이며 완료로 표시하지 않는다. 패키지: `archives/jetson/engine-plc-always-on-001/engine-plc-always-on.tar.gz` SHA256 `463edb48fc3f31ca67752880af8415d99dba03788026af519278551f5ee731d6`; 장치 설정 SHA256 `57e76f9630ff46fbec2c1a477eeb69f3ba1cc62a65c4678425e04502d99e4475`.
+
+이하 개발 MOCK 단계의 과거 기록이다.
+
+상태: **MOVING_BENCH_SOFTWARE_READY** (2026-09-29). 실제 컨베이어·PLC·센서·배출 시험은 하지 않았다.
+
+2026-09-29 전체 시야 후속: 사용자가 선택한 이동 MOCK Capture 영역을 `[[0,0],[1,0],[1,1],[0,1]]`로 바꾸고 같은 코드 릴리스 `engine-dev-76fbafd5473fd110`을 Jetson `current`에서 재시작했다. 장치 설정 SHA256 `661e22f9b7d16178a68efd8962bbb7aa1eeb802fcc41117fbe257578f7cfabfd`(이전 `a70a3ed0b519c27b6e632057d72e0f27f0ba730af8c50f407a3863106ddc6ea9`). 정지/PLC 설정은 변경하지 않았다. 전체 시야 합성 반례(완전한 조기 제품 PASS 가능, 경계 잘림 REVIEW)와 기존 이동 원본 REVIEW/PASS 보존, 관련 10개 시험 통과. 실제 손 이동 1회는 Track 1·자동 MOCK 요청·unstable 고유 프레임 872/873/874·Pose/4 Slot 3/3·PASS·ACK·Request OFF·완전 이탈 뒤 자동 종료를 확인했다. 요청→첫 유효 프레임 3,036ms, 첫→셋째 472ms, 요청→durable 약 4,337ms, 관측 약 12 FPS. 원본에는 손이 보이고 선택된 제품 중심은 기존 Capture 영역 안에도 있어, 넓어진 가장자리의 실물 통과나 실제 컨베이어 성능을 증명하지는 않는다. 새 Worker의 코드 해시·설정·카메라 단독 소유·AUTO 다음 제품 대기를 확인했고 이번 임시 배포 사본은 노트북 증거 무결성 확인 후 정리했다. 증거: `archives/jetson/engine-conveyor-motion-001/runtime-conveyor-{before-full-view,full-view}.json`, `full-view-motion-inspection.json`, `full-view-motion-7aab3454/`.
+
+최신 `current`: `engine-dev-76fbafd5473fd110` (`CONVEYOR_MOTION_DEV`, 자동 MOCK, 물리 출력 비활성). 노트북 패키지 `archives/jetson/engine-conveyor-motion-001/engine-conveyor-motion-deadline-fix.tar.gz` SHA256 `08df640d73a42a788d87d677fe92fb08132bc7ed139e58701251513e50bd5ead`. 이전 사용자 이동 시험 Track 4는 유효 프레임 부족 시 3초 capture deadline과 서비스 취소가 경합하여 `DEADLINE_EXCEEDED` FAULT가 됐다. 실패 원본과 상태는 같은 노트북 보관 폴더의 `self-motion-failure.json`, `self-motion-failure-status.json`에 보존했다. 이동 모드에서만 서비스 결과 저장 대기를 기존 검사 제한 15초로 분리했고, 프레임 수집 3초와 STATIONARY 경로는 유지했다. 직접 재현 테스트를 포함한 관련 36개 시험 통과. 수정 후 실물 이동 1회에서는 PASS부터 자동 종료까지 확인했다. 프레임 부족의 수정 분기는 이번 실물 시험에서는 발생하지 않았다.
+
+직전 릴리스 `engine-dev-bfb708658d0768f6`의 결과: 장치 설정은 `CONVEYOR_MOTION_DEV`, `MOCK`, 자동 요청, 물리 출력 비활성이며 `/auto`는 `http://127.0.0.1:18771/auto`이다. 노트북 패키지 SHA256은 `3459af4e3dd99a2f9a0a42256e1b5b7ad05134870a264470817dd9edc3970a01`. 더 이전 릴리스 `engine-dev-38e5e5fb5aaa541b`의 노트북 복귀 tar SHA256은 `ee639f0c0b7c908b4a35a497161b398d7bc82ba57e9188b403a451ac0030189e`.
+
+| Mode | Track | 자동 Request | Frame 1 / 2 / 3 | Pose | Decision | First→Third | Request→Durable | Retire |
+| --- | ---: | --- | --- | --- | --- | ---: | ---: | --- |
+| STATIONARY | 1 | 예 | 3407 / 3408 / 3409 | 3/3 신뢰 | PASS, MOCK Result=0 | 440ms | 1,216ms | 자동 종료 |
+| CONVEYOR_MOTION_DEV 첫 이동 | 1 | 예 | 4278 / 4279 / 4280 | 3/3 신뢰 | REVIEW, 본체 이동 미확인; MOCK Result=1 | 436ms | 3,574ms | 자동 종료 |
+| CONVEYOR_MOTION_DEV 재시험 | 2 | 예 | 6543 / 6544 / 6552 | 3/3 신뢰 | PASS, MOCK Result=0 | 844ms | 3,094ms | 자동 종료 |
+| 수정본 이동 재시험 | 1 | 예 | 6992 / 6993 / 6994 | 3/3 신뢰 | PASS, MOCK Result=0 | 404ms | 1,178ms | 자동 종료 |
+
+이동 재시험의 세 장은 모두 `stable=false`, 고유 frame ID·동일 camera epoch였으며 제품 중심은 아래로 약 62px 이동했다. 유효 프레임 FPS는 2.37, 평상시 관측은 약 12 FPS, 요청→첫 유효 프레임은 1,430ms, 요청→셋째는 2,274ms였다. 8~9초 stable 대기는 제거됐다. 첫 이동 실패 원본은 엔진 본체가 거의 정지하고 손이 이동한 장면이어서 REVIEW가 맞다. 재시험 원본에도 손이 보이며, 손 검출기가 없으므로 손 없는 컨베이어 PASS 근거로 쓰지 않는다. 해당 정상 프레임의 Pose가 약 80~94ms로 가장 큰 프레임별 처리 단계였다. 이동 재시험에서 Request OFF와 완전 이탈은 별개로 확인했고, 종료 뒤 `WAIT_NEW_PRODUCT`, `CLEAR`, Request/Done=0이었다.
+
+최신 수정본의 실물 이동 검사 `3e5ea5e3df044ec7b5761dffcb2a4281`은 세 장 모두 `stable=false`, Pose/품질 통과, 중심 아래로 82.6px 이동, 요청→첫 유효 프레임 698ms, 첫→셋째 404ms, 요청→durable 1,178ms였다. 네 Slot 모두 PRESENT, 저장 PASS, MOCK publication ACKNOWLEDGED였고 Request/Done OFF 뒤 `AREA_CLEAR_CONFIRMED`로 Track 1이 종료됐다. 현재 AUTO는 `WAIT_NEW_PRODUCT`, CLEAR, 카메라 준비, 관측 약 12.3 FPS. 원본 세 장 SHA가 Jetson Evidence와 노트북 사본에서 일치했고, 손이 크랭크를 잡은 모습이 보인다. 증거: `archives/jetson/engine-conveyor-motion-001/self-motion-retest/`의 result.json과 원본 6992/6993/6994.png. 손 없는 실제 벨트 이동·제품 간격·속도·진동은 미검증이다.
+
+최신·직전 릴리스 패키지와 설정 사본의 노트북 SHA를 확인한 뒤, 이번 배포만의 Jetson `tmp/deploy`를 정확한 파일 목록과 릴리스 ID 대조 후 정리했다. 정리 후에도 `current` 릴리스·HCAM·AUTO·MOCK 대기 상태를 다시 확인했다. 현장 즉시 복귀용 임시 사본은 남기지 않았으며 복귀 패키지는 노트북 보관본을 사용한다.
+
+코드: 정지 모드 기본값 보존, 개발 MOCK 전용 이동 모드·Capture Zone, stable 없는 조기 trigger, 기존 fresh selector로 유효한 서로 다른 3프레임 수집, 전체 가시성·Pose·품질·Track/Cycle binding 검사, 불충분한 프레임 REVIEW, 기존 3프레임 부품 합의와 결과 극성 유지. 관련 Windows 시험 24개, Runtime 점유 시험 13개, binding 시험 11개 통과. 기존 전체 회귀 실행기는 현재 코드 import·해시를 확인했고 Runtime 24/24, focused 105/105 통과했다. native 191개 중 6개는 이번 엔진과 무관한 누락된 `earbud_case_v0/recipe.json` fixture 때문에 ERROR여서 **전체 회귀 완료는 아니다**. 실패 결과는 기존 `verification/area_clearance/conveyor_motion_001_*`에 보존했다. 실제 컨베이어의 속도·FOV 체류시간·진동·노출·손 없는 영상은 미검증이다. 움직이는 제품의 검출 자체가 누락되면 자동 요청도 생성되지 않을 수 있다. 정지 모드로 돌아가려면 AUTO와 managed Runtime을 정상 종료한 뒤 장치 설정의 이동 모드/영역 항목을 제거하고 기존 `STATIONARY` 기본값으로 재시작한다. 실제 PLC는 별도 확인된 PLC 설정을 사용하며 이번 개발 설정에서 자동 전환하지 않는다.
+
+증거: `archives/jetson/engine-conveyor-motion-001/`의 후보·복귀 설정·inspection JSON·동일 frame ID 원본. Jetson 운영 Journal/Evidence 원본은 기존 데이터 경로에 보존한다.

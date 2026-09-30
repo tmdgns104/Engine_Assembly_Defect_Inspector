@@ -77,6 +77,8 @@ journal/*.db
 /notebook/deployment/*.tar.gz
 /notebook/deployment/*.partial
 *.plan
+!/jetson/products/ENGINE_Z3005_5/dynamic_parts_005/model.plan
+!/jetson/products/ENGINE_Z3005_5/envelope_v007_fp16/model.plan
 *.db
 # Device-specific settings/credentials are not shared defaults.
 /notebook/deployment/targets/
@@ -84,3 +86,7 @@ journal/*.db
 **/station.local.json
 *.pem
 *.key
+/notebook/deployment/products/
+/jetson/.venv/
+/jetson/.install-staging/
+/notebook/misassembly-settings.json

@@ -15,6 +15,7 @@ class OmronCipGatewayTests(unittest.TestCase):
     def setUp(self):
         self.gateway = OmronCipGateway.__new__(OmronCipGateway)
         self.gateway.last = {}
+        self.gateway.socket = Mock()  # These tests replace the transport message method.
 
     def test_read_request_requires_bool_type_and_value(self):
         self.gateway._message = Mock(return_value=struct.pack('<HH', 0xC1, 0))

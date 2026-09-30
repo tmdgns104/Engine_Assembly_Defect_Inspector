@@ -1,0 +1,7 @@
+{
+  "package": "../assets/products/ENGINE_Z3005_5/dynamic_parts_005",
+  "station": "station.json",
+  "data_root": "../data",
+  "pythonpath": "../env_candidates/numpy_compat_001/overlay",
+  "port": 18771
+}

@@ -28,7 +28,8 @@ from src.tracking.contracts import TrackState,WindowRelation,TrackingReason
 
 class ProductionRuntime(IntegratedRuntime):
     def __init__(self,*args,zone=None,area_config_version=None,
-                 area_reference_required=True,gateway=None,**kwargs):
+                 area_reference_required=True,gateway=None,auto_mock_request=False,
+                 inspection_motion_mode='STATIONARY',**kwargs):
         self.connection_plan=json.loads((Path(__file__).resolve().parents[2]/'config/plc_reference.json').read_text(encoding='utf-8'))
         self.zone=zone or proposed_zone()
         self.operating=False; self.phase='STOPPED'; self.latest_packet=None
@@ -36,6 +37,20 @@ class ProductionRuntime(IntegratedRuntime):
         self.last_sequence=-1; self.last_time=0; self.epoch=None; self.worker_generation=None
         self.absent=[]; self.observation_times=deque(maxlen=40); self.history=deque(maxlen=30)
         self.gateway=gateway if gateway is not None else MockPlcGateway()
+        if auto_mock_request and self.gateway.backend!='MOCK':
+            raise ValueError('AUTO_MOCK_REQUEST_REQUIRES_MOCK_GATEWAY')
+        self.auto_mock_request=auto_mock_request
+        if inspection_motion_mode not in ('STATIONARY','CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
+            raise ValueError('INSPECTION_MOTION_MODE_INVALID')
+        if inspection_motion_mode=='CONVEYOR_MOTION_DEV' and (not auto_mock_request or self.gateway.backend!='MOCK'):
+            raise ValueError('CONVEYOR_MOTION_REQUIRES_MOCK_AUTO_REQUEST')
+        if inspection_motion_mode=='CONVEYOR_MOTION_PLC_BENCH' and (auto_mock_request or self.gateway.backend!='OMRON_CIP_BENCH'):
+            raise ValueError('CONVEYOR_MOTION_PLC_BENCH_REQUIRES_REAL_PLC')
+        self.inspection_motion_mode=inspection_motion_mode
+        self.request_track_id=None; self.request_cycle_id=None
+        self.next_plc_poll_at=0
+        self.auto_requested_tracks=set()
+        self.auto_request_token=None
         self.handshake=RequestHandshake(self.gateway,self._event)
         self.pending_started=None; self.published_ids=set(); self.inspected_tracks=set()
         self.window_event=None; self.eligible=False; self.last_transition=None
@@ -80,10 +95,11 @@ class ProductionRuntime(IntegratedRuntime):
                 if self.handshake.state not in ('SYNC_LOW', 'ARMED'):
                     raise ValueError('PLC_HANDSHAKE_NOT_IDLE')
                 request = self.gateway.read_request()
-                if request.status != 'ACK' or request.value is not False:
+                if request.status=='ACK' and request.value is False:
+                    self.handshake.request = False
+                    self.handshake.state = 'ARMED'
+                elif not (request.status=='FAILED' and self.handshake.state=='SYNC_LOW'):
                     raise ValueError('VALID_PLC_REQUEST_LOW_REQUIRED_AT_AUTO_START')
-                self.handshake.request = False
-                self.handshake.state = 'ARMED'
             if self.area_config_version and not self._area_approval_current(self._preview_area()):
                 raise ValueError('CURRENT_VALID_AREA_OBSERVATION_REQUIRED' if not self.area_reference_required
                                  else 'MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED')
@@ -97,7 +113,8 @@ class ProductionRuntime(IntegratedRuntime):
             self._reset_departure_candidate()
             self.area_window.reset()
             self.service.production_tracking.set()
-            self._event({'event':'PRODUCTION_AUTO_STARTED','zone':self.zone,'human_acceptance':'PENDING'})
+            self._event({'event':'PRODUCTION_AUTO_STARTED','zone':self.zone,'human_acceptance':'PENDING',
+                         'auto_mock_request':self.auto_mock_request})
             return self.status()
 
     def stop_auto(self):
@@ -114,6 +131,8 @@ class ProductionRuntime(IntegratedRuntime):
 
     def configure_zone(self,body):
         with self.lock,self.service.lock:
+            if self.inspection_motion_mode in ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
+                raise ValueError('CAPTURE_ZONE_IS_DEVICE_CONFIG_IN_MOTION_MODE')
             if self.operating or self.coordinator.active_cycle or self.service.active: raise ValueError('STOP_AND_IDLE_REQUIRED')
             zone=dict(body)
             validate_zone(zone)
@@ -136,6 +155,8 @@ class ProductionRuntime(IntegratedRuntime):
             if self.gateway.backend != 'MOCK':
                 raise ValueError('MOCK_ACTION_UNAVAILABLE_WITH_REAL_PLC')
             if action=='request':
+                if self.auto_mock_request:
+                    raise ValueError('AUTOMATIC_MOCK_REQUEST_OWNS_EDGE')
                 if type(body.get('value')) is not bool: raise ValueError('BOOL_REQUIRED')
                 self.gateway.request=body['value']
             elif action=='resync':
@@ -421,7 +442,9 @@ class ProductionRuntime(IntegratedRuntime):
         tracker=self.coordinator._tracker
         if (provider.status==ProviderStatus.PRODUCT_OBSERVED and
                 tracker._state==TrackState.WAIT_AREA_CLEAR and
-                self.handshake.token is None and
+                (self.handshake.token is None or
+                 (self.auto_mock_request and self.handshake.state=='REQUEST_LATCHED'
+                  and self.handshake.inspection_id is None)) and
                 self.area_observation and
                 self.area_observation.get('frame_id')==packet['frame_id'] and
                 self.area_observation.get('state')=='OCCUPIED' and
@@ -492,6 +515,8 @@ class ProductionRuntime(IntegratedRuntime):
             self._fault('PRODUCT_DEPARTURE_NOT_OBSERVED'); return
         self.eligible=bool(provider.observations and tracker._state==TrackState.INSPECTION_READY
             and tracker._relation==WindowRelation.INSIDE and tracker._track_id not in self.inspected_tracks)
+        if self.eligible:
+            self._auto_request_for_track(packet)
         if self.snapshot.cycle_retired:
             self.last_retirement=dict(track_id=self.snapshot.track_id,
                 reason=evidence.clearance_evidence.termination_reason if self.area_config_version else 'VISION_BOUNDED_ABSENCE',
@@ -527,24 +552,94 @@ class ProductionRuntime(IntegratedRuntime):
         if not self.operating and not self.coordinator.active_cycle and not self.service.active:
             self.service.production_tracking.clear(); self.phase='STOPPED'
 
+    def _auto_request_for_track(self,packet):
+        """Latch one development MOCK edge for a valid in-zone Track, before stability."""
+        if not self.auto_mock_request or not self.operating or self.error:
+            return
+        track_id=self.coordinator._tracker._track_id
+        if track_id is None or track_id in self.auto_requested_tracks:
+            return
+        now=time.monotonic()
+        if self.handshake.state=='SYNC_LOW':
+            self.handshake.poll(now)
+        if (self.handshake.state!='ARMED' or self.gateway.request is not False
+                or self.auto_request_token is not None):
+            return
+        self.gateway.request=True
+        self.handshake.poll(now)
+        if self.handshake.state!='REQUEST_LATCHED':
+            return
+        self.auto_requested_tracks.add(track_id)
+        self.auto_request_token=self.handshake.token
+        self._event({'event':'PRODUCTION_MOCK_AUTO_REQUEST_ON','track_id':track_id,
+                     'frame_id':packet['frame_id'],'sequence':packet['sequence'],
+                     'plc_request_token':self.auto_request_token})
+
+    def _auto_request_off_after_done(self):
+        """MOCK PLC acknowledges Done, then lowers Request; this is not clearance."""
+        if (not self.auto_mock_request or self.auto_request_token is None
+                or self.handshake.token!=self.auto_request_token
+                or self.handshake.state!='WAIT_REQUEST_OFF'
+                or self.handshake.publication!='ACKNOWLEDGED'
+                or self.gateway.done is not True or self.gateway.request is not True):
+            return
+        self.gateway.request=False
+        self._event({'event':'PRODUCTION_MOCK_AUTO_REQUEST_OFF',
+                     'plc_request_token':self.auto_request_token,
+                     'inspection_id':self.handshake.inspection_id,'product_clearance':False})
+        self.handshake.poll(time.monotonic())
+        if self.handshake.state=='ARMED':
+            self.auto_request_token=None
+
+    def _snapshot_plc_request_track(self,now):
+        """Freeze the Track visible at the PLC edge; a later product cannot inherit it."""
+        tracker=self.coordinator._tracker
+        fresh=bool(self.latest_packet and
+            0<=now-self.latest_packet['processed_monotonic']<self.observation_stale_seconds)
+        self.request_track_id=tracker._track_id if self.eligible and fresh else None
+        self.request_cycle_id=(self.coordinator.active_cycle.cycle_id
+            if self.request_track_id is not None and self.coordinator.active_cycle else None)
+        self._event({'event':'PLC_REQUEST_TRACK_SNAPSHOT',
+            'plc_request_token':self.handshake.token,
+            'track_id':self.request_track_id,'cycle_id':self.request_cycle_id,
+            'frame_id':self.latest_packet['frame_id'] if fresh else None})
+
     def _trigger(self,now):
         if not self.operating or self.error or self.handshake.state!='REQUEST_LATCHED' or self.service.active: return
-        if self.area_config_version and self.coordinator._tracker._state==TrackState.WAIT_AREA_CLEAR: return
         expired=now-self.handshake.accepted_at>=self.request_wait_seconds
-        if not expired and not (self.eligible and self.latest_packet.get('stable')): return
+        if (self.area_config_version and self.coordinator._tracker._state==TrackState.WAIT_AREA_CLEAR
+                and not expired): return
+        motion_ready=False
+        motion_mode=self.inspection_motion_mode in ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH')
+        request_track_matches=(self.inspection_motion_mode!='CONVEYOR_MOTION_PLC_BENCH' or
+            (self.request_track_id is not None and self.request_track_id==self.coordinator._tracker._track_id
+             and self.coordinator.active_cycle is not None
+             and self.request_cycle_id==self.coordinator.active_cycle.cycle_id))
+        bound_eligible=self.eligible and request_track_matches
+        if motion_mode and bound_eligible and self.latest_packet:
+            packet_age=now-self.latest_packet['processed_monotonic']
+            box=self.latest_packet['provider']['observations'][0]['bbox']
+            motion_ready=(0<=packet_age<self.observation_stale_seconds and
+                          0<box['x1']<box['x2']<1 and 0<box['y1']<box['y2']<1)
+        ready=bound_eligible and (motion_ready if motion_mode
+                                 else self.latest_packet.get('stable'))
+        if not expired and not ready: return
         tracker=self.coordinator._tracker
         if tracker._track_id in self.inspected_tracks:
             self.handshake.fault('REQUEST_FOR_ALREADY_INSPECTED_TRACK','BLOCKED'); return
         packet=self.latest_packet or {}
         binding=dict(runtime_session_id=self.session_id,
-            cycle_id=self.coordinator.active_cycle.cycle_id if self.coordinator.active_cycle else None,
-            track_id=tracker._track_id if self.eligible else None,plc_request_token=self.handshake.token,
+            cycle_id=self.coordinator.active_cycle.cycle_id if bound_eligible else None,
+            track_id=tracker._track_id if bound_eligible else None,plc_request_token=self.handshake.token,
+            request_accepted_monotonic=self.handshake.accepted_at,
+            publication_backend=self.gateway.backend,
             camera_epoch=self.epoch,worker_generation=self.service.generation,
             package_manifest_sha=self.service.package.manifest_hash,inspection_zone=self.zone,
+            inspection_motion_mode=self.inspection_motion_mode,
             sequence=packet.get('sequence',-1),monotonic_s=packet.get('monotonic_s',0),
             product_box=None,authority='WHOLE_PRODUCT_TRACK_AND_LATCHED_PLC_REQUEST',
-            trigger_reason='REQUEST_TRACK_TIMEOUT_DIAGNOSTIC' if not self.eligible else 'TRACK_IN_ZONE_AND_PLC_EDGE')
-        if self.eligible:
+            trigger_reason='REQUEST_TRACK_TIMEOUT_DIAGNOSTIC' if not bound_eligible else 'TRACK_IN_ZONE_AND_PLC_EDGE')
+        if bound_eligible:
             box=packet['provider']['observations'][0]['bbox']
             binding['product_box']=[box[k] for k in ('x1','y1','x2','y2')]
         self.bridge=InspectionBridge(self.service,self.coordinator)
@@ -570,6 +665,7 @@ class ProductionRuntime(IntegratedRuntime):
             plc_request_token=self.bridge.request['runtime_binding']['plc_request_token'],
             vision_decision=row['decision'],reason=row['result'].get('reason_code',row['result'].get('reason')),
             completed_at=row.get('completed_at'),publication_status=self.handshake.publication,
+            publication_backend=self.gateway.backend,
             request_to_publication_ms=(now-self.handshake.accepted_at)*1000,
             timing=self.service.latest_timing)
         self.history.appendleft(entry)
@@ -586,8 +682,20 @@ class ProductionRuntime(IntegratedRuntime):
                         except queue.Empty: break
                         self._packet(packet)
                     now=time.monotonic()
-                    if self.operating or self.handshake.token: self.handshake.poll(now)
+                    if ((self.operating or self.handshake.token)
+                            and self.handshake.state!='RESYNC_REQUIRED'
+                            and now>=self.next_plc_poll_at):
+                        previous_token=self.handshake.token
+                        self.handshake.poll(now)
+                        now=time.monotonic()
+                        self.next_plc_poll_at=(now+1 if self.gateway.backend!='MOCK'
+                            and self.handshake.state=='SYNC_LOW' else 0)
+                        if (self.inspection_motion_mode=='CONVEYOR_MOTION_PLC_BENCH'
+                                and self.handshake.state=='REQUEST_LATCHED'
+                                and self.handshake.token!=previous_token):
+                            self._snapshot_plc_request_track(now)
                     self._poll_result(now)
+                    self._auto_request_off_after_done()
                     self._trigger(now)
                     observation_since=(self.latest_packet['processed_monotonic'] if self.latest_packet
                         else self.observation_started_at)
@@ -631,6 +739,8 @@ class ProductionRuntime(IntegratedRuntime):
             departure_clearance_eligible=self.departure_clearance_eligible,
             eligible=self.eligible and fresh,latest_frame=packet if fresh else None,stale_observation=not fresh,
             history=list(self.history),plc=plc_status,
+            mock_auto_request_enabled=self.auto_mock_request,
+            inspection_motion_mode=self.inspection_motion_mode,
             observation_fps=((len(self.observation_times)-1)/(self.observation_times[-1]-self.observation_times[0])
                 if fresh and len(self.observation_times)>1 else None),
             human_acceptance='PENDING',physical_output_enabled=False,

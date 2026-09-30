@@ -21,6 +21,8 @@
 
 ## 다른 노트북에서 실행
 
+저장소 전체 ZIP을 풀거나 clone한 뒤 **`setup_capture.cmd`를 한 번 실행**하세요. Python 3.13 x64(Tcl/Tk·Python launcher 포함)가 필요합니다. 설치 후 `start_misassembly.cmd`는 최신 간편 촬영, `start_capture.cmd`는 기존 Wizard V1을 엽니다. 카메라 영상·해상도·촬영자·저장 위치를 최초 설정에서 지정합니다. 간편 촬영의 새 기본 계획은 10° 간격 총 654장이고, 기존 수집은 원래 계획을 유지합니다. 두 앱의 원장/검토 절차는 구분합니다.
+
 Windows x64 Python 3.13의 Tk 지원과 [촬영 의존성](requirements-capture.txt)이 필요합니다. 현재 작업 PC에서 확인된 버전이며, 다른 PC에서 카메라 동작까지 검증했다는 뜻은 아닙니다.
 
 ```powershell
@@ -36,10 +38,24 @@ py -3.13 -m venv .venv
 
 학습은 별도 GPU 환경·자료·명시적 설정이 필요합니다. 이번 폴더 정리에서 재학습, 모델 변환, EXE 재빌드는 하지 않았습니다. `training/scripts`의 학습 설정 경로는 해당 명령을 실행하기 전에 실제 입력에 맞춰 확인합니다.
 
+현재 AI 검사용 모델은 [`../jetson/products`](../jetson/products/README.md)에 포함되어 있습니다. 노트북 촬영 앱은 이 TensorRT 모델을 실행하지 않습니다. 간편 촬영의 안내 사진/계획은 `training/capture_windows/assets`에 포함됩니다. 최신 촬영 소스 및 기존 EXE의 검증 범위는 [Task](../tasks/ENGINE-MISASSEMBLY-CAPTURE-001.md)를 참조하세요.
+
+## Jetson 운영 화면 접속
+
+Jetson 설치 및 서버 시작을 먼저 완료합니다. 별도 촬영 Python 환경 없이도 Windows OpenSSH와 브라우저로 화면을 볼 수 있습니다.
+
+```powershell
+ssh -N -L 18771:127.0.0.1:18771 실제사용자@Jetson주소
+```
+
+호스트 지문을 확인하고 인증하면 `http://127.0.0.1:18771/auto`를 엽니다. 이 SSH 창을 닫으면 화면 연결은 끊어지지만 Jetson의 서버는 계속 실행됩니다.
+
+키 기반 바로가기는 `deployment/device.example.json`을 `deployment/targets/current.json`으로 복사한 뒤 실제 SSH 주소·사용자·기존 키 경로·Jetson 설치 경로를 입력하고 `OPEN_ENGINE_HCAM.cmd`를 실행합니다. 기본 사용자 `jetson`이 아닌 장치는 `remote_base`도 수정하세요. 개인 키와 실제 주소는 커밋하지 않습니다. 로그인 자동 터널 등록은 선택 사항이며 [배포 안내](deployment/README.md)에 있습니다.
+
 경로 정리 확인에 사용한 기존 시험:
 
 ```powershell
 .venv\Scripts\python.exe -B -X utf8 -m unittest discover -s tests -p test_engine_portable.py -v
 ```
 
-Git에는 `data`, `logs`, 모델 바이너리, 배포 압축파일을 넣지 않습니다. 장치별 SSH 키·접속 설정도 별도로 관리합니다.
+Git에는 `data`, `logs`, 운영 DB, 배포 압축파일을 넣지 않습니다. 현재 승인된 공개 범위의 실행 모델만 `jetson/products`에 포함합니다. 장치별 SSH 키·접속 설정은 별도로 관리합니다.

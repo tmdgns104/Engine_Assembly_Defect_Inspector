@@ -101,8 +101,9 @@ class DarkSurfaceOccupancy:
         hsv=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
         # The mat's illuminated texture can reach moderate saturation. The
         # retained gold handle has a much stronger color signal at the exit.
-        foreground=np.logical_or(gray>135,
-            np.logical_and(hsv[:,:,1]>100,hsv[:,:,2]>90)).astype(np.uint8)
+        native_bright=np.logical_or(gray>135,
+            np.logical_and(hsv[:,:,1]>100,hsv[:,:,2]>90))
+        foreground=native_bright.astype(np.uint8)
         foreground[:,:inner_left]=0
         foreground[:,inner_right:]=0
         # A tiny camera translation can reveal a uniform bright strip above
@@ -121,10 +122,20 @@ class DarkSurfaceOccupancy:
         # a local object extending farther into the work surface still blocks.
         count,labels,stats,_=cv2.connectedComponentsWithStats(foreground,8)
         for index in range(1,count):
-            _,component_y,component_width,component_height,_=stats[index]
+            component_x,component_y,component_width,component_height,_=stats[index]
             if (component_y==0 and component_height<=5 and
                     component_width>=50 and component_width>=10*component_height):
                 foreground[labels==index]=0
+            # The sloping white table edge may cross only the upper corner of
+            # the detected dark surface. Remove a narrow piece only when it
+            # continues as bright pixels beyond the surface boundary; the
+            # bottom exit (where a retained handle appears) is untouched.
+            elif (component_y==0 and component_height<=64 and
+                  0<component_width<=16 and component_x+component_width==inner_right):
+                outside=native_bright[:component_height,inner_right:inner_right+12]
+                if (outside.shape[1]==12 and
+                        np.count_nonzero(np.all(outside,axis=1))>=.8*component_height):
+                    foreground[labels==index]=0
 
         def largest(mask,y_offset=0):
             count,_,stats,_=cv2.connectedComponentsWithStats(mask,8)

@@ -6,7 +6,7 @@ import time
 import cv2
 import numpy as np
 
-from src.decision.engine_dynamic import aggregate_three, inspect_frame, result, SLOTS
+from src.decision.engine_dynamic import aggregate_three, box_of, inspect_frame, result, SLOTS
 from src.decision.calibration import ReferenceError
 from src.recipe.package import load_package
 from src.vision.detector_factory import create_detector
@@ -121,6 +121,45 @@ class EngineInspector:
     def close(self):self.detector.close()
 
 
+def conveyor_frame_gate(observation, capture_zone):
+    """Accept only a fresh inspection candidate with a fully visible, posed product.
+
+    Freshness/epoch and the latched Track are checked by the existing selector and
+    production binding. This gate does not claim to detect a hand.
+    """
+    frame=observation['engine_dynamic']
+    if observation['quality']['valid'] is not True:
+        return 'CONVEYOR_IMAGE_QUALITY_INSUFFICIENT'
+    selection=frame.get('product_selection',{})
+    if selection.get('valid_count')!=1 or not frame.get('product'):
+        return 'CONVEYOR_PRODUCT_UNAVAILABLE'
+    x1,y1,x2,y2=box_of(frame['product'])
+    width,height=observation['width'],observation['height']
+    if not (0<x1<x2<width and 0<y1<y2<height):
+        return 'CONVEYOR_PRODUCT_PARTIALLY_VISIBLE'
+    cx,cy=(x1+x2)/(2*width),(y1+y2)/(2*height)
+    zone=capture_zone['polygon_normalized']
+    if not (zone[0][0]<=cx<=zone[2][0] and zone[0][1]<=cy<=zone[2][1]):
+        return 'CONVEYOR_OUTSIDE_CAPTURE_ZONE'
+    if frame.get('pose',{}).get('reliable') is not True:
+        return 'CONVEYOR_POSE_UNRELIABLE'
+    if frame.get('reason_code')=='SLOT_OUTSIDE_FRAME':
+        return 'CONVEYOR_PRODUCT_PARTIALLY_VISIBLE'
+    if frame.get('decision')=='ERROR':
+        return 'CONVEYOR_FRAME_ERROR'
+    return None
+
+
+def conveyor_incomplete_result(observations, rejections):
+    """A bounded capture window may end with fewer than three valid frames."""
+    # Journal requires original image evidence for REVIEW. With no accepted frame,
+    # report an explicit system ERROR instead of failing the durable write.
+    return result('REVIEW' if observations else 'ERROR','CONVEYOR_INSUFFICIENT_VALID_FRAMES',
+                  valid_frame_count=len(observations),
+                  frames=[o['engine_dynamic'] for o in observations],
+                  conveyor_frame_rejections=rejections)
+
+
 def assess_dynamic(observations,view,calibration,*,register=False,experiment_policy=None):
     frames=[o['engine_dynamic'] for o in observations]
     if view.get('system_error'):
@@ -135,7 +174,26 @@ def assess_dynamic(observations,view,calibration,*,register=False,experiment_pol
             slot_states=dict.fromkeys(SLOTS,'NOT_EVALUATED'),defects=[],
             blocking_frames=[dict(frame_number=i+1,frame_id=f.get('frame_id'),reason_code=code) for i,f in enumerate(frames) if blocked(f)])
         return value
-    if any(not f.get('stable') for f in frames):
+    conveyor=(not register and experiment_policy and
+        experiment_policy.get('source_mode')=='PRODUCTION_AUTO' and
+        experiment_policy.get('inspection_motion_mode') in ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH') and
+        experiment_policy.get('session_id') and experiment_policy.get('physical_output_enabled') is False)
+    if conveyor:
+        zone=experiment_policy['capture_zone']
+        blocked=[conveyor_frame_gate(o,zone) for o in observations]
+        if any(blocked):
+            code=next(reason for reason in blocked if reason)
+            blocked_ids={f.get('frame_id') for f,reason in zip(frames,blocked) if reason}
+            return review(code,lambda f:f.get('frame_id') in blocked_ids)
+        centers=[]
+        for frame in frames:
+            _,y1,_,y2=box_of(frame['product'])
+            centers.append((y1+y2)/2)
+        value['conveyor_center_delta_y_px']=centers[-1]-centers[0]
+        if centers[-1]<=centers[0]:
+            return review('CONVEYOR_MOTION_NOT_CONFIRMED',lambda f:True)
+        value['frame_motion_policy']='FRAME_MOTION_ACCEPTED_FOR_CONVEYOR'
+    elif any(not f.get('stable') for f in frames):
         return review('ENGINE_OR_HAND_MOTION',lambda f:not f.get('stable'))
     experiment=(not register and experiment_policy and experiment_policy.get('source_mode') in ('LAB_AUTO','MOCK_PLC','PRODUCTION_AUTO')
         and experiment_policy.get('session_id') and experiment_policy.get('human_acceptance')=='PENDING'

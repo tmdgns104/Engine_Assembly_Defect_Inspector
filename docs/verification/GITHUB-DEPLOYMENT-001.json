@@ -1,0 +1,36 @@
+{
+  "task": "GITHUB-DEPLOYMENT-001",
+  "date": "2026-09-30",
+  "status": "LOCAL_CHECKOUT_VERIFIED_PUBLICATION_PENDING",
+  "snapshot": "Git index exported through git archive, without ignored local files",
+  "model_storage": "ordinary Git blobs, included in clone and Download ZIP",
+  "models": [
+    {"path": "jetson/products/ENGINE_Z3005_5/dynamic_parts_005/model.plan", "bytes": 10092164, "sha256": "743ce54b4d5c7b8a36addf3dbff50fa693ec4a509b31b476f68efc69f1bf2d6c"},
+    {"path": "jetson/products/ENGINE_Z3005_5/envelope_v007_fp16/model.plan", "bytes": 13556092, "sha256": "c82f2658ac20d06985a647c15e551c681e394451cfa1c53baed64f639bcebf83"}
+  ],
+  "source_runtime_release_id": "engine-dev-82b71a21ad98dda7",
+  "runtime_files_and_assets": 111,
+  "checks": {
+    "windows_clean_source_focused_tests": {"passed": 68, "seconds": 77.962, "log": "dist/github-deployment-001/fresh-notebook-tests.txt"},
+    "linux_clean_source_deployment_tests": {"passed": 25, "seconds": 223.649, "log": "dist/github-deployment-001/linux-deployment-tests.txt"},
+    "final_linux_installer_tests": {"passed": 5, "seconds": 70.584, "log": "dist/github-deployment-001/final-linux-install.txt"},
+    "aarch64_python310_dependency_wheels": "PASS: all pinned runtime requirements and transitive dependencies resolved/downloaded",
+    "windows_python313_new_environment_install": "PASS: numpy 2.5.2, OpenCV 5.0.0.93, Pillow 12.3.0",
+    "git_diff_check": "PASS: byte-preserved CRLF assets use explicit cr-at-eol attributes",
+    "publication_audit": {"reachable_objects": 1168, "text_blobs_checked": 784, "credential_pattern_findings": 0, "oversize_files": 0, "archives": 0, "protected_objects_read": 0}
+  },
+  "preservation": {
+    "original_local_products": "preserved under notebook/deployment/products, excluded from new packaging",
+    "concurrent_capture_edits": "worktree changes after the verified snapshot are preserved and not automatically staged",
+    "hardware_design_edits": "not staged",
+    "jetson_device_and_plc_changed": false,
+    "e04_accessed": false
+  },
+  "limitations": [
+    "Linux installation tests use WSL x86_64 with synthetic camera paths; no GPU/camera/PLC is opened.",
+    "Fresh physical Orin Nano inference and another physical Windows notebook remain UNVERIFIED.",
+    "Known conveyor empty-surface occupancy and PLC display/readback issues remain open.",
+    "The separately built Windows EXE was not republished because its build-input hashes did not match the source snapshot; source installation is the published path.",
+    "An initial whole-suite run using the legacy working-directory imports was interrupted and is not acceptance evidence. The 68 tests above use only the clean source snapshot."
+  ]
+}

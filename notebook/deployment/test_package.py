@@ -54,8 +54,8 @@ class PackageTests(unittest.TestCase):
     def test_missing_allowlisted_file_fails_before_archive_is_created(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'notebook/deployment').mkdir(parents=True)
-            (root / 'notebook/deployment/runtime_allowlist.json').write_text(json.dumps({
+            (root / 'jetson').mkdir(parents=True)
+            (root / 'jetson/runtime_allowlist.json').write_text(json.dumps({
                 'runtime_files': ['missing.py'], 'product_files': []}), encoding='utf-8')
             output = root / 'out.tar.gz'
             with self.assertRaises(FileNotFoundError):
@@ -78,6 +78,36 @@ class PackageTests(unittest.TestCase):
         status['inspection_service']['diagnostic_capture']['state'] = 'SAVING'
         with self.assertRaises(RuntimeError):
             managed.assert_idle(status)
+
+    def test_offline_plc_dev_switch_only_stops_unavailable_idle_bench(self):
+        path = HERE.parents[1] / 'jetson/manage_live.py'
+        spec = importlib.util.spec_from_file_location('managed', path)
+        managed = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(managed)
+        status = {'operating': False, 'active_cycle': None,
+                  'inspection_service': {'active_inspection_id': None, 'diagnostic_capture': {'state': 'IDLE'}},
+                  'plc': {'backend': 'OMRON_CIP_BENCH', 'physical_output_enabled': False,
+                          'available': False, 'Inspection_Request': None, 'state': 'RESYNC_REQUIRED'}}
+        with self.assertRaises(RuntimeError):
+            managed.assert_idle(status)
+        managed.assert_idle(status, offline_plc_dev_switch=True)
+        status['active_cycle'] = {'cycle_id': 'still-active'}
+        with self.assertRaises(RuntimeError):
+            managed.assert_idle(status, offline_plc_dev_switch=True)
+
+    def test_deployer_requires_explicit_exclusive_gateway_selection(self):
+        spec = importlib.util.spec_from_file_location('deploy', HERE / 'deploy_area.py')
+        deploy = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(deploy)
+        before = {'port': 18771, 'plc_bench': True}
+        deploy.validate_runtime_settings(before, {'port': 18771, 'plc_bench': False,
+                                                  'mock_auto_request': True})
+        with self.assertRaises(ValueError):
+            deploy.validate_runtime_settings(before, {'port': 18771, 'plc_bench': True,
+                                                      'mock_auto_request': True})
+        with self.assertRaises(ValueError):
+            deploy.validate_runtime_settings(before, {'port': 18772, 'plc_bench': False,
+                                                      'mock_auto_request': True})
 
     def test_deployer_rejects_archive_escape_and_unexpected_links(self):
         spec = importlib.util.spec_from_file_location('deploy', HERE / 'deploy_area.py')

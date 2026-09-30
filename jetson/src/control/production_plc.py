@@ -86,6 +86,13 @@ class RequestHandshake:
     def poll(self,now):
         read=self.gateway.read_request()
         if read.status!='ACK' or type(read.value) is not bool:
+            # Before the first valid low, no request or output has been accepted.
+            # A powered-off PLC may come online later without manual recovery.
+            if self.state=='SYNC_LOW': return
+            if self.state=='ARMED' and self.token is None and self.inspection_id is None:
+                self.state='SYNC_LOW'; self.request=None
+                self.record('PLC_IDLE_LINK_LOST_WAIT_LOW')
+                return
             if self.state!='RESYNC_REQUIRED': self.fault('REQUEST_READ_FAILED')
             return
         previous=self.request; self.request=read.value

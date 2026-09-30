@@ -1,0 +1,16 @@
+{
+  "classes": [
+    {
+      "id": 0,
+      "name": "gray_pipe"
+    },
+    {
+      "id": 1,
+      "name": "exhaust_top"
+    },
+    {
+      "id": 2,
+      "name": "symbol_module"
+    }
+  ]
+}

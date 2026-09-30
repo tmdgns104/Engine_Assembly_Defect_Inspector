@@ -7,6 +7,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import shutil
@@ -62,6 +63,36 @@ def require_stopped(port):
         raise RuntimeError('CAMERA_STILL_OWNED: ' + owners.stdout.strip())
     if owners.returncode not in (0, 1):
         raise RuntimeError('CAMERA_OWNER_CHECK_FAILED')
+
+
+def validate_runtime_settings(before, after):
+    """Only the explicit, mutually exclusive PLC or development MOCK choice may change."""
+    selected = {'plc_bench', 'mock_auto_request','inspection_motion_mode','conveyor_capture_zone_normalized'}
+    if ({k: v for k, v in after.items() if k not in selected} !=
+            {k: v for k, v in before.items() if k not in selected}):
+        raise ValueError('ONLY_GATEWAY_SELECTION_MAY_CHANGE')
+    if type(after.get('plc_bench')) is not bool or type(after.get('mock_auto_request')) is not bool:
+        raise ValueError('EXPLICIT_BOOL_GATEWAY_SELECTION_REQUIRED')
+    if after['plc_bench'] == after['mock_auto_request']:
+        raise ValueError('CHOOSE_EXACTLY_ONE_GATEWAY_MODE')
+    mode=after.get('inspection_motion_mode','STATIONARY')
+    if mode not in ('STATIONARY','CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
+        raise ValueError('INSPECTION_MOTION_MODE_INVALID')
+    if mode in ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
+        if (mode=='CONVEYOR_MOTION_DEV' and (after['plc_bench'] or after['mock_auto_request'] is not True)
+                or mode=='CONVEYOR_MOTION_PLC_BENCH' and (after['plc_bench'] is not True or after['mock_auto_request'])):
+            raise ValueError('CONVEYOR_MOTION_GATEWAY_INVALID')
+        points=after.get('conveyor_capture_zone_normalized')
+        if (not isinstance(points,list) or len(points)!=4 or
+                any(not isinstance(p,list) or len(p)!=2 or
+                    any(type(v) not in (int,float) or not math.isfinite(v) or not 0<=v<=1 for v in p)
+                    for p in points)):
+            raise ValueError('CONVEYOR_CAPTURE_ZONE_INVALID')
+        x1,y1=points[0]; x2,y2=points[2]
+        if points!=[[x1,y1],[x2,y1],[x2,y2],[x1,y2]] or x2-x1<.1 or y2-y1<.1:
+            raise ValueError('CONVEYOR_CAPTURE_ZONE_INVALID')
+    elif after.get('conveyor_capture_zone_normalized') is not None:
+        raise ValueError('CAPTURE_ZONE_ONLY_IN_CONVEYOR_MOTION_MODE')
 
 
 def install_first_layout(base, archive, expected_sha, station, settings_path):
@@ -145,10 +176,7 @@ def update_current(base, archive, expected_sha, settings_path):
     old_settings = runtime_path.read_bytes()
     before = json.loads(old_settings)
     after = json.loads(settings_path.read_bytes())
-    if (after.get('plc_bench') is not True or
-            {k: v for k, v in after.items() if k != 'plc_bench'} !=
-            {k: v for k, v in before.items() if k != 'plc_bench'}):
-        raise ValueError('ONLY_PLC_BENCH_SETTING_MAY_CHANGE')
+    validate_runtime_settings(before, after)
     release = validate_bundle(archive, expected_sha)
     with tarfile.open(archive) as bundle:
         new_area = bundle.extractfile(area_name).read()
@@ -190,10 +218,14 @@ def update_current(base, archive, expected_sha, settings_path):
             resolved = {key: str((runtime_path.parent / after[key]).resolve())
                         for key in ('package', 'station', 'data_root', 'pythonpath')}
             env = dict(os.environ, PYTHONPATH=resolved['pythonpath'])
-            subprocess.run([sys.executable, '-B', '-X', 'utf8', str(current / 'launch_live.py'),
+            command = [sys.executable, '-B', '-X', 'utf8', str(current / 'launch_live.py'),
                             '--package', resolved['package'], '--station', resolved['station'],
-                            '--data-root', resolved['data_root'], '--check-only', '--plc-bench'],
-                           env=env, cwd=current, check=True)
+                            '--data-root', resolved['data_root'], '--check-only']
+            command.append('--plc-bench' if after['plc_bench'] else '--mock-auto-request')
+            if after.get('inspection_motion_mode','STATIONARY')!='STATIONARY':
+                command.extend(['--inspection-motion-mode',after['inspection_motion_mode'],
+                                '--conveyor-capture-zone',json.dumps(after['conveyor_capture_zone_normalized'])])
+            subprocess.run(command, env=env, cwd=current, check=True)
         except Exception:
             runtime_path.write_bytes(old_settings)
             if area_path.read_bytes() != old_area:

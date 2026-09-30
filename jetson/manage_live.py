@@ -36,12 +36,22 @@ def process_identity(pid):
     return (process / 'stat').read_text().rsplit(')', 1)[1].split()[19]
 
 
-def assert_idle(value):
+def assert_idle(value, *, offline_plc_dev_switch=False):
     service = value['inspection_service']
+    plc = value.get('plc', {})
+    request_off = plc.get('Inspection_Request') is False
+    # An unavailable PLC has no proven Request OFF. The explicit dev switch may
+    # stop an idle, output-disabled bench, but it never clears/resyncs that PLC.
+    if offline_plc_dev_switch:
+        request_off = request_off or (plc.get('backend') == 'OMRON_CIP_BENCH'
+            and plc.get('physical_output_enabled') is False
+            and plc.get('available') is False
+            and plc.get('Inspection_Request') is None
+            and plc.get('state') == 'RESYNC_REQUIRED')
     if (value['operating'] or value['active_cycle'] is not None
             or service.get('active_inspection_id') is not None
             or service.get('diagnostic_capture', {}).get('state') in ('STARTING', 'RECORDING', 'SAVING')
-            or value.get('plc', {}).get('Inspection_Request') is not False):
+            or not request_off):
         raise RuntimeError('STOP_AUTO_AND_FINISH_REQUEST_INSPECTION_STORAGE_FIRST')
 
 
@@ -49,7 +59,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['start', 'stop', 'status'])
     parser.add_argument('--config', type=Path, required=True, help='코드 밖의 장치별 runtime.json')
+    parser.add_argument('--offline-plc-dev-switch', action='store_true',
+                        help='정지 전용: PLC 불명 상태의 유휴 벤치를 개발 MOCK으로 전환')
     args = parser.parse_args()
+    if args.offline_plc_dev_switch and args.action != 'stop':
+        parser.error('--offline-plc-dev-switch requires stop')
     settings = read_settings(args.config.resolve())
     port = settings.get('port', 18771)
     data = Path(settings['data_root'])
@@ -80,7 +94,7 @@ def main():
             raise RuntimeError('PID_GENERATION_MISMATCH')
         if health is None:
             raise RuntimeError('STATUS_UNAVAILABLE_USE_DOCUMENTED_RECOVERY')
-        assert_idle(api(port, 'runtime/status'))
+        assert_idle(api(port, 'runtime/status'),offline_plc_dev_switch=args.offline_plc_dev_switch)
         os.kill(record['pid'], signal.SIGTERM)
         print('Clean shutdown requested; wait for the Worker to release the camera')
         return
@@ -97,6 +111,11 @@ def main():
                '--data-root', str(data), '--port', str(port)]
     if settings.get('plc_bench') is True:
         command.append('--plc-bench')
+    if settings.get('mock_auto_request') is True:
+        command.append('--mock-auto-request')
+    if settings.get('inspection_motion_mode','STATIONARY')!='STATIONARY':
+        command.extend(['--inspection-motion-mode',settings['inspection_motion_mode'],
+                        '--conveyor-capture-zone',json.dumps(settings['conveyor_capture_zone_normalized'])])
     env = dict(os.environ, PYTHONPATH=settings['pythonpath'])
     subprocess.run(command + ['--check-only'], env=env, cwd=ROOT, check=True)
     with (data / 'live_server.log').open('ab') as log:

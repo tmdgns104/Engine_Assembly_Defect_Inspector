@@ -5,6 +5,7 @@ RequestHandshake owns the cycle and requires an explicit low-state resync.
 """
 import socket
 import struct
+import time
 
 from src.control.production_plc import IoResult
 
@@ -19,19 +20,22 @@ class OmronCipGateway:
     _ALLOWED_READS = frozenset(('Inspection_Request', 'Jetson_Result', 'Jetson_Done'))
     _ALLOWED_WRITES = frozenset(('Jetson_Result', 'Jetson_Done'))
 
-    def __init__(self, host, source_ip, *, timeout=1.5):
+    def __init__(self, host, source_ip, *, timeout=1.5, connect_timeout=0.15):
         self.host = host
         self.source_ip = source_ip
         self.timeout = timeout
+        self.connect_timeout = connect_timeout
         self.socket = None
         self.session = 0
         self.counter = 0
         self.last = {}
+        self.last_request_result = None
+        self.last_request_at = 0
         # The camera and HMI boot while the PLC is off. A read connects later;
         # an uncertain write is never retried.
 
     def _connect(self):
-        connection = socket.create_connection((self.host, 44818), self.timeout,
+        connection = socket.create_connection((self.host, 44818), self.connect_timeout,
                                               source_address=(self.source_ip, 0))
         connection.settimeout(self.timeout)
         self.socket = connection
@@ -127,10 +131,13 @@ class OmronCipGateway:
 
     def read_request(self):
         try:
-            return IoResult('ACK', self._read_bool('Inspection_Request'))
+            result=IoResult('ACK', self._read_bool('Inspection_Request'))
         except Exception as error:
             self.close()
-            return IoResult('FAILED', error=type(error).__name__ + ':' + str(error))
+            result=IoResult('FAILED', error=type(error).__name__ + ':' + str(error))
+        self.last_request_result=result
+        self.last_request_at=time.monotonic()
+        return result
 
     def _write_bool(self, tag, value):
         if tag not in self._ALLOWED_WRITES:
@@ -158,7 +165,9 @@ class OmronCipGateway:
         return self._write_bool('Jetson_Done', value)
 
     def health(self):
-        request = self.read_request()
+        cached=getattr(self,'last_request_result',None)
+        request=(cached if cached is not None and time.monotonic()-self.last_request_at<1
+                 else self.read_request())
         return dict(backend=self.backend, available=request.status == 'ACK',
                     network_plc_writes_enabled=True, physical_output_enabled=False,
                     host=self.host, Inspection_Request=request.value if request.status == 'ACK' else None,

@@ -1,5 +1,7 @@
 # Jetson Orin Nano 실행 코드
 
+**처음 설치하는 장치는 [INSTALL.md](INSTALL.md)부터 읽으세요.** 이 폴더에 현재 모델·Pose 자산과 `setup.sh` / `install.py`가 모두 들어 있습니다. `python install.py --check-only`는 모델 실행 없이 다운로드 무결성을 확인합니다.
+
 이 폴더가 Jetson 기능을 수정하는 원본입니다. 노트북에서 편집·검증하고 필요한 파일만 Jetson의 `/home/jetson/oned_device_bench/current`에 배포합니다. 현재 release와 벤치 검증 범위는 [루트 안내](../README.md)를 확인하세요.
 
 ## 위에서 아래로 읽는 순서

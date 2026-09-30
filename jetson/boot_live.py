@@ -15,7 +15,7 @@ from urllib.request import Request, urlopen
 import manage_live
 
 
-def start_allowed(status):
+def start_allowed(status, *, mock_auto_request=False):
     """Only an idle, healthy, clearly empty bench may be armed automatically."""
     service = status.get('inspection_service') or {}
     plc = status.get('plc') or {}
@@ -30,10 +30,19 @@ def start_allowed(status):
         return False, 'RUNTIME_NOT_IDLE'
     if not service.get('ready') or not service.get('camera_ready'):
         return False, 'CAMERA_OR_MODEL_NOT_READY'
-    if (plc.get('backend') != 'OMRON_CIP_BENCH' or plc.get('physical_output_enabled') is not False
-            or plc.get('available') is not True or plc.get('Inspection_Request') is not False
-            or plc.get('state') not in ('SYNC_LOW', 'ARMED')):
-        return False, 'PLC_NOT_READY_WITH_REQUEST_LOW'
+    if mock_auto_request:
+        if (not status.get('mock_auto_request_enabled') or plc.get('backend') != 'MOCK'
+                or plc.get('physical_output_enabled') is not False
+                or plc.get('available') is not True or plc.get('Inspection_Request') is not False
+                or plc.get('state') not in ('SYNC_LOW', 'ARMED')):
+            return False, 'MOCK_NOT_READY_WITH_REQUEST_LOW'
+    elif (plc.get('backend') != 'OMRON_CIP_BENCH' or plc.get('physical_output_enabled') is not False
+            or plc.get('state') not in ('SYNC_LOW', 'ARMED')
+            or (plc.get('available') is True and plc.get('Inspection_Request') is not False)
+            or (plc.get('available') is not True and
+                (plc.get('available') is not False or plc.get('Inspection_Request') is not None
+                 or plc.get('state') != 'SYNC_LOW'))):
+        return False, 'PLC_REQUEST_STATE_UNSAFE_FOR_TRACKING_START'
     if (not status.get('area_observation_valid') or area.get('state') != 'CLEAR'
             or not area.get('reference_valid') or not (status.get('inspection_zone') or {}).get('confirmed')):
         return False, 'CURRENT_EMPTY_SCENE_REQUIRED'
@@ -54,6 +63,9 @@ def run(config, interval=10):
     import fcntl  # Linux-only boot lock; pure gate tests also run on Windows.
 
     settings = manage_live.read_settings(config)
+    mock_auto_request = settings.get('mock_auto_request') is True
+    if mock_auto_request and settings.get('plc_bench') is True:
+        raise ValueError('MOCK_AUTO_REQUEST_AND_REAL_PLC_ARE_EXCLUSIVE')
     data_root = Path(settings['data_root'])
     data_root.mkdir(parents=True, exist_ok=True)
     with (data_root / 'boot_live.lock').open('a+b') as lock:
@@ -81,7 +93,10 @@ def run(config, interval=10):
             else:
                 if (release.get('release_id') != expected
                         or release.get('runtime_path') != str(manage_live.ROOT)
-                        or release.get('backend') != 'OMRON_CIP_BENCH'
+                        or release.get('backend') != ('MOCK' if mock_auto_request else 'OMRON_CIP_BENCH')
+                        or release.get('mock_auto_request_enabled') is not mock_auto_request
+                        or release.get('inspection_motion_mode') != settings.get('inspection_motion_mode','STATIONARY')
+                        or release.get('conveyor_capture_zone_normalized') != settings.get('conveyor_capture_zone_normalized')
                         or release.get('physical_output_enabled') is not False):
                     raise RuntimeError('WRONG_RUNTIME_RELEASE_OR_GATEWAY_ON_PORT')
                 try:
@@ -89,7 +104,7 @@ def run(config, interval=10):
                 except (HTTPError, URLError, TimeoutError):
                     reason = 'WAITING_FOR_RUNTIME_STATUS'
                 else:
-                    allowed, reason = start_allowed(status)
+                    allowed, reason = start_allowed(status,mock_auto_request=mock_auto_request)
                     if reason == 'OPERATOR_STOP':
                         print('Automatic arming cancelled by operator STOP', flush=True)
                         return 0

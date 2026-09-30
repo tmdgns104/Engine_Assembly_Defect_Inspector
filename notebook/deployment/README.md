@@ -1,6 +1,12 @@
 # Jetson 배포 도구 — 노트북에서 실행
 
-`package_candidate.py`는 기존 후보 패키징 코드를 옮겨 정리한 것입니다. `runtime_allowlist.json`에 적힌 파일만 묶습니다. 압축파일 생성 후 모든 파일을 다시 읽어 SHA256을 확인합니다. 이 명령은 Jetson에 접속하거나 현재 프로그램을 교체하지 않습니다.
+## 2026-09-30 GitHub 배포
+
+새 장치는 모델이 포함된 [`jetson/INSTALL.md`](../../jetson/INSTALL.md)의 설치기를 사용합니다. 모델·Pose 자산 원본은 이제 `jetson/products`입니다. 아래의 기존 장치 배포/복귀 절차는 운영 데이터와 환경을 보존하는 관리 경로입니다.
+
+`package_candidate.py`는 [`jetson/build_bundle.py`](../../jetson/build_bundle.py)를 호출하며, 단일 포함 목록은 [`jetson/runtime_allowlist.json`](../../jetson/runtime_allowlist.json)입니다. `notebook/deployment/products`의 기존 로컬 자료는 보존하지만 새 패키징 입력으로 사용하지 않습니다. 새 설치기는 `runtime.json`에 현재 설치 경로와 MOCK 기본값을 생성합니다. 배포 archive의 `*.example.json`은 기존 managed 업데이트와의 바이트 호환을 위해 이전 예제를 유지합니다.
+
+`package_candidate.py`는 `jetson/runtime_allowlist.json`에 적힌 파일만 묶습니다. 압축파일 생성 후 모든 파일을 다시 읽어 SHA256을 확인합니다. 이 명령은 Jetson에 접속하거나 현재 프로그램을 교체하지 않습니다.
 
 ## 배포 묶음 만들기
 
@@ -12,13 +18,13 @@ python -B -X utf8 notebook/deployment/package_candidate.py --output dist/jetson/
 
 같은 출력이 이미 있으면 덮어쓰지 않습니다. 개발 중 묶음은 `dist/jetson` 한 곳에서 관리하고, 실제 사용한 이전 릴리스는 노트북 `archives`로 보관합니다.
 
-Git에는 바이너리 자산을 넣지 않습니다. 로컬 배포 묶음에는 다음 실제 의존성을 반드시 포함합니다. 파일 내용은 이번 정리에서 변경하지 않았습니다.
+Git에는 사용자 요청에 따라 현재 운영 모델과 필수 자산을 포함합니다. 배포 묶음에도 다음 실제 의존성을 포함합니다. 자산 내용은 변경하지 않았습니다.
 
 - `products/ENGINE_Z3005_5/dynamic_parts_005`: model.plan, manifest/recipe/설정, 기동 self_test.png, Pose reference JSON·D001 이미지·bank.
 - `products/ENGINE_Z3005_5/envelope_v007_fp16`: 모델과 manifest/설정/기동 self-test. 두 제품 폴더의 상대 위치를 유지합니다.
 - `jetson/config/area_clearance.json`: 현재 검정 작업면 점유 설정. 고정 빈 기준 이미지를 읽지 않으며 다른 작업면에서 동일 성능은 미검증입니다.
 
-필수 파일이 없으면 패키징은 실패합니다. Git clone 뒤 임의의 모델이나 빈 이미지로 대체하지 않습니다. 이미 보관한 해시 검증 배포 묶음에서 같은 자산을 복원합니다.
+필수 파일이 없으면 패키징은 실패합니다. 현재 clone/Download ZIP에는 이 자산이 포함되어 있으며, 빠졌다면 다운로드/압축 해제 상태와 해시를 확인합니다. 임의의 모델이나 빈 이미지로 대체하지 않습니다.
 
 ## Jetson의 목표 구조
 
@@ -44,7 +50,7 @@ oned_device_bench/
 
 ## 확인·기동·종료
 
-현재 장치에서 확인한 관리 명령입니다. `current`의 실제 릴리스는 `engine-dev-1203e23f30adda37`이며, 실제 PLC 세 BOOL 태그만 쓰는 벤치 시험 모드입니다.
+기존 장치에서 확인한 관리 명령입니다. 아래 레이아웃 전환 기록은 9월 28일 기준이며, 마지막 기록된 실행 릴리스는 `engine-dev-745e95e832c6b402`입니다. 최신 벤치의 한계와 진행 상태는 [루트 README](../../README.md)를 확인합니다. 실제 PLC 세 BOOL 태그만 쓰는 벤치 시험 모드입니다.
 
 ```bash
 cd /home/jetson/oned_device_bench
@@ -77,6 +83,7 @@ powershell.exe -NoProfile -File notebook/deployment/install_tunnel_task.ps1
 ```
 
 작업은 노트북 **사용자 로그인 중**에만 실행됩니다. 노트북이 꺼져 있거나 로그인 전에는 `127.0.0.1` 화면이 열리지 않지만 Jetson의 검사·PLC 연결은 독립적으로 계속됩니다. 터널의 일시 끊김 뒤 브라우저를 새로고침하면 같은 주소로 다시 접속합니다. 자동 연결을 중지하려면 작업 스케줄러에서 `OneDeviceEngineTunnel` 작업을 사용 안 함으로 바꾸고, 수동으로 연 터널은 기존 창/프로세스 소유자에게만 종료합니다.
+CMD에서 터널 예약 작업을 즉시 시작하려면 `schtasks /Run /TN "OneDeviceEngineTunnel"`을 실행합니다. 이 작업은 노트북 배터리 상태에서도 계속 실행되도록 등록하며, Jetson 재부팅 중 끊어진 SSH 연결을 다시 맺습니다. 이미 실행 중이면 중복 터널을 만들지 않습니다.
 
 ## 실제 교체와 복귀 조건
 
@@ -91,7 +98,7 @@ envs/app_v1/bin/python -B -X utf8 tmp/deploy/deploy_area.py \
   --station <기존 장치 station.json> --runtime-settings tmp/deploy/runtime.json
 ```
 
-이미 `current`가 있는 장치에서는 활성 검사·요청·저장을 확인하고 managed stop 후, 노트북에 직전 release 패키지를 보존한 상태로 `--update-current`를 사용합니다. 임시 업로드 경로는 `tmp/deploy` 한 곳이며, 업데이트 설정은 기존 `runtime.json`에서 `plc_bench` 선택만 달라질 수 있습니다. 배포기는 코드 해시와 보존 자산을 확인하고 직전 `current`를 임시 복구본으로 둡니다. 새 release로 managed start·camera_ready·Gateway·HMI·이력 경로를 확인한 뒤 임시 복구본/업로드 파일을 노트북 백업과 대조해 정리합니다.
+이미 `current`가 있는 장치에서는 활성 검사·요청·저장을 확인하고 managed stop 후, 노트북에 직전 release 패키지를 보존한 상태로 `--update-current`를 사용합니다. 임시 업로드 경로는 `tmp/deploy` 한 곳이며, 업데이트 설정은 명시적 Gateway 선택(`plc_bench`, `mock_auto_request`)과 이동 모드/전체 시야 영역만 달라질 수 있습니다. 개발 자동 반복은 `false`/`true`, 실제 PLC 벤치는 `true`/`false`입니다. 모드가 없으면 `STATIONARY`이며 실제 PLC에서 `CONVEYOR_MOTION_DEV`는 거부됩니다. 실제 PLC 이동 벤치는 `CONVEYOR_MOTION_PLC_BENCH`를 명시하고 Request 상승 시 추적 중인 Track에만 결합합니다. 배포기는 코드 해시와 보존 자산을 확인하고 직전 `current`를 임시 복구본으로 둡니다. 새 release로 managed start·camera_ready·Gateway·HMI·이력 경로를 확인한 뒤 임시 복구본/업로드 파일을 노트북 백업과 대조해 정리합니다.
 
 ```bash
 envs/app_v1/bin/python -B -X utf8 tmp/deploy/deploy_area.py \

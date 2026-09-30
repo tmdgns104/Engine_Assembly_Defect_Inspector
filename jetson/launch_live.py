@@ -15,8 +15,25 @@ def sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def check_files(package, station, *, plc_bench=False):
+def check_files(package, station, *, plc_bench=False, mock_auto_request=False,
+                inspection_motion_mode='STATIONARY', conveyor_capture_zone=None):
     """추론·DB·카메라를 시작하기 전에 파일과 PLC 벤치 경계를 확인한다."""
+    if plc_bench and mock_auto_request:
+        raise ValueError('MOCK_AUTO_REQUEST_AND_REAL_PLC_ARE_EXCLUSIVE')
+    if inspection_motion_mode not in ('STATIONARY','CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
+        raise ValueError('INSPECTION_MOTION_MODE_INVALID')
+    if inspection_motion_mode=='CONVEYOR_MOTION_DEV':
+        if plc_bench or not mock_auto_request or conveyor_capture_zone is None:
+            raise ValueError('CONVEYOR_MOTION_REQUIRES_EXPLICIT_MOCK_CAPTURE_ZONE')
+        from src.runtime.production_profile import validate_zone
+        validate_zone({'polygon_normalized':conveyor_capture_zone,'entry_policy':'product_center'})
+    elif inspection_motion_mode=='CONVEYOR_MOTION_PLC_BENCH':
+        if not plc_bench or mock_auto_request or conveyor_capture_zone is None:
+            raise ValueError('CONVEYOR_MOTION_PLC_BENCH_REQUIRES_REAL_PLC_AND_ZONE')
+        from src.runtime.production_profile import validate_zone
+        validate_zone({'polygon_normalized':conveyor_capture_zone,'entry_policy':'product_center'})
+    elif conveyor_capture_zone is not None:
+        raise ValueError('CAPTURE_ZONE_ONLY_IN_CONVEYOR_MOTION_MODE')
     station_value = json.loads(station.read_text(encoding='utf-8'))
     config = ROOT / 'config'
     plc = json.loads((config / 'plc_reference.json').read_text(encoding='utf-8'))
@@ -65,6 +82,9 @@ def check_files(package, station, *, plc_bench=False):
         'area_config_sha256': sha256(config / 'area_clearance.json'),
         'station_sha256': sha256(station),
         'backend': 'OMRON_CIP_BENCH' if plc_bench else 'MOCK',
+        'mock_auto_request_enabled': bool(mock_auto_request),
+        'inspection_motion_mode': inspection_motion_mode,
+        'conveyor_capture_zone_normalized': conveyor_capture_zone,
         'network_plc_writes_enabled': bool(plc_bench),
         'physical_output_enabled': False,
     }
@@ -77,6 +97,11 @@ def add_arguments(parser):
     parser.add_argument('--port', type=int, default=18771)
     parser.add_argument('--plc-bench', action='store_true',
                         help='192.168.50.3의 세 검증된 태그만 사용; 실제 PLC 결과/Done 쓰기')
+    parser.add_argument('--mock-auto-request', action='store_true',
+                        help='개발용 MOCK: 새 Track의 검사영역 진입에서 Request 자동 생성')
+    parser.add_argument('--inspection-motion-mode',choices=('STATIONARY','CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'),default='STATIONARY')
+    parser.add_argument('--conveyor-capture-zone',type=json.loads,
+                        help='개발 이동 모드에서만 사용하는 정규화 사각형 JSON')
 
 
 def main():
@@ -85,7 +110,10 @@ def main():
     parser.add_argument('--check-only', action='store_true', help='파일만 확인; 카메라/DB/모델 실행 없음')
     args = parser.parse_args()
     package = args.package.resolve()
-    station, identity = check_files(package, args.station.resolve(), plc_bench=args.plc_bench)
+    station, identity = check_files(package, args.station.resolve(), plc_bench=args.plc_bench,
+                                   mock_auto_request=args.mock_auto_request,
+                                   inspection_motion_mode=args.inspection_motion_mode,
+                                   conveyor_capture_zone=args.conveyor_capture_zone)
     identity['data_root'] = str(args.data_root.resolve())
     if args.check_only:
         print(json.dumps(identity, ensure_ascii=False))
@@ -98,7 +126,9 @@ def main():
         from src.control.omron_cip import OmronCipGateway
         gateway = OmronCipGateway('192.168.50.3', '192.168.50.2')
     runtime = build_runtime(package, station, args.data_root.resolve(), mode='production',
-                            production_gateway=gateway)
+                            production_gateway=gateway,auto_mock_request=args.mock_auto_request,
+                            inspection_motion_mode=args.inspection_motion_mode,
+                            conveyor_capture_zone=args.conveyor_capture_zone)
     try:
         # 모델 의존 패키지 envelope는 운영자 선택 목록에 노출하지 않는다.
         app = create_integrated_app(runtime, {package.parent.name + '/' + package.name: package})

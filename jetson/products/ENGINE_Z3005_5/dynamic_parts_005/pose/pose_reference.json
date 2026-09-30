@@ -1,0 +1,423 @@
+{
+  "schema_version": 1,
+  "reference_id": "D001",
+  "reference_image": "reference/D001.png",
+  "reference_image_sha256": "6dc94539570259d7747d8cc2b4d5fb0ed3d782b6b5a881408f427cd80c39f561",
+  "frame_width": 1280,
+  "frame_height": 720,
+  "canonical_orientation_note": "D001 is internal pose 0 deg. Do not infer physical front/back naming from old guide.",
+  "canonical_product_box_xyxy": [
+    482,
+    49,
+    849,
+    687
+  ],
+  "slot_center_regions_xyxy": {
+    "pipe_left": [
+      510.1082824157277,
+      154.6599090885474,
+      585.4658987948773,
+      224.45721326541712
+    ],
+    "pipe_right": [
+      737.91506513444,
+      144.9460051519293,
+      799.4698414025947,
+      227.26676886250462
+    ],
+    "exhaust": [
+      604.262000804794,
+      355.292012649208,
+      701.6272191924409,
+      434.6814832672898
+    ],
+    "symbol": [
+      615.2366676389091,
+      262.23671891885664,
+      686.1422118028258,
+      317.4954013195142
+    ]
+  },
+  "slot_expected_class": {
+    "pipe_left": "gray_pipe",
+    "pipe_right": "gray_pipe",
+    "exhaust": "exhaust_top",
+    "symbol": "symbol_module"
+  },
+  "slot_expected_count": {
+    "pipe_left": 1,
+    "pipe_right": 1,
+    "exhaust": 1,
+    "symbol": 1
+  },
+  "slot_statistics": {
+    "pipe_left": {
+      "count": 144,
+      "mean_xy": [
+        551.8820732714292,
+        191.22103483562427
+      ],
+      "std_xy": [
+        11.363553965685034,
+        11.767682297635753
+      ],
+      "p01_xy": [
+        522.1082824157277,
+        166.6599090885474
+      ],
+      "p99_xy": [
+        573.4658987948773,
+        212.45721326541712
+      ]
+    },
+    "pipe_right": {
+      "count": 144,
+      "mean_xy": [
+        767.357967774157,
+        190.2244851246417
+      ],
+      "std_xy": [
+        9.05240966234551,
+        12.026009870100062
+      ],
+      "p01_xy": [
+        749.91506513444,
+        156.9460051519293
+      ],
+      "p99_xy": [
+        787.4698414025947,
+        215.26676886250462
+      ]
+    },
+    "exhaust": {
+      "count": 144,
+      "mean_xy": [
+        657.1480990317691,
+        394.9124144775115
+      ],
+      "std_xy": [
+        14.262237951689023,
+        11.1832532898748
+      ],
+      "p01_xy": [
+        616.262000804794,
+        367.292012649208
+      ],
+      "p99_xy": [
+        689.6272191924409,
+        422.6814832672898
+      ]
+    },
+    "symbol": {
+      "count": 144,
+      "mean_xy": [
+        657.9028353531019,
+        289.46027160804925
+      ],
+      "std_xy": [
+        10.071043443463548,
+        7.640056216173033
+      ],
+      "p01_xy": [
+        627.2366676389091,
+        274.23671891885664
+      ],
+      "p99_xy": [
+        674.1422118028258,
+        305.4954013195142
+      ]
+    }
+  },
+  "registration": {
+    "orb_nfeatures": 3500,
+    "ratio_test": 0.75,
+    "min_good_matches": 12,
+    "min_inliers": 10,
+    "min_inlier_ratio": 0.18,
+    "max_median_reprojection_error_px": 3.5,
+    "min_scale": 0.6,
+    "max_scale": 1.6
+  },
+  "decision_policy": {
+    "observation_count": 3,
+    "product_confidence": 0.5,
+    "part_confidence": 0.5,
+    "product_missing": "FAIL_REJECT",
+    "multiple_products": "REVIEW_REJECT",
+    "pose_unverified": "REVIEW_REJECT",
+    "part_missing_requires_consistent_frames": true,
+    "non_pass_disposition": "REJECT",
+    "slot_overlap": 0.4
+  },
+  "slot_polygons": {
+    "pipe_left": [
+      [
+        437.40863037109375,
+        72.66946411132812
+      ],
+      [
+        669.0689086914062,
+        72.66946411132812
+      ],
+      [
+        669.0689086914062,
+        307.3402099609375
+      ],
+      [
+        437.40863037109375,
+        307.3402099609375
+      ]
+    ],
+    "pipe_right": [
+      [
+        656.1664428710938,
+        69.71023559570312
+      ],
+      [
+        874.4258422851562,
+        69.71023559570312
+      ],
+      [
+        874.4258422851562,
+        305.5595703125
+      ],
+      [
+        656.1664428710938,
+        305.5595703125
+      ]
+    ],
+    "exhaust": [
+      [
+        548.0057983398438,
+        292.9435729980469
+      ],
+      [
+        760.8218994140625,
+        292.9435729980469
+      ],
+      [
+        760.8218994140625,
+        500.0063781738281
+      ],
+      [
+        548.0057983398438,
+        500.0063781738281
+      ]
+    ],
+    "symbol": [
+      [
+        536.1027221679688,
+        177.70449829101562
+      ],
+      [
+        772.1494750976562,
+        177.70449829101562
+      ],
+      [
+        772.1494750976562,
+        403.34716796875
+      ],
+      [
+        536.1027221679688,
+        403.34716796875
+      ]
+    ]
+  },
+  "slot_provenance": {
+    "source": "approved training labels only, inverse ORB transform",
+    "train_images": 144,
+    "e03_used_for_slot_fit": 0,
+    "e04_used": 0
+  },
+  "coordinate_convention": "LEFT/RIGHT are D001 image left/right. Legacy capture scenario LEFT/RIGHT names are opposite and preserved, not relabeled.",
+  "visibility_polygons": {
+    "pipe_left": [
+      [
+        498.00000000000006,
+        120.99999996399998
+      ],
+      [
+        616.0,
+        120.99999996399998
+      ],
+      [
+        616.0,
+        286.999999988
+      ],
+      [
+        498.00000000000006,
+        286.999999988
+      ]
+    ],
+    "pipe_right": [
+      [
+        706.0000000000001,
+        124.99999999599999
+      ],
+      [
+        833.0,
+        124.99999999599999
+      ],
+      [
+        833.0,
+        282.00000001999996
+      ],
+      [
+        706.0000000000001,
+        282.00000001999996
+      ]
+    ],
+    "exhaust": [
+      [
+        605.0000000000001,
+        330.99999998799996
+      ],
+      [
+        718.0000000000001,
+        330.99999998799996
+      ],
+      [
+        718.0000000000001,
+        449.99999999599993
+      ],
+      [
+        605.0000000000001,
+        449.99999999599993
+      ]
+    ],
+    "symbol": [
+      [
+        603.9999999999999,
+        235.00000001200002
+      ],
+      [
+        718.0,
+        235.00000001200002
+      ],
+      [
+        718.0,
+        345.00000002
+      ],
+      [
+        603.9999999999999,
+        345.00000002
+      ]
+    ]
+  },
+  "visibility_provenance": "Approved D001 physical part AABBs + 5px; transformed each frame, separate from broad search tolerance.",
+  "part_input": {
+    "method": "inverse_pose_affine_to_D001",
+    "roi_margin_fraction": 0.18,
+    "background_bgr": [
+      40,
+      40,
+      40
+    ],
+    "detection_output": "map canonical box corners to original frame AABB"
+  },
+  "reference_bank": {
+    "path": "reference_bank.npz",
+    "sha256": "362baf6e5242d197c82edd7c316ca3dad821d072b332a7c2bcd7b3bc99986caf",
+    "source": "E01/E02 normal views only, keypoints mapped into D001 through validated affine, unique current keypoints",
+    "views": [
+      {
+        "id": "D001",
+        "image_sha256": "6dc94539570259d7747d8cc2b4d5fb0ed3d782b6b5a881408f427cd80c39f561"
+      },
+      {
+        "id": "D002",
+        "image_sha256": "ae0fcba1fa5a4507cda52cb0857db5d831991ee9119c38d6b1022fc25a604e19"
+      },
+      {
+        "id": "D003",
+        "image_sha256": "a746f70402e937ccb29b7c8a5563acd043932a78cdf8f4a650ff8e5b670c51d7"
+      },
+      {
+        "id": "D004",
+        "image_sha256": "09cc5f0956cd3dcae3772b6154f55e471b99fb636048bf1e48b2fba3e2cb050d"
+      },
+      {
+        "id": "D005",
+        "image_sha256": "95f441ef49e3e892690db7befa6854d91d1a4e6dbbfa8747162f4fea68b1822e"
+      },
+      {
+        "id": "D006",
+        "image_sha256": "038322491497d7c55e0e07b2d14fe8ebb250e648bedfd0e321d4df622a3f80bf"
+      },
+      {
+        "id": "D007",
+        "image_sha256": "1db89244a1213aefb41c4a79b266d3d4aef8407a4c591ec9ba741fe59e38fd54"
+      },
+      {
+        "id": "D008",
+        "image_sha256": "c88cbc0e83d70d1647f1703c7a51da8f17675910156637ddc3c609ee83fa8cc7"
+      },
+      {
+        "id": "D009",
+        "image_sha256": "13f9e76b481e4762dc5b0cecb57236d73452c0bfdcb7728010576846b8b95c45"
+      },
+      {
+        "id": "D010",
+        "image_sha256": "0ffa56672f2573f12f06cb92c60c1e1504ec073151f83ca97d267d8663b53d17"
+      },
+      {
+        "id": "D011",
+        "image_sha256": "a0e02a55fe9bfcbe6cfb0d924bfa558a3f1534f6da5fdb29a2d9e851621030f7"
+      },
+      {
+        "id": "D012",
+        "image_sha256": "0f917cae6e8f6bc26c043e9eefdeb693117887c4ef103546d8d9cf9aff7ce010"
+      },
+      {
+        "id": "D073",
+        "image_sha256": "e73dd730a1023222365f8bb6b7a041280a4068cab95b94e7d21372bc15fd8bd8"
+      },
+      {
+        "id": "D074",
+        "image_sha256": "b911779e88e9650eb471078ddb856c151e0c5a5191865337a1e87842284e7d73"
+      },
+      {
+        "id": "D075",
+        "image_sha256": "a841e9cbd6bd841d5597eca16a5665167bd4943bea98d1a255c39b26bd2b4248"
+      },
+      {
+        "id": "D076",
+        "image_sha256": "91c60a825db5e61fe85378f7c25dbf081277360df018a08b23529be9541f186d"
+      },
+      {
+        "id": "D077",
+        "image_sha256": "b2c08d5158e67ed7589b5e7b9848ff1eb54dc6a0eec26c42927152b5bcb05403"
+      },
+      {
+        "id": "D078",
+        "image_sha256": "f54fb681a6844ac5192252c14e10364c5e2e1d5b7a5db1669497a98ee9f93e73"
+      },
+      {
+        "id": "D079",
+        "image_sha256": "f0181aec8eee735ff28cdd0de5191a3bf61a397468c3bd86288eb766f036a44f"
+      },
+      {
+        "id": "D080",
+        "image_sha256": "9b9d9ee50c7e05b82a61bf42f856bc0a971fc19618ff111ccdc156d91cf4ae3b"
+      },
+      {
+        "id": "D081",
+        "image_sha256": "30fc68b418210ac6a9cb492d8d05b9cf55cbf1e7952bc35e4837c5152a57a4f5"
+      },
+      {
+        "id": "D082",
+        "image_sha256": "7993dca37973b0ceaafb7fa885d7bce135421fba9ab97108d5c6d02dc5824bf9"
+      },
+      {
+        "id": "D083",
+        "image_sha256": "27ab342416442ce4bf186646830e0e1eb580819b7253763bb132c7256ebb13e4"
+      },
+      {
+        "id": "D084",
+        "image_sha256": "8baa2e77256ee0752d58f6aeb203bac85b1d78cc6663f60f52d419f646a097f8"
+      }
+    ],
+    "e03_used": 0,
+    "e04_used": 0
+  }
+}

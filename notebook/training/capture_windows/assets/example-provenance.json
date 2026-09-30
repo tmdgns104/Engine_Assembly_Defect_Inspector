@@ -1,0 +1,107 @@
+{
+  "pipe_left": {
+    "path": "example_pipe_left.png",
+    "source_path": "D:\\OnDevice과정\\팀프로젝트\\엔진모형\\잘못끼워진\\KakaoTalk_20260929_161913676_08.jpg",
+    "source_sha256": "a80ee1cb6aaf307b1bb46e9d0729369e12607079ba93f531f58ecba3ee595995",
+    "crop_box_after_exif_transpose": [
+      250,
+      1950,
+      1400,
+      2950
+    ],
+    "crop_sha256": "cccb7d209d4fa527a6417e0637c0b2213a143ffaaaa568bfec1411d0f88124d3",
+    "purpose": "guidance_only_not_training_original",
+    "mixed_state_source": true,
+    "instruction": "대상 부품의 형상만 참고. 나머지 부품은 NORMAL 기준으로 유지."
+  },
+  "pipe_left_up": {
+    "path": "example_pipe_left_up.png",
+    "source_path": "D:\\OnDevice과정\\팀프로젝트\\엔진모형\\잘못끼워진\\KakaoTalk_20260929_161913676_06.jpg",
+    "source_sha256": "531157c284fae678dd351452cdd6d70df39ce7c9cca0c806eba694888511dffe",
+    "crop_box_after_exif_transpose": [
+      700,
+      1850,
+      1300,
+      2950
+    ],
+    "crop_sha256": "c7633378b1d96001baa181bbaab62c093966b41d4bc677955541a93bc254287d",
+    "purpose": "guidance_only_not_training_original",
+    "mixed_state_source": true,
+    "instruction": "대상 부품의 형상만 참고. 나머지 부품은 NORMAL 기준으로 유지."
+  },
+  "pipe_right": {
+    "path": "example_pipe_right.png",
+    "source_path": "D:\\OnDevice과정\\팀프로젝트\\엔진모형\\잘못끼워진\\KakaoTalk_20260929_161913676_04.jpg",
+    "source_sha256": "d72c6d7d5868b929d59a8256860c0ebb3fb5a79a222d6aaed6eae05837700315",
+    "crop_box_after_exif_transpose": [
+      1600,
+      1700,
+      2250,
+      2900
+    ],
+    "crop_sha256": "ba3e688067d312f3ecffd0d6b5b81b3c24946bac940e78eddf02edcca05085bb",
+    "purpose": "guidance_only_not_training_original",
+    "mixed_state_source": true,
+    "instruction": "대상 부품의 형상만 참고. 나머지 부품은 NORMAL 기준으로 유지."
+  },
+  "pipe_right_out": {
+    "path": "example_pipe_right_out.png",
+    "source_path": "D:\\OnDevice과정\\팀프로젝트\\엔진모형\\잘못끼워진\\KakaoTalk_20260929_161913676_07.jpg",
+    "source_sha256": "3aaca530f12addcc27618c33ef333becd82326fc68d0c2f1f7eb3678f8767339",
+    "crop_box_after_exif_transpose": [
+      1450,
+      1350,
+      2450,
+      2300
+    ],
+    "crop_sha256": "51803b2bebba263f475b38923ab605440770a6d55d6ce19e4b3d7250bd7abbc9",
+    "purpose": "guidance_only_not_training_original",
+    "mixed_state_source": true,
+    "instruction": "대상 부품의 형상만 참고. 나머지 부품은 NORMAL 기준으로 유지."
+  },
+  "exhaust": {
+    "path": "example_exhaust.png",
+    "source_path": "D:\\OnDevice과정\\팀프로젝트\\엔진모형\\잘못끼워진\\KakaoTalk_20260929_161913676_02.jpg",
+    "source_sha256": "de2a63a225704ea9fe3e337176af1c70b7879a55963e04d077e05c4f46289f17",
+    "crop_box_after_exif_transpose": [
+      950,
+      780,
+      1900,
+      1730
+    ],
+    "crop_sha256": "b01c865c82b6000525bb5d196f682fa5751918ab3c8b14b5ccf4868b99f50ed7",
+    "purpose": "guidance_only_not_training_original",
+    "mixed_state_source": true,
+    "instruction": "대상 부품의 형상만 참고. 나머지 부품은 NORMAL 기준으로 유지."
+  },
+  "exhaust_side": {
+    "path": "example_exhaust_side.png",
+    "source_path": "D:\\OnDevice과정\\팀프로젝트\\엔진모형\\잘못끼워진\\KakaoTalk_20260929_161913676_01.jpg",
+    "source_sha256": "9482bbdf80148c39a3e942b5509b5efb567e9190fbb7dd3560298a2009cd02b9",
+    "crop_box_after_exif_transpose": [
+      1000,
+      650,
+      2000,
+      1600
+    ],
+    "crop_sha256": "2e90ec9910820b0a198c0934e54a78ab4a7eebc823fcd561e2aea6d166c42dad",
+    "purpose": "guidance_only_not_training_original",
+    "mixed_state_source": true,
+    "instruction": "대상 부품의 형상만 참고. 나머지 부품은 NORMAL 기준으로 유지."
+  },
+  "symbol": {
+    "path": "example_symbol.png",
+    "source_path": "D:\\OnDevice과정\\팀프로젝트\\엔진모형\\잘못끼워진\\KakaoTalk_20260929_161913676_03.jpg",
+    "source_sha256": "64812d3704b13cdcf2467d2642db9e35cbd21f44f9efd492e46bdc949532b0d5",
+    "crop_box_after_exif_transpose": [
+      1200,
+      1750,
+      1730,
+      2260
+    ],
+    "crop_sha256": "f4a562b54ab872b82932123b110218ae3de2e0228ea15f4727dd92aca3611485",
+    "purpose": "guidance_only_not_training_original",
+    "mixed_state_source": true,
+    "instruction": "대상 부품의 형상만 참고. 나머지 부품은 NORMAL 기준으로 유지."
+  }
+}

@@ -12,11 +12,17 @@ from queue import Empty, Full
 import time
 import uuid
 
+from .portable import camera_diagnostic_stage
+
+camera_diagnostic_stage('camera: before OpenCV import')
 import cv2
 import numpy as np
+camera_diagnostic_stage('camera: imports ready')
 
 BACKENDS = {"DSHOW": cv2.CAP_DSHOW, "MSMF": cv2.CAP_MSMF}
 MAX_FRAME_AGE = 1.0
+WORKER_STARTUP_TIMEOUT = 30.0
+FIRST_FRAME_TIMEOUT = 15.0
 
 
 @dataclass(frozen=True)
@@ -83,14 +89,20 @@ def capture_loop(settings, stream_id, stop, frames, events, factory=None):
     """factory is a test seam; production always uses cv2.VideoCapture."""
     cap = None
     try:
+        camera_diagnostic_stage('worker: VideoCapture constructor')
         cap = (factory or cv2.VideoCapture)()
+        camera_diagnostic_stage('worker: before selected device open')
         if not cap.open(settings.index, BACKENDS[settings.backend]):
             raise RuntimeError("연결 실패. 선택한 후보·backend·Windows 권한·다른 앱 점유를 확인하세요.")
+        camera_diagnostic_stage('worker: device open; before resolution settings')
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, settings.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.height)
+        camera_diagnostic_stage('worker: resolution set; before first read')
         sequence = 0
         while not stop.is_set():
             ok, image = cap.read()
+            if sequence == 0:
+                camera_diagnostic_stage('worker: first read returned')
             if stop.is_set():
                 break
             if not ok or image is None or image.size == 0:
@@ -116,6 +128,7 @@ def capture_loop(settings, stream_id, stop, frames, events, factory=None):
                     pass
             stop.wait(0.005)
     except Exception as exc:
+        camera_diagnostic_stage('worker error: ' + str(exc))
         events.put(("error", str(exc)))
     finally:
         if cap is not None:
@@ -125,6 +138,8 @@ def capture_loop(settings, stream_id, stop, frames, events, factory=None):
 def camera_process(settings, stream_id, stop, frames, events):
     # Preview messages may be discarded on exit; no dataset is written here.
     frames.cancel_join_thread()
+    # Frozen Python/OpenCV startup precedes the driver's own first-frame wait.
+    events.put(('ready', time.monotonic()))
     capture_loop(settings, stream_id, stop, frames, events)
 
 
@@ -140,6 +155,7 @@ class CameraClient:
         self.error = ""
         self.settings = None
         self.deadline = None
+        self.worker_started = None
 
     def connect(self, settings):
         if self.process is not None:
@@ -150,12 +166,15 @@ class CameraClient:
         self.events = self.context.Queue()
         self.stop = self.context.Event()
         self.latest, self.error, self.deadline = None, "", None
+        self.worker_started = None
         self.state = "connecting"
         self.started = time.monotonic()
+        camera_diagnostic_stage('client: before process.start')
         self.process = self.context.Process(target=self.target,
             args=(settings, self.stream_id, self.stop, self.frames, self.events), daemon=True)
         try:
             self.process.start()
+            camera_diagnostic_stage('client: process.start returned')
         except Exception:
             self.process = None
             self.frames.close()
@@ -175,8 +194,12 @@ class CameraClient:
             return
         while True:
             try:
-                _, self.error = self.events.get_nowait()
-                self.disconnect()
+                kind, value = self.events.get_nowait()
+                if kind == 'ready' and self.worker_started is None and self.deadline is None:
+                    self.worker_started = value
+                elif kind == 'error':
+                    self.error = value
+                    self.disconnect()
             except Empty:
                 break
         # Bound the work per UI tick even if a producer is very fast.
@@ -189,9 +212,13 @@ class CameraClient:
             except Empty:
                 break
         now = time.monotonic()
-        if self.state == "connecting" and now-self.started > 15:
-            self.error = "연결 시간 초과. 후보와 backend를 확인하세요. 자동 대체하지 않습니다."
-            self.disconnect()
+        if self.state == "connecting":
+            if self.worker_started is None and now-self.started > WORKER_STARTUP_TIMEOUT:
+                self.error = "카메라 작업 실행 준비 시간 초과. 같은 후보로 다시 연결하세요."
+                self.disconnect()
+            elif self.worker_started is not None and now-self.worker_started > FIRST_FRAME_TIMEOUT:
+                self.error = "연결 시간 초과. 후보와 backend를 확인하세요. 자동 대체하지 않습니다."
+                self.disconnect()
         if self.deadline is not None and now >= self.deadline and self.process.is_alive():
             self.process.terminate()
             self.error = self.error or "장치 응답 지연으로 이 앱의 카메라 작업을 종료했습니다."

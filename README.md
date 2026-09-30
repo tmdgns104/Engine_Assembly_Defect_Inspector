@@ -1,53 +1,78 @@
-# 엔진 조립 검사 프로젝트
+# On-Device AI 엔진 조립 검사
 
-**코드를 수정할 때는 `jetson/` 또는 `notebook/`에서 시작하세요.** 날짜나 `candidate` 이름으로 최신 버전을 고르지 않습니다.
+**Jetson Orin Nano가 USB 카메라 영상에서 엔진의 조립 상태를 검사하고, 노트북은 촬영·개발·운영 화면 접속을 맡는 프로젝트입니다.** 검사 결과는 `PASS / FAIL / REVIEW / ERROR`로 저장하며, 제품 추적과 PLC 요청을 연결합니다.
 
-VS Code에서는 [`Engine_Assembly.code-workspace`](Engine_Assembly.code-workspace)를 열면 Jetson·Notebook·문서·기구 설계가 각각 표시됩니다. 대용량 자료와 과거 후보를 소스 탐색창에 섞지 않습니다.
+**현재 사용하는 AI 모델 두 개와 Pose 기준 자산을 이 저장소에 포함합니다.** `git clone`과 GitHub의 **Code → Download ZIP** 모두 실제 모델 파일을 받습니다. Git LFS나 별도 모델 다운로드가 필요하지 않습니다.
 
-| 폴더 | 실행 장치 / 역할 | 처음 읽을 파일 |
+## 다운로드와 시작
+
+```bash
+git clone https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector.git
+cd Engine_Assembly_Defect_Inspector
+```
+
+ZIP을 사용하면 먼저 전체 압축을 풉니다. 두 장비에 같은 저장소를 받아도 됩니다. 아래 설치 작업은 각 장비에서 수행합니다.
+
+| 장비 | 들어 있는 파일 | 처음 할 일 |
 |---|---|---|
-| [`jetson/`](jetson/README.md) | Jetson Orin Nano: 카메라, AI 검사, 제품 추적, 결과 저장, 운영 화면, MOCK/PLC 벤치 요청 처리 | [`launch_live.py`](jetson/launch_live.py) → [`bootstrap.py`](jetson/src/runtime/bootstrap.py) |
-| [`notebook/`](notebook/README.md) | Windows 노트북: 개발, 학습용 촬영·데이터 준비·학습, Jetson 배포 묶음 제작 | [`start_capture.cmd`](notebook/start_capture.cmd), [`deployment/`](notebook/deployment/README.md) |
-| `hardware/` | 카메라 설치물·치수·기구 설계 | 해당 설치물 안내 |
-| `docs/`, `tasks/` | 계약·과거 결정·작업 기록. 예전 문서의 경로는 당시 기준 | 현재 소스 설명은 위 두 README 우선 |
-| `runs/`, `archives/`, `data/`, `dist/` | 노트북에만 보관하는 실험, 백업, 원본, 배포 산출물 | 실행 소스 선택에 사용하지 않음; Git 제외 |
+| Windows 10/11 x64 노트북 | [`notebook/`](notebook/README.md): 촬영 앱, 데이터 준비·학습 도구, SSH 화면 연결, 패키징·시험 | Python 3.13 x64 설치 → `notebook/setup_capture.cmd` → `notebook/start_misassembly.cmd` |
+| Jetson **Orin Nano** | [`jetson/`](jetson/INSTALL.md): 실행 코드, 웹 HMI, 모델·Recipe·Pose, 최초 설치 도구 | 지원 JetPack 준비 → 카메라 by-id 확인 → `bash jetson/setup.sh /dev/v4l/by-id/실제카메라-video-index0` |
+
+Jetson 설치는 `~/oned_device_bench/current`에 실행 코드를, `assets`에 모델을 배치합니다. 장치별 설정과 데이터는 별도 폴더에 보존합니다. 설치 후 안내되는 명령으로 서버를 시작하고 Jetson 브라우저에서 `http://127.0.0.1:18771/auto`를 엽니다. 노트북에서는 [SSH 접속 안내](notebook/README.md#jetson-운영-화면-접속)를 따릅니다.
+
+지원 기준은 **Orin Nano / Linux aarch64 / Python 3.10 / TensorRT 10.3 / CUDA 12.6**입니다. 기존 Jetson Nano(Orin이 아닌 구형 모델)는 이 TensorRT 모델의 실행 대상이 아닙니다. [NVIDIA는 직렬화된 TensorRT 엔진의 플랫폼·GPU·버전 호환에 제약이 있음을 명시합니다.](https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/engine-compatibility.html) 모델은 포함되어 있지만 OS·드라이버·Python과 연결한 카메라의 설정은 장치에서 준비해야 합니다.
+
+## 시스템 구성
 
 ```mermaid
 flowchart LR
-  N[노트북: 촬영·개발·학습] --> P[notebook/deployment: 필요한 파일만 패키징]
-  P --> J[Jetson: launch_live.py]
-  J --> R[Runtime: 제품·요청·검사 순서]
-  R --> W[Worker 하나: 카메라·AI]
-  W --> S[검사 Service: 저장·결과]
-  S --> M[선택한 Gateway: MOCK 또는 PLC 벤치 Result → Done]
-  B[노트북 브라우저] --> H[Jetson 운영 화면 /auto]
-  H --> R
+    N[Windows 노트북<br/>촬영 · 데이터 준비 · 학습] --> P[검증한 제품 모델 · Recipe]
+    P --> J[Jetson Orin Nano]
+    C[USB 카메라] --> J
+    J --> E[엔진 검출 → Pose 정렬<br/>부품 검출 → 3프레임 판정]
+    E --> D[SQLite Journal · Evidence]
+    D --> G[MOCK 또는 명시적 PLC 벤치<br/>Result 확인 → Done 확인]
+    B[노트북 브라우저] -->|SSH 터널| H[Jetson /auto 운영 화면]
+    H --> J
 ```
 
-노트북 브라우저는 Jetson의 화면을 보여 줍니다. 실제 검사 카메라·모델·Journal은 Jetson이 소유하며, 정상 검사에 노트북 파일 공유가 필요하지 않습니다. Windows 촬영 프로그램은 노트북에 연결한 카메라로 학습 자료를 수집하는 별도 도구입니다.
+검사 카메라·AI·Journal은 Jetson에서 실행됩니다. 노트북이 꺼져도 Jetson에서 이미 시작한 서버는 독립적으로 실행됩니다. 노트북의 촬영 앱은 학습 자료를 수집하는 별도 프로그램입니다.
 
-## 현재 버전과 검증 상태
+## 포함 모델
 
-2026-09-28 실제 PLC 벤치 3제품 시험 기준입니다. 이전 v004 복사본은 이력이고, 실제 실행본은 아래 release입니다. 과거 출처는 [`source_baseline.json`](notebook/deployment/source_baseline.json), 현재 배포 포함 목록은 [`runtime_allowlist.json`](notebook/deployment/runtime_allowlist.json)에 있습니다.
+| 모델 | 역할 | 파일 크기 | SHA-256 앞 12자리 |
+|---|---|---:|---|
+| [`dynamic_parts_005/model.plan`](jetson/products/ENGINE_Z3005_5/dynamic_parts_005/model.plan) | 부품 검출과 조립 판정 입력 | 10,092,164 bytes | `743ce54b4d5c` |
+| [`envelope_v007_fp16/model.plan`](jetson/products/ENGINE_Z3005_5/envelope_v007_fp16/model.plan) | 엔진 전체 위치 검출 | 13,556,092 bytes | `c82f2658ac20` |
 
-- **개발 소스:** `jetson/`, `notebook/`. 앞으로 이 위치를 수정합니다.
-- **현재 Jetson 실행 경로:** `/home/jetson/oned_device_bench/current`. 2026-09-28 실제 기동과 단독 카메라 Worker를 확인했습니다. 자산은 `assets`, 장치 설정은 `config`, 현재 검사 이력은 `data/engine_dynamic_pose_002`입니다.
-- **현재 실행 릴리스:** `engine-dev-1203e23f30adda37`. 점유 설정 `088a68566bbb4e3f6de63ec547c117b0077a38a1af0773a32459b70d20f2a5f1`은 검정 작업면을 매 프레임 관측하며 고정 빈 기준 이미지를 사용하지 않습니다. 모델 package manifest는 `03bb926b2e54bd17b1a1033200218bc33e8595e15916e2885aae05d802cc6675`입니다.
-- **실물 검증:** 같은 AUTO 세션에서 Track 1 PASS→Track 2 FAIL→Track 3 PASS를 별도 검사·PLC 요청으로 처리하고, 각각 완전 제거 후 자동 종료했습니다. 세 번째의 짧은 모호성 복귀도 실제 Journal에 기록됐습니다. 세부 근거는 노트북 로컬 `runs/engine_dynamic_pose_002/fixes/ENGINE-PRODUCT-TRACK-ROBUSTNESS-002/RESULT_KO.md`에만 보관합니다.
-- **출력:** 현재 장치는 `OMRON_CIP_BENCH`로 실제 PLC의 세 BOOL 태그만 시험하며 `physical_output_enabled=false`입니다. PASS는 Result=0, FAIL·REVIEW·ERROR는 Result=1입니다. 실제 컨베이어·포토센서·물리 출력·생산 정확도는 미검증입니다. AUTO는 시험 후 정지했습니다.
+두 모델의 manifest·Recipe·전처리·기동 점검 이미지, D001 Pose 기준 이미지와 Pose bank도 함께 있습니다. 기존 운영 자산의 바이트/해시를 유지했습니다. 설치 전 아래 명령은 GPU·카메라·PLC 없이 파일과 해시를 검사합니다.
 
-소스 정리·패키징 통과와 검사 기능의 실물 수용은 별개입니다. Pose REVIEW, 대용량 진단 기록 중 관측 지연의 기존 한계도 해결된 것으로 표시하지 않습니다.
+```bash
+python jetson/install.py --check-only
+```
 
-Jetson의 옛 코드·개발 자료는 노트북 백업을 확인한 뒤 승인된 34,141개 항목만 삭제했습니다(약 21.47GB 확보). 관리 영역에서 실행환경을 제외한 코드 파일은 `current`에만 있습니다. 옛 `candidates`에 남은 것은 보호된 검사 DB·Evidence 등 데이터이며 실행 후보가 아닙니다. 백업 대응표는 로컬 `archives/jetson/runtime_only_inventory.json`에 있습니다.
+학습 원본 전체, 운영 DB, 개인 SSH 설정, 보호된 E04 자료는 배포하지 않습니다. 모델 및 외부 의존성의 출처·사용 범위는 [모델 안내](jetson/products/README.md)를 확인하세요.
 
-## 실행과 다른 장치 배포
+## 현재 진척 — 2026-09-30
 
-- Windows 촬영: [`notebook/README.md`](notebook/README.md).
-- Jetson 모듈을 위에서 아래로 읽기: [`jetson/README.md`](jetson/README.md).
-- 파일 묶음 제작·장치별 설정·기동·복귀: [`notebook/deployment/README.md`](notebook/deployment/README.md).
-- 기존 테스트 화면: SSH 터널을 연결한 노트북에서 `http://127.0.0.1:18771/auto`.
-- 노트북 바로가기: [`notebook/OPEN_ENGINE_HCAM.cmd`](notebook/OPEN_ENGINE_HCAM.cmd). 장치 접속 설정은 Git 밖 `notebook/deployment/targets/current.json`에서 읽습니다.
+| 항목 | 확인된 결과 | 남은 검증 / 제한 |
+|---|---|---|
+| Jetson 검사·웹 HMI | TensorRT 검사, 단일 카메라 Worker, SQLite/Evidence, 제품별 Track, `/auto` 구현 | 새 장치에서 카메라·GPU·작업면 확인 필요 |
+| 정지 제품 PLC 벤치 | 9월 28일 PASS → FAIL → PASS 세 제품을 별도 요청·저장·종료 | 생산 정확도와 실제 배출 동작을 의미하지 않음 |
+| 이동 검사 | MOCK에서 고유 3프레임 검사·ACK·제품 이탈 후 다음 제품 대기 확인 | 실제 컨베이어 속도·연속 제품 미검증 |
+| 실제 PLC 이동 벤치 | 9월 29일 REVIEW 저장 후 Result=1 / Done=1·요청 해제 확인 | 빈 작업면 오점유로 자동 종료가 막힌 사례, Sysmac 표시와 CIP 읽기 불일치 미해결 |
+| Windows 촬영 | 기존 Wizard와 간편 촬영 소스 포함. 10° 간격 총 654장 계획. 최종 EXE GUI 7항목·HCAM 40프레임 미리보기 확인 | 실물 엔진 원본 저장·타 PC 조작·후속 학습은 미검증 |
+| GitHub 배포 | 모델 포함, 장비별 설치·파일 점검 도구, 공개 스냅샷 검증 절차 | 모든 PC/Jetson에서 실물 실행을 완료했다는 의미는 아님 |
 
-Git에는 소스·설정 형식·배포 목록을 보관합니다. TensorRT 모델, Pose bank, 승인 기준 이미지, 촬영 원본, 운영 DB는 별도 파일입니다. **Git clone만으로 모델·승인·장치 환경이 준비되지는 않습니다.** 필요한 운영 자산은 해시가 확인된 로컬 배포 묶음으로 전달하며, 장치마다 카메라와 실행환경을 확인합니다.
+기존 Jetson의 마지막 기록된 실행 릴리스는 `engine-dev-745e95e832c6b402`입니다. 이 저장소의 설치용 패키지 ID는 포함된 파일 해시로 새로 계산되며 기존 장치에 자동 적용되지 않습니다. 새 설치는 **MOCK**, 물리 출력 비활성입니다. PASS의 PLC Result는 0, FAIL·REVIEW·ERROR는 1이며 저장 완료 전에 결과를 보내지 않습니다.
 
-기존 루트 `apps/`, `src/`, `training/`, `scripts/`와 `docs/code_reading/`은 이전 경로/설명용 사본입니다. 로컬 원본은 보존하며 새 개발 시작점으로 사용하지 않습니다. 과거 검증 기록의 경로와 해시는 당시 그대로 유지합니다.
+세부 근거: [이동 검사 Task](tasks/ENGINE-CONVEYOR-MOTION-001.md), [촬영 Task](tasks/ENGINE-MISASSEMBLY-CAPTURE-001.md), [GitHub 배포 Task](tasks/GITHUB-DEPLOYMENT-001.md), [누적 STATUS](docs/STATUS.md). 과거 완료 기록과 미해결 한계를 구분합니다.
+
+## 개발·발표 자료
+
+- [Jetson 코드 읽는 순서](jetson/README.md) · [새 Jetson 설치](jetson/INSTALL.md) · [Windows 사용법](notebook/README.md)
+- [노트북에서 패키징 및 기존 장치 업데이트](notebook/deployment/README.md)
+- [프로젝트 범위](docs/PROJECT.md) · [아키텍처](docs/ARCHITECTURE.md) · [결정 기록](docs/DECISIONS.md)
+- `hardware/`는 설치물 설계, `docs/`·`tasks/`는 계약과 검증 기록입니다. 이전 경로를 적은 과거 문서는 당시 증거로 보존합니다.
+
+소스 수정은 `jetson/`와 `notebook/`에서 시작합니다. `runs/`, `archives/`, `dist/`와 옛 루트 소스 사본은 개발·복구용 로컬 자료이며 새 실행 원본이 아닙니다.

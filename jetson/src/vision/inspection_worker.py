@@ -272,6 +272,11 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                                  'status':dict(state='ERROR',error=str(error),clip_id=job.get('request',{}).get('clip_id'))},timeout=2)
                 continue
             observations, frames = [], []
+            motion_modes=('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH')
+            motion_mode=(job.get('production_binding',{}).get('inspection_motion_mode') in motion_modes
+                and job.get('production_binding',{}).get('inspection_motion_mode')==
+                    job.get('experiment_policy',{}).get('inspection_motion_mode'))
+            conveyor_rejections=[]
             def progress(stage):
                 if engine is None:return
                 try:
@@ -314,6 +319,13 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                     if engine:
                         detected['engine_dynamic']['inspection_id']=job['inspection_id']
                         detected['engine_dynamic']['stage_timings_ms']['camera_receive_ms']=capture_elapsed
+                    if motion_mode:
+                        from src.vision.engine_inspector import conveyor_frame_gate
+                        reason=conveyor_frame_gate(detected,job['production_binding']['inspection_zone'])
+                        if reason:
+                            conveyor_rejections.append({'frame_id':frame.frame_id,'reason_code':reason})
+                            conveyor_rejections=conveyor_rejections[-32:]
+                            continue
                     if bound:
                         from src.vision.auto_inspection import validate_bound_frame, automatic_coverage
                         bound = validate_bound_frame(bound,packet,profile)
@@ -353,6 +365,15 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 if job.get('experiment_policy'):
                     result.update(job['experiment_policy'])
                     result['visibility_policy']='EXPERIMENT_SESSION_NOT_PER_FRAME_HAND_EVIDENCE'
+                if motion_mode:
+                    first=observations[0]['freshness']['estimated_source_monotonic']
+                    third=observations[-1]['freshness']['estimated_source_monotonic']
+                    request_at=job['production_binding']['request_accepted_monotonic']
+                    result.update(conveyor_frame_rejections=conveyor_rejections,
+                        request_to_first_valid_frame_ms=(first-request_at)*1000,
+                        first_to_third_valid_frame_ms=(third-first)*1000,
+                        request_to_third_valid_frame_ms=(third-request_at)*1000,
+                        inspection_valid_frame_fps=2/(third-first) if third>first else None)
                 progress('CONSENSUS_AND_EVIDENCE_ENCODING')
                 result.update(observations=observations,calibration_candidate=candidate,
                               calibration_used=displayed_calibration,backend=backend,
@@ -372,16 +393,29 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                     result['fresh_frame'] = selector.evidence()
                 results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],"result":result,"images":images},timeout=2)
             except Exception as error:
-                failure = {"decision":"ERROR","reason":f"{type(error).__name__}: {error}","defects":[],"unassessed":[]}
+                insufficient=(motion_mode and isinstance(error,FreshFrameError)
+                              and error.reason=='DEADLINE_EXCEEDED' and len(frames)<3)
+                if insufficient:
+                    from src.vision.engine_inspector import conveyor_incomplete_result
+                    failure=conveyor_incomplete_result(observations,conveyor_rejections)
+                else:
+                    failure={"decision":"ERROR","reason":f"{type(error).__name__}: {error}","defects":[],"unassessed":[]}
                 failure['observations']=observations
-                failure['reason_code']=str(error)
+                if not insufficient:
+                    failure['reason_code']=str(error)
                 failure_images=[]
-                if engine and frames and not isinstance(error,(FreshFrameError,TimeoutError)) and not cancellation.is_set() and not stopping.is_set():
+                if engine and frames and (insufficient or not isinstance(error,(FreshFrameError,TimeoutError))) and not cancellation.is_set() and not stopping.is_set():
                     try:failure_images=encode_evidence(frames,observations,package.recipe,job.get('calibration'),result=failure)
                     except Exception as evidence_error:failure['evidence_error']=str(evidence_error)
+                if failure['decision']!='ERROR' and not any(image['kind']=='raw' for image in failure_images):
+                    failure.update(decision='ERROR',reason='CONVEYOR_ORIGINAL_EVIDENCE_UNAVAILABLE',
+                                   reason_code='CONVEYOR_ORIGINAL_EVIDENCE_UNAVAILABLE')
                 if selector:
                     failure['fresh_frame'] = selector.evidence()
-                    failure['reason_code'] = error.reason if isinstance(error, FreshFrameError) else str(error)
+                    if insufficient:
+                        failure['capture_stop_reason']=error.reason
+                    else:
+                        failure['reason_code'] = error.reason if isinstance(error, FreshFrameError) else str(error)
                 results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],
                              "result":failure,"images":failure_images},timeout=2)
                 if isinstance(error, FatalDetectorError):

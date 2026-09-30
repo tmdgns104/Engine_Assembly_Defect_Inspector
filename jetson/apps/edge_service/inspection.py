@@ -198,12 +198,27 @@ class InspectionService:
                                     message['result']['visibility_policy']='EXPERIMENT_SESSION_NOT_PER_FRAME_HAND_EVIDENCE'
                                 if self.active.get('production_binding'):
                                     message['result']['production_identity']=self.active['production_binding']
+                                    binding=self.active['production_binding']
+                                    if binding.get('inspection_motion_mode') in ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH') and message['result']['decision']!='ERROR':
+                                        from src.vision.production_binding import motion_cycle_matches
+                                        cycle=self.production_owner.coordinator.active_cycle
+                                        track=self.production_owner.coordinator._tracker._track_id
+                                        if not motion_cycle_matches(binding,cycle,track):
+                                            from src.decision.engine_dynamic import SLOTS
+                                            message['result'].update(decision='REVIEW',reason='CONVEYOR_TRACK_BINDING_UNCERTAIN',
+                                                reason_code='CONVEYOR_TRACK_BINDING_UNCERTAIN',disposition='REJECT',
+                                                slot_states=dict.fromkeys(SLOTS,'NOT_EVALUATED'),defects=[])
                                 storage_started=time.monotonic()
                                 self.journal.finish(message['inspection_id'], message['result'], message['images'])
                                 storage_ms=(time.monotonic()-storage_started)*1000
                                 # This separate immutable event measures through the completed result commit.
                                 elapsed=(time.monotonic()-self.active['accepted_monotonic'])*1000
                                 self.latest_timing={'inspection_id':message['inspection_id'],'request_to_durable_result_ms':elapsed,'storage_commit_ms':storage_ms}
+                                binding=self.active.get('production_binding') or {}
+                                if binding.get('inspection_motion_mode') in ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
+                                    field=('mock_request_to_durable_result_ms' if binding['inspection_motion_mode']=='CONVEYOR_MOTION_DEV'
+                                           else 'plc_request_to_durable_result_ms')
+                                    self.latest_timing[field]=(time.monotonic()-binding['request_accepted_monotonic'])*1000
                                 with self.journal.lock,self.journal.db:
                                     self.journal._event('INSPECTION_DURABLE_TIMING',{'inspection_id':message['inspection_id'],
                                         'request_to_durable_result_ms':elapsed,'storage_commit_ms':storage_ms,'clock':'edge_monotonic',
@@ -361,13 +376,22 @@ class InspectionService:
             if _production:
                 self.active['production_binding']=dict(request['runtime_binding'],inspection_id=identifier)
                 self.active['experiment_policy']={'source_mode':'PRODUCTION_AUTO','session_id':self.production_owner.session_id,
-                    'human_acceptance':'PENDING','physical_output_enabled':False}
+                    'human_acceptance':'PENDING','physical_output_enabled':False,
+                    'inspection_motion_mode':self.production_owner.inspection_motion_mode,
+                    'capture_zone':self.production_owner.zone}
             if _lab:
                 self.active['experiment_policy']={'source_mode':self.lab.mode,'session_id':self.lab.session,
                     'human_acceptance':'PENDING','physical_output_enabled':False,
                     'trigger_reason':request.get('lab_trigger_reason')}
             if trigger:
-                self.active.update(trigger=trigger, deadline=selector.deadline)
+                self.active['trigger']=trigger
+                if (_production and self.production_owner.inspection_motion_mode in
+                        ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH')):
+                    # Frame selection still stops at this unchanged deadline. The service
+                    # must remain alive long enough to store the resulting REVIEW.
+                    self.active['capture_deadline']=selector.deadline
+                else:
+                    self.active['deadline']=selector.deadline
             self.cancellation.clear()
             self.state = 'BUSY'
             try:
