@@ -14,10 +14,11 @@ from build_bundle import checked_file, collect_release
 ROOT = Path(__file__).resolve().parent
 
 
-def verify_source(source=ROOT):
+def verify_source(source=ROOT, *, assembly_assets=None, require_assembly=False):
     from src.recipe.package import load_package
 
-    files, release, encoded = collect_release(source.parent)
+    files, release, encoded = collect_release(source.parent, assembly_assets=assembly_assets,
+                                             require_assembly=require_assembly)
     models = []
     for name in ('dynamic_parts_005', 'envelope_v007_fp16'):
         package = source / 'products/ENGINE_Z3005_5' / name
@@ -32,6 +33,8 @@ def verify_source(source=ROOT):
         if hashlib.sha256(checked_file(pose_root, name).read_bytes()).hexdigest() != expected:
             raise ValueError('POSE_ASSET_HASH_MISMATCH: ' + name)
     return {'release_id': release['release_id'], 'files': len(files), 'models': models,
+            'bundle_scope': release['bundle_scope'],
+            'assembly_assets_included': release['assembly_assets_included'],
             'physical_output_enabled': False, 'hardware_execution': 'NOT_RUN'}
 
 
@@ -138,9 +141,13 @@ def main():
     parser.add_argument('--environment-only', action='store_true')
     parser.add_argument('--base', type=Path, default=Path.home() / 'oned_device_bench')
     parser.add_argument('--camera')
+    parser.add_argument('--assembly-assets', type=Path)
+    parser.add_argument('--require-assembly', action='store_true')
     args = parser.parse_args()
+    if (args.assembly_assets or args.require_assembly) and not args.check_only:
+        parser.error('Assembly asset options are for --check-only; use the approved full bundle for deployment')
     if args.check_only:
-        result = verify_source()
+        result = verify_source(assembly_assets=args.assembly_assets, require_assembly=args.require_assembly)
         if args.camera:
             device_settings(args.camera)
             require_new_install(args.base.expanduser().absolute())

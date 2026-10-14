@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "baseline": "STATIC_300 verified inference, unchanged bytes; same engine static setup only",
+  "mode": "REQUIRED_FINAL_COMPONENT",
+  "files": [
+    {
+      "relative_path": "jetson/shadow_misassembly/absolute_body_seed.py",
+      "sha256": "9792684b76c49382188488ec0519eaa11f100820a0596e101bb0201d2349af33"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/body_motion.py",
+      "sha256": "09db7b7145d9089fa31cab885a6079e7f1e646f61499495e77c9402bdd3a7bce"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/live.py",
+      "sha256": "25e57e12b9f8ef775d2bd2e4feb5d299138cf44ef50f4a0fefe75ebadce48148"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/live_observation.py",
+      "sha256": "43cdfa264db75837e22e8e4cc39dcdeb4277050dcbda61404eb2abc74f622a46"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/offline.py",
+      "sha256": "f919f7d54f4e3e4165444b5d55b34ed63e59ddd1ee6f255e7f436f1f9e95fe4a"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/policy.py",
+      "sha256": "92213cfe80b43b6ac62c396d816966bb47a026f727302f67797714858e98abf7"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/pose_stability.py",
+      "sha256": "f5af68127551addea5d104bf010e420a07f0e501c00f41a28d6c4f20892730be"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/robust_preprocessing.py",
+      "sha256": "2036facb342a5d5830a81f74310779d2eb4ec221695b4f26c80bcb115d28ec75"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/robustness.py",
+      "sha256": "71a34d6697c7c883e3661aaa2a031f85b125c6625fc7e6a9b94d765161ce4b4e"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/static_geometry.py",
+      "sha256": "b7d214f807c3f35ac0b75770141ed9f1d34cb860ee4a2a27267e412ab96b036a"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/static_models.py",
+      "sha256": "e806bea39b1aae0c2648b7c41823aabe47b9ab3129f26dc0ae53fe8e89dd7d8d"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/temporal_models.py",
+      "sha256": "e94f7e8b55726d14146b13039f8b9bf2d360af6c1d99b88b9ff6a615aa5225da"
+    },
+    {
+      "relative_path": "jetson/shadow_misassembly/temporal_preprocessing.py",
+      "sha256": "711c618ffe17948938a826c768629344ad68e3037f9b3858e9d08692b1fccc8e"
+    },
+    {
+      "relative_path": "notebook/training/engine_baseline/classification.py",
+      "sha256": "0fc6160b8dbd50a1f5a0208a07a57c74bf157958190f985ea6d3ec3e964ab5a7"
+    },
+    {
+      "relative_path": "notebook/training/engine_baseline/preprocess.py",
+      "sha256": "c43e76836f885e801e195b0d0823f8b7596a7fce5cc1bbb63c5e9dcee7300d4b"
+    },
+    {
+      "relative_path": "notebook/training/engine_recovery/recovery.py",
+      "sha256": "6d2de2baeb7165d7b33ffae775de5401d114c0bbb547a900d70fe35c82a4dfb7"
+    },
+    {
+      "relative_path": "runs/engine_dynamic_pose_002/training/envelope_v004/weights/best.pt",
+      "sha256": "cf117defe782e1ae8b355e0ed13c014fc6f1538aa2dcdbe0fb6cfa54200f7755"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/exhaust/class_mapping.json",
+      "sha256": "bbbbe5e52584e861865a1b3a01a04fce255f3775c63f7cf477f50fb97141ea09"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/exhaust/weights/best.pt",
+      "sha256": "09678d298ef59fb83acd6c5d57fe8a1bcc841ae26151f4ec700906d352bc6a17"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_left/class_mapping.json",
+      "sha256": "553398d35cc29898b4885f92a0a65da9d689fdb7c2c574bf53f2e9259fb484d2"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_left/weights/best.pt",
+      "sha256": "35351ea2321036f29058e231fd37c3c9dbaf13aaada42e1e1391394d44b0296c"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_right/class_mapping.json",
+      "sha256": "553398d35cc29898b4885f92a0a65da9d689fdb7c2c574bf53f2e9259fb484d2"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_right/weights/best.pt",
+      "sha256": "d74ac8deb8c1a66889e3493acb87c1c7894b39ab000182df8ba57b5d4a66c8e7"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/symbol/class_mapping.json",
+      "sha256": "03bec412898188737d37187524f8973aa2f8a20c5246b18daa3046166f35347d"
+    },
+    {
+      "relative_path": "runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/symbol/weights/best.pt",
+      "sha256": "c0c45dcdf48d233a9d486a00d06af3ba70aa12070fd9ab73cb3861e6c278391e"
+    },
+    {
+      "relative_path": "runs/engine_preprocessing_recovery_001/v001_20261003T033452Z/alignment/config_frozen.json",
+      "sha256": "9a287d6d1e32ba32be5c5ae9137a817cdf876d1bcf3f6445f12b184e13bae929"
+    },
+    {
+      "relative_path": "runs/engine_preprocessing_recovery_001/v001_20261003T033452Z/alignment/reference_T0001.png",
+      "sha256": "bf45d6a7a191809907863cfe0b7ed24bdac437b441d26645690a98d1a5a82c32"
+    },
+    {
+      "relative_path": "runs/engine_preprocessing_recovery_001/v001_20261003T033452Z/alignment/train_body_bank.npz",
+      "sha256": "5c5741b3dde39845bf557a72b924fab604324a5a34aae4afe397915869c6b36a"
+    }
+  ],
+  "distribution": "OFFLINE_VERIFIED_ASSET_ROOT; no download at runtime",
+  "field_qualification": "NOT_TRANSFERRED_FROM_STATIC_BASELINE"
+}

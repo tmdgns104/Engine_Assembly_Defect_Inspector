@@ -31,7 +31,7 @@ def checked_file(root, name):
     return path
 
 
-def collect_release(project_root=PROJECT):
+def collect_release(project_root=PROJECT, *, assembly_assets=None, require_assembly=False):
     project_root = project_root.resolve()
     specification = json.loads((project_root / 'jetson/runtime_allowlist.json').read_text(encoding='utf-8'))
     files = {}
@@ -44,14 +44,27 @@ def collect_release(project_root=PROJECT):
         files[target] = path
     for name in specification['product_files']:
         files['assets/products/' + name] = checked_file(project_root / 'jetson/products', name)
-    # Only these hash-frozen inference dependencies are retained. The surrounding
-    # training runs, replay images, reports and old full projects stay on the PC.
-    shadow_spec = project_root / 'jetson/misassembly_runtime_assets.json'
-    if shadow_spec.exists():
+    # Removing obsolete image entries must not make a local image-backed profile
+    # appear deployable. Its dependencies must still be explicitly packaged.
+    area_path = files.get('assets/runtime_config/area_clearance.json')
+    if area_path:
+        area = json.loads(area_path.read_text(encoding='utf-8'))
+        for reference in area.get('references', []):
+            name = reference['path']
+            checked_file(area_path.parent, name)
+            target = 'assets/runtime_config/' + name
+            if target not in files:
+                raise ValueError('AREA_REFERENCE_NOT_ALLOWLISTED: ' + name)
+            if hashlib.sha256(files[target].read_bytes()).hexdigest() != reference['sha256']:
+                raise ValueError('AREA_REFERENCE_HASH_MISMATCH: ' + name)
+    # Assembly models are an explicit, offline asset input. Never silently pick
+    # up a developer's ignored historical run or call a core-only bundle complete.
+    shadow_spec = project_root / 'jetson/assembly_assets.lock.json'
+    if require_assembly and assembly_assets is None:
+        raise ValueError('REQUIRED_ASSEMBLY_ASSETS_MISSING')
+    if assembly_assets is not None:
         shadow = json.loads(shadow_spec.read_text(encoding='utf-8'))
-        frozen_root = project_root / shadow['frozen_source_root']
-        if not frozen_root.resolve().is_relative_to(project_root):
-            raise ValueError('SHADOW_SOURCE_OUTSIDE_PROJECT')
+        frozen_root = Path(assembly_assets).absolute()
         for item in shadow['files']:
             path = checked_file(frozen_root, item['relative_path'])
             if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
@@ -76,17 +89,21 @@ def collect_release(project_root=PROJECT):
         'qualification': 'DEVELOPMENT_BASELINE_NOT_PRODUCTION_ACCEPTED',
         'source_baseline_manifest_sha256': specification['source_baseline_manifest_sha256'],
         'physical_output_enabled': False,
+        'bundle_scope': ('INTEGRATED_AI_OFFLINE' if assembly_assets is not None else 'CORE_MOCK_ONLY'),
+        'assembly_assets_included': assembly_assets is not None,
+        'field_automatic_operation_verified': False,
         'files': hashes, 'links': links,
     }
     encoded = (json.dumps(release, indent=2) + '\n').encode('utf-8')
     return files, release, encoded
 
 
-def build_package(output, project_root=PROJECT):
+def build_package(output, project_root=PROJECT, *, assembly_assets=None, require_assembly=False):
     output = output.resolve()
     if output.exists():
         raise FileExistsError('Keep the existing package; choose a new output path: ' + str(output))
-    files, release, encoded = collect_release(project_root)
+    files, release, encoded = collect_release(project_root, assembly_assets=assembly_assets,
+                                             require_assembly=require_assembly)
     hashes, links = release['files'], release['links']
     output.parent.mkdir(parents=True, exist_ok=True)
     partial = output.with_name(output.name + '.partial')
@@ -126,8 +143,13 @@ def build_package(output, project_root=PROJECT):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--assembly-assets', type=Path,
+                        help='Offline frozen inference asset root matching assembly_assets.lock.json')
+    parser.add_argument('--require-assembly', action='store_true',
+                        help='Fail instead of producing a core MOCK bundle without the four classifiers')
     args = parser.parse_args()
-    print(json.dumps(build_package(args.output), ensure_ascii=False))
+    print(json.dumps(build_package(args.output, assembly_assets=args.assembly_assets,
+                                   require_assembly=args.require_assembly), ensure_ascii=False))
 
 
 if __name__ == '__main__':

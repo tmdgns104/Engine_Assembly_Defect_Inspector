@@ -288,3 +288,8 @@ Evidence / Boundaries:
 - 이번 Windows 후속 작업은 사용자 승인 후 지정 USB 카메라를 연결하고, 실제 배치 준비 확인마다 한 장씩 저장했다. 자동 burst 촬영, Jetson 접속, CAD 수정, 환경 설치, 라벨링/분할/학습/튜닝/평가/변환/PLC 제어 없음.
 - 합성 sample 검증은 실제 촬영·검사 성공·모델 성능 검증으로 집계하지 않는다.
 - Detector/Decision/DB/HMI 구현은 기존 후속 Task 범위다. 준비 완료는 V0 완료가 아니다.
+
+
+## TASK-021 — PLC 자동 반복검사 배포 준비 (2026-10-14)
+
+기준52ba2d4. 오래된 공개 allowlist 사진9개 제거, 유지보수 UI/Profile 누락 보완, 명시적 오프라인 필수 조립 자산 lock/패키지 검사. ARM64 Runtime287·배포31 PASS. 통합 패키지 engine-dev-63d26330adab5cca /172파일. 실제 운영 engine-integrated-4920568fe3750b64는 미변경. Journal 이전 제품 이탈 proof0건, PLC 온라인 동등성/timeout·STOP/실물출구/Class1 안정성 미검증으로 자동운전 활성화 BLOCKED. 보고서: [TASK021](PLC_AUTOMATIC_DEPLOYMENT_READINESS_REPORT.md). 현장 교체/PLC 쓰기/START/Result·Done NOT_RUN. STOP_FOR_FIELD_DEPLOYMENT_APPROVAL.
