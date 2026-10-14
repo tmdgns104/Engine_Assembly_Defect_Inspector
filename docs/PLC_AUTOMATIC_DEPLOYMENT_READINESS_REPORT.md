@@ -49,12 +49,13 @@ GitHub에 운영 DB·현장 사진·개인 설정·승인 원장을 추가하지
 | C 초기/감독/자동 상태기계, ASan/UBSan, IPC clock/AF_UNIX | PASS |
 | 기본·필수 조립 자산 포함 패키지 생성/내용 해시 | 모두 PASS |
 | 실제 카메라/PLC/모터 시험 | NOT_RUN |
-| GitHub Actions | 최종 run 결과는 아래 완료 기록 및 작업 응답 참조 |
+| GitHub Actions | [38553379628 SUCCESS](https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector/actions/runs/38553379628), source `8e3386e60a03da461deb65040c7dd2fd411dd284` |
 
 287개에는 실제 Worker 프로세스·Journal·AssemblyInspector·Runtime·C IPC 소유자를
 사용한 승인 없는 3요청/3검사 ID와 3프레임, Result-only→다음 Done→reset이 포함된다.
 카메라·모델·PLC 경계는 합성이다. 이것을 현장 제품 검사 성공으로 세지 않는다.
 550ms commit 지연, 실제 보존 PNG 3장, STOP/저장 실패/IPC 손실/중복 차단 회귀를 유지했다.
+이번 3제품 합성 경로의 원시 저장 commit은626.38~640.72ms, health 최대 간격은162.75ms였다.
 
 노트북 증거 루트:
 `runs/engine_standalone_plc_autostart_001/v001_20261007T052746Z/tag_data_link_008/deployment_readiness_021/`
@@ -199,3 +200,7 @@ RPI50ms·timeout·lease를 늘리지 않았다. IPC 시각 회귀 PASS를 Class1
 최종 상태: **STOP_FOR_FIELD_DEPLOYMENT_APPROVAL**.
 코드·패키지는 준비됐지만 현장 자동운전 자격과 과거 제품 식별 차단 해소는 미완료다.
 운영 서비스 교체·PLC 쓰기·실제 START·Result/Done은 이번 작업에서 수행하지 않았다.
+
+최종 보존 확인: current/config 해시·service PID41150/NRestarts0 불변, 카메라 Worker41191 정상,
+Mc_Run/Request/Result/Done=0. connection은28로 증가하여 Class1 미해결 상태를 유지한다.
+노트북 회수·해시 확인 후 이번 TASK021 소유의 Jetson 격리 디렉터리만 정리했다.
