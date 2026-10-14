@@ -14,6 +14,8 @@ import sys
 import threading
 import time
 
+from src.vision.assembly_evidence import load_assembly_frames
+
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
@@ -101,27 +103,11 @@ class ShadowObserver:
 
     def process_one(self, row):
         import cv2
-        import numpy as np
         identifier = self.checked_id(row['inspection_id'])
         folder = self.output_root/identifier
         folder.mkdir(exist_ok=False)
         started = time.monotonic()
-        observations = {o.get('freshness', {}).get('frame_id'): o for o in row['result'].get('observations', [])}
-        prepared = []
-        for asset in row['result'].get('assets', []):
-            if asset['kind'] != 'raw':
-                continue
-            path = (self.data_root/asset['relative_path']).resolve()
-            if not path.is_relative_to(self.data_root):
-                raise ValueError('RAW_PATH_OUTSIDE_JOURNAL')
-            data = path.read_bytes()
-            if sha(data) != asset['sha256']:
-                raise ValueError('RAW_FILE_HASH_MISMATCH')
-            image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-            observation = observations.get(asset.get('frame_id'))
-            if observation is None or image is None or sha(image.tobytes()) != observation['input_pixel_sha256']:
-                raise ValueError('RAW_FRAME_BINDING_OR_PIXELS_INVALID')
-            prepared.append((asset, data, image, observation))
+        prepared = load_assembly_frames(self.data_root, row)
         binding = row['request'].get('runtime_binding') or {}
         if not prepared or binding.get('track_id') is None:
             result = dict(state='NOT_RUN', reason='NO_VALID_BOUND_RAW_FRAMES', frames=[])
@@ -131,17 +117,17 @@ class ShadowObserver:
             models, context_type, history_type = self.loaded
             models.processor.guard.reset()  # No pose/prediction leaks across products.
             history, frames = history_type(), []
-            for index, (asset, data, image, observation) in enumerate(prepared):
+            for index, (asset, data, image, observation, validation) in enumerate(prepared):
                 fresh = observation['freshness']
                 context = context_type(frame_id=asset['frame_id'], source_pts_ns=fresh['source_pts_ns'],
                     track_id=binding['track_id'], camera_epoch=fresh['camera_epoch'],
-                    quality_valid=bool(observation['quality']['valid'] and fresh['integrity']['valid']),
+                    quality_valid=validation['quality_valid'],
                     tracking_continuity_verified=False)
                 record, canonical, crops = models.process(image, context)
                 record = dict(record, frame_id=asset['frame_id'], camera_epoch=context.camera_epoch,
                     source_pts_ns=context.source_pts_ns, track_id=context.track_id,
                     raw_pixel_sha256=sha(image.tobytes()), raw_sha256=asset['sha256'],
-                    raw_path=f'f{index}_raw.png', images={})
+                    raw_path=f'f{index}_raw.png', images={}, evidence_validation=validation)
                 (folder/record['raw_path']).write_bytes(data)
                 for key, array in dict(crops, canonical=canonical).items():
                     if array is None:

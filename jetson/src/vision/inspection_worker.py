@@ -13,6 +13,7 @@ import hashlib
 from datetime import datetime, timezone
 
 from src.camera.fresh_frame import FreshFrameError, FreshFrameSelector, TriggerContext
+from src.camera.frame_integrity import FRAME_EVIDENCE_CONTRACT, measured_integrity
 from src.contracts import CameraError
 from src.contracts.interfaces import FatalDetectorError
 from src.decision.slots import assess, pixel_box
@@ -125,7 +126,8 @@ def worker_main(package_root, station, generation, commands, results, previews, 
         if engine:
             engine.detector.capture_diagnostics = diagnostic.recording
         before = hashlib.sha256(frame.image.tobytes()).hexdigest()
-        integrity = freshness.get('integrity', {'valid':True})
+        integrity = measured_integrity(frame.image, freshness.get('integrity'))
+        freshness = dict(freshness, integrity=integrity)
         detected = None
         packet = None
         if integrity['valid']:
@@ -149,7 +151,8 @@ def worker_main(package_root, station, generation, commands, results, previews, 
             raise CameraError('FRAME_INTEGRITY_REJECTED: '+str(integrity))
         detected.update(width=frame.width,height=frame.height,freshness=freshness,
             quality=assess_image(frame.image,station['quality']),captured_at=frame.captured_at.isoformat(),
-            input_pixel_sha256=before)
+            input_pixel_sha256=before, frame_evidence_contract=FRAME_EVIDENCE_CONTRACT,
+            worker_generation=generation)
         if area_model:
             measurement = area_model.evaluate(frame.image)
             area_metadata = dict(frame_id=frame.frame_id,sequence=freshness['sequence'],

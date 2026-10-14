@@ -2,6 +2,26 @@
 import numpy as np
 
 
+FRAME_EVIDENCE_CONTRACT = 'RAW_FRAME_INTEGRITY_V1'
+
+
+def measured_integrity(image, recorded=None):
+    """Measure the existing detector; a prior rejection can never become valid.
+
+The stationary GStreamer path supplies freshness but no integrity metadata.
+Always measure its actual BGR pixels rather than treating a missing field as OK.
+"""
+    measured = inspect_integrity(image)
+    if recorded is not None:
+        if not isinstance(recorded, dict) or type(recorded.get('valid')) is not bool:
+            raise ValueError('EVIDENCE_INTEGRITY_INVALID')
+        if not recorded['valid']:
+            measured = dict(measured, valid=False,
+                reason=recorded.get('reason') or 'CAPTURE_INTEGRITY_REJECTED',
+                recorded_integrity=recorded)
+    return measured
+
+
 def inspect_integrity(image):
     if not isinstance(image, np.ndarray) or image.dtype != np.uint8 or image.ndim != 3 or image.shape[2] != 3:
         return {'valid': False, 'reason': 'INVALID_BGR_FRAME', 'horizontal_discontinuities': None}
