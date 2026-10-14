@@ -18,6 +18,7 @@ class ProductPassage:
         boxes = packet['provider']['observations']
         self.box = boxes[0]['bbox'] if len(boxes) == 1 else None
         self.origin = self.box
+        self.last_product = packet if self.box else None
         self.crossed = False
         self.tail = False
         self.samples = []
@@ -33,6 +34,27 @@ class ProductPassage:
         self.furthest = sum(self._axis(self.box))/2 if self.box else 0.
         self.outbound_samples = 0
         self.entry = None
+
+    @classmethod
+    def from_history(cls, identity, packets, edge, *, tracker_config):
+        """Continue the same bound request across an empty publication frame.
+
+        Runtime supplies only its bounded, validated observations for this
+        request/Track. Missing detections preserve uncertainty, never exit.
+        """
+        seed = next((i for i in range(len(packets)-1, -1, -1)
+                     if len(packets[i]['provider']['observations']) == 1), None)
+        passage = cls(identity, packets[seed if seed is not None else -1],
+                      edge, tracker_config=tracker_config)
+        if seed is None:
+            passage._fail('PRODUCT_PASSAGE_PRODUCT_BASELINE_MISSING')
+            return passage
+        if (packets[seed].get('integrity', {}).get('valid') is not True or
+                packets[seed]['provider']['status'] != 'PRODUCT_OBSERVED'):
+            passage._fail('PRODUCT_PASSAGE_FRAME_CONTINUITY_INVALID')
+        for p in packets[seed+1:]:
+            passage.observe(p, p['processed_monotonic'])
+        return passage
 
     def _axis(self, box):
         # Express both supported horizontal directions as progress towards 1.
@@ -134,6 +156,21 @@ class ProductPassage:
                 for k in ('x1', 'y1', 'x2', 'y2')) and
                 0 <= current['x1'] < current['x2'] <= 1 and 0 <= current['y1'] < current['y2'] <= 1):
             return self._fail('PRODUCT_PASSAGE_INVALID_BOX')
+        if self.tracker_config and not self.crossed:
+            # Reuse the Track's existing loss bounds. Valid camera frames can
+            # intermittently contain no detector box while the belt is stopped.
+            # Reappearance must still associate with the last actual product.
+            elapsed = p['monotonic_s']-self.last_product['monotonic_s']
+            missed = p['sequence']-self.last_product['sequence']-int(current is not None)
+            if (missed > self.tracker_config.max_missed_frames or
+                    (self.tracker_config.max_unobserved_seconds is not None and
+                     elapsed > self.tracker_config.max_unobserved_seconds)):
+                return self._fail('PRODUCT_PASSAGE_REOBSERVATION_LIMIT')
+            if not current:
+                self.samples = []
+                self.entry = None
+                self.reason = 'WAIT_SAME_PRODUCT_REOBSERVATION'
+                return None
         entry_ready = False
         if current and self.crossed:
             entry_ready = self._observe_entry(current,p)
@@ -147,7 +184,8 @@ class ProductPassage:
             # A disjoint upstream successor after a witnessed shrinking tail
             # is still the original supported exit-strip path.
             disjoint_after_tail = self.tail and y < a
-            if not disjoint_after_tail and not self._associated_outbound(current,p['monotonic_s']-old['monotonic_s']):
+            if not disjoint_after_tail and not self._associated_outbound(
+                    current, p['monotonic_s']-self.last_product['monotonic_s']):
                 return self._fail('PRODUCT_EXIT_TAIL_REVERSED_OR_CHANGED' if self.tail
                                   else 'PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY')
             if (origin_b < 1-self.pixel and b < 1-self.pixel
@@ -155,6 +193,7 @@ class ProductPassage:
                 self.crossed = True
             if not disjoint_after_tail:
                 self.box = current
+                self.last_product = p
                 self.outbound_samples += 1
                 # Once witnessed, retain the tail through subpixel boundary jitter.
                 self.tail = self.tail or (self.crossed and y >= 1-self.pixel

@@ -9,6 +9,7 @@ import queue
 import threading
 import time
 import uuid
+from collections import deque
 from datetime import datetime, timezone
 
 from src.control.standalone_plc import LineHandshake
@@ -22,6 +23,7 @@ from src.runtime.supervised_approval import SupervisedApproval, POLICY as REPEAT
 AUTO_POLICY = 'PLC_AUTOMATIC_REPEAT'
 from src.runtime.product_passage import ProductPassage
 from src.runtime.consumed_frames import ConsumedFrames
+from src.tracking.contracts import TrackState
 from src.runtime.product_context_recovery import latest_product, valid_context_close, record_context_close, digest
 
 
@@ -63,6 +65,7 @@ class StandaloneRuntime(ProductionRuntime):
         self._journal_readiness = JournalAdmissionGuard()
         self._unaccepted_request_at = None
         self.product_passage = None
+        self._passage_history = deque(maxlen=args[5].max_missed_frames+2)
         self.product_separation = None
         self.automatic_identity_block = None
         self.request_product_separation = None
@@ -525,6 +528,27 @@ class StandaloneRuntime(ProductionRuntime):
             field_limits=limits, fault_recovery='PHYSICAL_STOP_AND_DIAGNOSIS',
             raw_photo_sensor_required=False, independent_plc_timeout_required=False)
 
+    def _remember_bound_passage_packet(self, packet):
+        tracker = self.coordinator._tracker
+        binding = (self.bridge.request or {}).get('runtime_binding', {})
+        if (not self._automatic_policy() or self.product_passage
+                or self.handshake.state != 'INSPECTING' or not self.handshake.token
+                or packet is not self.latest_packet or self.error or self.cycle_issue
+                or tracker._state in (TrackState.LOST, TrackState.WAIT_AREA_CLEAR)
+                or binding.get('track_id') != tracker._track_id
+                or binding.get('runtime_session_id') != self.session_id
+                or binding.get('plc_request_token') != self.handshake.token):
+            return
+        owner = (self.handshake.token, self.session_id, tracker._track_id)
+        self._passage_history.append((owner, packet))
+
+    def _apply_packet(self, packet):
+        result = super()._apply_packet(packet)
+        # The provider alone cannot associate a box with the bound product.
+        # Preserve observations only after the existing tracker accepted them.
+        self._remember_bound_passage_packet(packet)
+        return result
+
     def _packet(self, packet):
         # Record the data actually removed from the Worker queue. Even rejected
         # packets are visible; diagnostic sampling never changes the verdict.
@@ -837,6 +861,9 @@ class StandaloneRuntime(ProductionRuntime):
             self._event(dict(event='PLC_REQUEST_FIRST_TRACK_BOUND', **context))
         self.request_wait_seconds = self.line_profile['arrival_deadline_s']
         super()._trigger(now)
+        # This exact fresh frame established the request/Track binding, before
+        # the next observation can be empty while evidence is being saved.
+        self._remember_bound_passage_packet(packet)
 
     def _poll_legacy_plc(self, now):
         """Existing three-tag ladder: software readiness is not PLC Run permission."""
@@ -1074,10 +1101,22 @@ class StandaloneRuntime(ProductionRuntime):
             # Retain the last actual product identity through ambiguous requests
             # whose ERROR has no Track. A timeout is never an exit observation.
             q = self.line_profile.get('automatic_operation_qualification', {})
-            self.product_passage = ProductPassage(dict(inspection_id=identifier,
+            identity = dict(inspection_id=identifier,
                 tracking_session=self.session_id, cycle_id=binding['cycle_id'],
-                track_id=binding['track_id'], request_token=self.handshake.token),
-                self.latest_packet, q.get('exit_edge'), tracker_config=self.tracker_config)
+                track_id=binding['track_id'], request_token=self.handshake.token)
+            owner = (self.handshake.token, self.session_id, binding['track_id'])
+            packets = [p for key, p in self._passage_history if key == owner]
+            track_valid = self.coordinator._tracker._state not in (
+                TrackState.LOST, TrackState.WAIT_AREA_CLEAR)
+            if (packets and packets[-1] is self.latest_packet
+                    and not self.cycle_issue and track_valid):
+                self.product_passage = ProductPassage.from_history(identity,
+                    packets, q.get('exit_edge'), tracker_config=self.tracker_config)
+            else:
+                self.product_passage = ProductPassage(identity, self.latest_packet,
+                    q.get('exit_edge'), tracker_config=self.tracker_config)
+                self.product_passage._fail('PRODUCT_PASSAGE_BOUND_HISTORY_UNAVAILABLE')
+            self._passage_history.clear()
             self.product_separation = None
 
     def _poll_result(self, now):

@@ -89,6 +89,60 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.assertEqual(self.g.automatic_arm.call_count,0)  # Ready to receive the next transaction.
         self.assertIsNone(self.r.initial_approval)
 
+    def test_publication_during_short_detection_loss_keeps_bound_history(self):
+        original = self.complete
+        def complete_after_empty_frame(decision, **unused):
+            for _ in range(3):
+                self.frame(count=0)
+            return original(decision, offset=self.at+.1)
+        with patch.object(self, 'complete', side_effect=complete_after_empty_frame):
+            identifier = self.request_and_complete(1, 'REVIEW')
+        passage = self.r.product_passage
+        self.assertEqual(passage.identity['inspection_id'], identifier)
+        self.assertFalse(passage.invalid, passage.status())
+        self.assertIsNone(passage.proof)
+        self.assertEqual(len(self.r._passage_history), 0)
+        self.depart()
+        self.assertIsNotNone(self.r.product_separation)
+        self.request_and_complete(2, 'REVIEW')
+        self.assertEqual(self.g.result.call_count, 2)
+        self.g.automatic_arm.assert_not_called()
+
+    def test_foreign_box_during_inspection_cannot_prove_bound_product_exit(self):
+        original = self.complete
+        foreign = dict(x1=.1, y1=.65, x2=.7, y2=.95)
+        def complete_after_foreign_box(decision, **unused):
+            self.frame(box=foreign)
+            for _ in range(3):
+                self.frame(count=0)
+            return original(decision, offset=self.at+.1)
+        with patch.object(self, 'complete', side_effect=complete_after_foreign_box):
+            self.request_and_complete(1, 'REVIEW')
+        # REVIEW still returns NG. Invalid association only blocks exit proof.
+        self.assertEqual(self.g.result.call_count, 1)
+        self.assertEqual(self.r.history[0]['plc_result_value'], 1)
+        self.assertTrue(self.r.product_passage.invalid)
+        for left, right in ((.2,.8),(.3,.9),(.4,1.),(.5,1.),(.6,1.),(.7,1.),(.8,1.),(.9,1.)):
+            self.frame(box=dict(x1=left, y1=.65, x2=right, y2=.95))
+            self.poll()
+        for _ in range(8):
+            self.frame(count=0)
+            self.poll()
+        self.assertIsNone(self.r.product_separation)
+        self.assertIsNone(self.r.product_passage.proof)
+
+    def test_missing_bound_history_cannot_adopt_latest_box(self):
+        original = self.complete
+        def complete_without_history(decision, **unused):
+            self.r._passage_history.clear()
+            return original(decision, offset=self.at+.1)
+        with patch.object(self, 'complete', side_effect=complete_without_history):
+            self.request_and_complete(1, 'REVIEW')
+        self.assertEqual(self.g.result.call_count, 1)
+        self.assertTrue(self.r.product_passage.invalid)
+        self.assertEqual(self.r.product_passage.reason,
+                         'PRODUCT_PASSAGE_BOUND_HISTORY_UNAVAILABLE')
+
     def test_no_detection_or_global_match_is_not_product_exit(self):
         self.request_and_complete(1,'REVIEW')
         for classification in ('UNKNOWN','MATCH'):
