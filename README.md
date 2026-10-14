@@ -1,5 +1,12 @@
 # On-Device AI 엔진 조립 검사
 
+## 최신 통합 운영 범위 — 2026-10-14
+
+개발 원본은 [jetson/](jetson/README.md) 한 벌입니다. 실제 실행은 `current/`의 `engine-integrated-90a914423826735a`를 `engine-inspector.service` 하나가 감독하며 Python과 OpENer를 같은 Release로 관리합니다. 노트북에는 이전 후보·복구 자료를 보존합니다.
+
+[프로그램 실행 흐름](jetson/INTEGRATED_RUNTIME.md)과 [이번 검증 결과](notebook/deployment/JOURNAL_COMPATIBILITY_VERIFICATION.md)를 먼저 읽으세요. 과거 Journal35 차단은 해결됐고 실제 한 제품의 요청→검사 처리→PLC NG·Done→컨베이어 재가동을 확인했습니다. **AI 최종 결과는 조립 모듈 오류로 ERROR였고, 정상 판별·연속 운전·재부팅·노트북 OFF 검증은 완료되지 않았습니다.** 아래 9월 및 이전 배포 설명은 당시 범위이며 현재 채택 상태는 이 문단과 최신 통합 문서를 따릅니다.
+
+
 **Jetson Orin Nano가 USB 카메라 영상에서 엔진의 조립 상태를 검사하고, 노트북은 촬영·개발·운영 화면 접속을 맡는 프로젝트입니다.** 검사 결과는 `PASS / FAIL / REVIEW / ERROR`로 저장하며, 제품 추적과 PLC 요청을 연결합니다.
 
 **현재 사용하는 AI 모델 두 개와 Pose 기준 자산을 이 저장소에 포함합니다.** `git clone`과 GitHub의 **Code → Download ZIP** 모두 실제 모델 파일을 받습니다. Git LFS나 별도 모델 다운로드가 필요하지 않습니다.
