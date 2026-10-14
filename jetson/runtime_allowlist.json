@@ -78,6 +78,8 @@
     "src/recipe/package.py",
     "src/runtime/__init__.py",
     "src/runtime/aborted_recovery.py",
+    "src/runtime/product_context_recovery.py",
+    "src/runtime/consumed_frames.py",
     "src/runtime/adapters.py",
     "src/runtime/auto_adapters.py",
     "src/runtime/auto_exit.py",

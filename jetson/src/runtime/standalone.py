@@ -21,6 +21,8 @@ from src.runtime.initial_approval import InitialApproval, JournalAdmissionGuard,
 from src.runtime.supervised_approval import SupervisedApproval, POLICY as REPEAT_POLICY
 AUTO_POLICY = 'PLC_AUTOMATIC_REPEAT'
 from src.runtime.product_passage import ProductPassage
+from src.runtime.consumed_frames import ConsumedFrames
+from src.runtime.product_context_recovery import latest_product, valid_context_close, record_context_close, digest
 
 
 def arrival_evidence(packet, accepted_at, epoch, generation, zone):
@@ -47,6 +49,7 @@ class StandaloneRuntime(ProductionRuntime):
 
     def __init__(self, *args, line_profile, assembly, **kwargs):
         self.configured = threading.Event()
+        self.consumed_frames = ConsumedFrames()
         self.line_profile, self.assembly = dict(line_profile), assembly
         policy = start_policy(self.line_profile, getattr(kwargs.get('gateway'), 'contract_version', None))
         if (policy == FULL_FRAME) != args[5].plc_request_tracking:
@@ -236,22 +239,61 @@ class StandaloneRuntime(ProductionRuntime):
         """
         journal = self.service.journal
         with journal.lock:
-            row = journal.db.execute("""
-                SELECT i.inspection_id FROM inspections i
-                JOIN service_state s ON s.key='integrated_decision:' || i.inspection_id
-                WHERE json_extract(i.request_json,'$.runtime_binding.plc_contract')='OPENER_CYCLIC'
-                  AND json_type(i.request_json,'$.runtime_binding.track_id') NOT IN ('null')
-                ORDER BY i.rowid DESC LIMIT 1
-            """).fetchone()
+            row = latest_product(journal.db)
             proof = None if not row else journal.db.execute("""
                 SELECT 1 FROM events WHERE event_type='AUTOMATIC_PRODUCT_SEPARATED'
                   AND json_extract(payload_json,'$.payload.evidence.inspection_id')=?
                   AND json_extract(payload_json,'$.payload.evidence.reason')='PRODUCT_TRAJECTORY_AND_EXIT_STRIP'
                   AND json_extract(payload_json,'$.payload.evidence.duration_s')>=1.2-1e-9
                 LIMIT 1
-            """,(row[0],)).fetchone()
+            """,(row['inspection_id'],)).fetchone()
+            closed = bool(row and valid_context_close(journal.db, row['inspection_id']))
         self.prior_product_identity_block = (
-            'PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN' if row and not proof else None)
+            'PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN' if row and not proof and not closed else None)
+
+    def close_previous_product_context(self, identifier, actor, reason, confirmations):
+        """Authenticated maintenance only; no PLC write, grant, or result replay."""
+        if not self._automatic_policy(): raise ValueError('AUTOMATIC_CONTEXT_RECOVERY_ONLY')
+        with self.lock, self.service.lock:
+            now=time.monotonic()
+            s=self.gateway.read_snapshot(now)
+            if not s: raise ValueError('CURRENT_PLC_SNAPSHOT_REQUIRED')
+            s=dict(s,observed_at=now,runtime_session=self.gateway.runtime_session)
+            health=self.service.health(); a=self.assembly.status(); j=self.service.journal
+            if self.error or health.get('error') or a.get('error'):
+                raise ValueError('OWNER_ERROR_BLOCKS_CONTEXT_RECOVERY')
+            with j.lock:
+                row=latest_product(j.db)
+                if not row or row['inspection_id']!=identifier:raise ValueError('LATEST_PRODUCT_CONTEXT_REQUIRED')
+                final=j.db.execute('SELECT value FROM service_state WHERE key=?',('integrated_decision:'+identifier,)).fetchone()[0]
+            proof=dict(inspection_id=identifier,actor=actor,reason=reason,confirmations=confirmations,
+                request_sha256=digest(row['request_json']),result_sha256=digest(row['result_json']),final_sha256=digest(final),
+                current=s,owners=dict(runtime_session=self.gateway.runtime_session,
+                    worker_state=health.get('state'),worker_alive=health.get('worker_alive'),camera_ready=health.get('camera_ready'),
+                    active_inspection_id=health.get('active_inspection_id'),storage_pending=health.get('storage_pending'),
+                    final_commit_pending=self.final_pending is not None,
+                    assembly_active=a.get('active_identifier'),assembly_pending=a.get('pending'),assembly_outstanding=a.get('outstanding')))
+            def recheck():
+                current=self.gateway.read_snapshot(time.monotonic())
+                if not current or any(current.get(k)!=s.get(k) for k in
+                        ('boot','connection','request_id','phase','controls','raw100')):
+                    raise ValueError('PLC_CHANGED_DURING_CONTEXT_RECOVERY')
+                from src.runtime.product_context_recovery import validate
+                validate(row,final,dict(proof,current=dict(current,observed_at=time.monotonic(),
+                    runtime_session=self.gateway.runtime_session)),time.monotonic())
+            receipt=record_context_close(j,identifier,proof,now=now,recheck=recheck)
+            self._restore_previous_product_identity()
+            self.product_passage=self.product_separation=self.request_product_separation=None
+            self.automatic_identity_block=None
+            self.cyclic_admissions=0
+            self._reset_unbound_observation(time.monotonic())
+            self.latest_packet=None
+            self.observation_started_at=time.monotonic()
+            self.handshake.retire_automatic()  # seen_token is preserved: no replay.
+            self._automatic_previous=None
+            self.arrival=None
+            self.cycle_issue=self.issue=None
+            return receipt
 
     def _automatic_health(self, snapshot, healthy, now):
         """Check actual owners/storage, not an application-issued right to inspect.
@@ -395,20 +437,7 @@ class StandaloneRuntime(ProductionRuntime):
 
     def _profile_ready(self):
         if self._automatic_policy():
-            q = self.line_profile.get('automatic_operation_qualification', {})
-            if not (self.line_profile.get('field_profile_verified') is True
-                    and q.get('verified') is True and q.get('policy') == AUTO_POLICY
-                    and q.get('calibration_sha') == calibration_sha(self.service.calibration)
-                    and isinstance(q.get('evidence'), str) and q['evidence'].strip()
-                    and q.get('exit_edge') in ('left', 'right')
-                    and q.get('passage_policy') == 'PRODUCT_TRAJECTORY_AND_EXIT_STRIP'
-                    and q.get('unoccluded_exit_verified') is True
-                    and q.get('sensor_cycle_source') == 'QUALIFIED_PLC_REQUEST_LATCH'
-                    and isinstance(q.get('plc_logic_sha256'), str) and len(q['plc_logic_sha256']) == 64
-                    and all(c in '0123456789abcdef' for c in q['plc_logic_sha256'])
-                    and q.get('plc_online_equivalence_verified') is True
-                    and q.get('plc_timeout_stop_recovery_verified') is True):
-                return False
+            return self._automatic_readiness()['normal_profile_ready']
         if self._initial_policy() or self._supervised_policy():
             # Software policy selection only. Actual permission is a live, durable
             # operator grant; field qualification remains explicitly unverified.
@@ -423,6 +452,44 @@ class StandaloneRuntime(ProductionRuntime):
             and self.zone.get('confirmed')
             and self.zone.get('calibration_sha') == calibration_sha(self.service.calibration)
             and self.area_config_version)
+
+    def _automatic_readiness(self):
+        """Configuration validity is not unattended recovery qualification.
+
+        Live STOP/freshness/storage/camera/identity guards remain in their actual
+        owners. An unsupported PLC response timer cannot become an application
+        permission gate for normal, supervised PLC-owned cycles.
+        """
+        q = self.line_profile.get('automatic_operation_qualification', {})
+        normal = bool(q.get('policy') == AUTO_POLICY
+            and self.service.calibration
+            and q.get('calibration_sha') == calibration_sha(self.service.calibration)
+            and q.get('exit_edge') in ('left', 'right')
+            and q.get('passage_policy') == 'PRODUCT_TRAJECTORY_AND_EXIT_STRIP')
+        limits = [reason for key, reason in (
+            ('plc_online_equivalence_verified', 'ONLINE_PLC_EQUIVALENCE_UNVERIFIED'),
+            ('plc_timeout_stop_recovery_verified', 'PLC_TIMEOUT_STOP_RECOVERY_UNVERIFIED'),
+            ('unoccluded_exit_verified', 'FIELD_PRODUCT_EXIT_UNVERIFIED'),
+            ('class1_stability_verified', 'CLASS1_STABILITY_UNVERIFIED')) if q.get(key) is not True]
+        return dict(normal_profile_ready=normal, software_permission_required=False,
+            unattended_recovery_verified=bool(normal and q.get('verified') is True and not limits),
+            field_limits=limits, fault_recovery='PHYSICAL_STOP_AND_DIAGNOSIS',
+            raw_photo_sensor_required=False, independent_plc_timeout_required=False)
+
+    def _packet(self, packet):
+        # Record the data actually removed from the Worker queue. Even rejected
+        # packets are visible; diagnostic sampling never changes the verdict.
+        try:
+            return super()._packet(packet)
+        finally:
+            self.consumed_frames.record(packet, consumed_at=time.monotonic(),
+                outcome=getattr(self, '_diagnostic_reason', None),
+                passage=self.product_passage.reason if self.product_passage else None,
+                token=self.handshake.token)
+
+    def consumed_frame_snapshot(self):
+        with self.lock:
+            return self.consumed_frames.snapshot()
 
     def _clear(self, now):
         if self._automatic_policy():
@@ -1133,8 +1200,10 @@ class StandaloneRuntime(ProductionRuntime):
             operator_control='PHYSICAL_BUTTONS', laptop_required=False,
             field_acceptance='NOT_RUN', assembly_component=self.assembly.status())
         result['plc_cycle'] = dict(self.plc_cycle) if self.plc_cycle else None
+        result['consumed_frame_trace'] = self.consumed_frames.snapshot(limit=4)
         if self.plc_cycle:
             result['plc_cycle'].update(
+                readiness=self._automatic_readiness(),
                 product_identity_reason=self.automatic_identity_block or self.prior_product_identity_block or
                     (self.product_passage.reason if self.product_passage else None),
                 product_passage=self.product_passage.status() if self.product_passage else None,
@@ -1154,6 +1223,7 @@ class StandaloneRuntime(ProductionRuntime):
                 field_acceptance='NOT_RUN')
             if self._automatic_policy():
                 result.update(initial_opener_arm='STOPPED_BASELINE_THEN_NEW_PHYSICAL_START',
+                    request_start_qualified=self.line_profile.get('request_start_qualification',{}).get('verified') is True,
                     per_product_manual_controls=False)
         result['aborted_inspection'] = self._aborted_status()
         result['final_commit_pending'] = self.final_pending is not None

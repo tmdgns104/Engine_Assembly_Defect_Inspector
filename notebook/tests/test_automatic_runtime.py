@@ -105,7 +105,8 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.r.line_profile['automatic_operation_qualification']['verified']=False
         self.poll()
         self.g.automatic_arm.assert_not_called()
-        self.assertFalse(self.r._profile_ready())
+        self.assertTrue(self.r._profile_ready())
+        self.assertFalse(self.r._automatic_readiness()['unattended_recovery_verified'])
 
     def test_retirement_from_other_identity_is_rejected(self):
         self.request_and_complete(1,'PASS')

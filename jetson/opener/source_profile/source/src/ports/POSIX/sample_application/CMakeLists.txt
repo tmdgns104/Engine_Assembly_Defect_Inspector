@@ -13,5 +13,6 @@ if (OPENER_IS_DLR_DEVICE)
   set( SAMPLE_APP_DLR_ONLY_SRC ethlinkcbs.c )
 endif()
 
-add_library(SAMPLE_APP sampleapplication.c engine_commissioning.c engine_ipc.c ${SAMPLE_APP_DLR_ONLY_SRC})
-target_link_libraries( SAMPLE_APP NVDATA )
+find_package(Threads REQUIRED)
+add_library(SAMPLE_APP sampleapplication.c engine_commissioning.c engine_ipc.c engine_evidence.c ${SAMPLE_APP_DLR_ONLY_SRC})
+target_link_libraries( SAMPLE_APP NVDATA Threads::Threads )

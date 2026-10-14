@@ -37,14 +37,14 @@
   "publication_enabled": false,
   "inspection_bridge": "PYTHON_LOCAL_SEQPACKET_IPC_V3",
   "produced_data": "COMM_AI_RUNTIME: durable actual AI PASS=0, FAIL/REVIEW/ERROR=1; Result-only then Done in next cyclic packet. RX_ONLY remains all zero.",
-  "diagnostics": "50ms JSON snapshot and bounded event log; receive and transmit events; kernel-send is not PLC-consumption proof.",
+  "diagnostics": "Bounded asynchronous event writer; coalesced 50ms status. Callback format/enqueue and disk latency measured separately. Kernel-send is not PLC-consumption proof.",
   "eds_sha256": "78c0a78cb4f3e43da8090d41cdddfa14aa86dac7212f229104c0e75f02071b01",
   "modified_sample_sha256": "86b3e012d49409ef6fce673b3dfe5a0ef40a88815ca3c0eb685910cac4bb5996",
   "default_mode": "COMM_RX_ONLY",
   "publication_enabled_by_default": false,
-  "field_status": "TASK020_ISOLATED_VERIFIED_NOT_DEPLOYED",
+  "field_status": "FIXED_PLC_SOFTWARE_VERIFIED_FIELD_DEPLOYMENT_PENDING",
   "frozen_parent_profile_sha256": "bff13d9992fdf7f73a549f201ae8503e4573ec0c15b3f5c91847a7c9f1dee83d",
-  "binary_sha256": "127cedc473705479f6c135b513b6f9e8f86733b0eb89b50361a53f7ef1be98ac",
+  "binary_sha256": "63ca4b16db530eecc9f95155a40cf758b291a590d85894dc8e9faf7aa0b2f4a4",
   "result_policy": "PASS_OK_OTHER_NG_V1",
   "synthetic_result_emitter_enabled": false,
   "ipc_version": 3,
@@ -61,5 +61,5 @@
   "ipc_transaction_settled_flag_bit": 16,
   "canonical_eds_sha256": "78c0a78cb4f3e43da8090d41cdddfa14aa86dac7212f229104c0e75f02071b01",
   "eds_hash_scope": "eds_sha256 identifies the unchanged field-selected EDS; canonical_eds_sha256 identifies the existing repository bytes; neither file changed in TASK020.",
-  "verification": "TASK020 ARM64 isolated 287 Python tests, C sanitizer/state and AF_UNIX suites; no field adapter activation"
+  "verification": "TASK021 fixed-PLC: ARM64 297 Python + 31 deployment tests; C/IPC and delayed-file callback tests PASS; real field acceptance pending"
 }

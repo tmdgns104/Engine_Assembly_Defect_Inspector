@@ -14,7 +14,7 @@ PREPARE_PATH = '/api/v1/line/supervised/prepare'
 
 
 class PreparationAccess:
-    def __init__(self, approval_root, hosts):
+    def __init__(self, approval_root, hosts, *, purpose='SUPERVISED_PREPARE_ONLY'):
         if (not isinstance(hosts, list) or not hosts or len(hosts) > 8
                 or any(not isinstance(host, str) or not host or '/' in host
                        or '@' in host or '*' in host or urlsplit('//'+host).netloc != host
@@ -23,7 +23,7 @@ class PreparationAccess:
         self.hosts = frozenset(hosts)
         self.token = secrets.token_urlsafe(32)
         atomic_json(approval_root/'web_pairing.json', dict(token=self.token,
-            purpose='SUPERVISED_PREPARE_ONLY', restored=False))
+            purpose=purpose, restored=False))
 
     def permits(self, request):
         host = request.headers.get('host', '')

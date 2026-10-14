@@ -1,16 +1,16 @@
 #include "engine_ipc.h"
 /* The 4/8-byte commissioning application. Local IPC bridge; no input echo. */
 #include "engine_commissioning.h"
+#include "engine_evidence.h"
 
 static CommState engine_state;
-static FILE *engine_event_file = NULL;
 static int engine_log_failed = 0;
 static double engine_last_status = -1.0;
-static unsigned long engine_event_count = 0;
 static unsigned long engine_timeouts = 0;
-static const char *engine_status_path = NULL;
+static int engine_evidence_enabled = 0;
 static int engine_initialized = 0;
 static double engine_max_status_write_s, engine_max_event_write_s;
+static double engine_last_callback_at, engine_max_callback_gap_s;
 
 static double EngineMonotonic(void) {
   struct timespec value;
@@ -56,25 +56,33 @@ static void EngineJson(FILE *file, const CommState *s, const char *event, double
     "\"last_command_at\":%.6f,\"last_command_age_s\":%.6f,"
     "\"last_snapshot_at\":%.6f,\"max_snapshot_gap_s\":%.6f,"
     "\"rejected_future\":%lu,\"rejected_stale\":%lu,\"rejected_context\":%lu,"
-    "\"snapshot_would_block\":%lu,\"last_ipc_loss_at\":%.6f,\"last_ipc_loss\":\"%s\"}}\n",
+    "\"snapshot_would_block\":%lu,\"last_ipc_loss_at\":%.6f,\"last_ipc_loss\":\"%s\","
+    "\"max_disk_write_s\":%.6f,\"status_snapshots_coalesced\":%lu,\"max_application_callback_gap_s\":%.6f}}\n",
     engine_max_status_write_s,engine_max_event_write_s,t->last_poll_at,t->max_poll_gap_s,
     t->last_command_at,t->last_command_age_s,t->last_snapshot_at,t->max_snapshot_gap_s,
     t->rejected_future,t->rejected_stale,t->rejected_context,t->snapshot_would_block,
-    t->last_loss_at,t->last_loss_reason?t->last_loss_reason:"NONE");
+    t->last_loss_at,t->last_loss_reason?t->last_loss_reason:"NONE",
+    EngineEvidenceMaxWrite(),EngineEvidenceDroppedStatus(),engine_max_callback_gap_s);
+}
+
+static void QueueEngineJson(const CommState *s,const char *event,double now,int status_only) {
+  if(!engine_evidence_enabled || engine_log_failed)return;
+  char buffer[ENGINE_EVIDENCE_BYTES];
+  FILE *memory=fmemopen(buffer,sizeof(buffer),"w");
+  if(!memory) {engine_log_failed=1;return;}
+  EngineJson(memory,s,event,now);
+  long size=ftell(memory);
+  int bad=ferror(memory);
+  if(fclose(memory))bad=1;
+  if(bad || size<0 || (size_t)size>=sizeof(buffer) ||
+      EngineEvidencePush(buffer,(size_t)size,status_only))engine_log_failed=1;
 }
 
 static void EngineRecord(const CommState *s, const char *event, double now, void *context) {
   (void)context;
   if (s->config.mode==COMM_AI_RUNTIME && (strcmp(event,"CYCLIC_RX")==0 || strcmp(event,"CYCLIC_TX_ACCEPTED_BY_KERNEL")==0)) return;
-  if (engine_event_file == NULL || engine_log_failed) return;
-  /* Bounded trial evidence: fail closed instead of unlimited device logging. */
-  if (++engine_event_count > 12000 || ftell(engine_event_file) > 16*1024*1024) {
-    engine_log_failed = 1;
-    return;
-  }
   double started=EngineMonotonic();
-  EngineJson(engine_event_file, s, event, now);
-  if (fflush(engine_event_file) != 0 || ferror(engine_event_file)) engine_log_failed = 1;
+  QueueEngineJson(s,event,now,0);
   double duration=EngineMonotonic()-started;
   if(duration>engine_max_event_write_s) engine_max_event_write_s=duration;
 }
@@ -128,40 +136,36 @@ static void EngineInitialize(void) {
     config.test_ng=!(result && strcmp(result,"TEST_PASS")==0);
     }
   }
-  engine_status_path=getenv("ENGINE_OPENER_STATUS");
+  const char *engine_status_path=getenv("ENGINE_OPENER_STATUS");
   const char *events=getenv("ENGINE_OPENER_EVENTS");
-  if (events && events[0]=='/') engine_event_file=fopen(events,"wx");
-  if (config.mode!=COMM_RX_ONLY && (!engine_event_file || !engine_status_path
-      || engine_status_path[0]!='/' || strlen(engine_status_path)>4000)) {
-    fprintf(stderr,"Synthetic trial needs new absolute evidence paths\n"); exit(EXIT_FAILURE);
+  if(events && engine_status_path && !EngineEvidenceStart(events,engine_status_path))engine_evidence_enabled=1;
+  if (config.mode!=COMM_RX_ONLY && !engine_evidence_enabled) {
+    fprintf(stderr,"Runtime needs new absolute evidence paths\n"); exit(EXIT_FAILURE);
   }
   CommInit(&engine_state,&config,EngineMonotonic(),EngineRecord,NULL);
 }
 
 static void WriteEngineStatus(int force) {
   double now=EngineMonotonic();
-  if (!engine_status_path || engine_status_path[0]!='/' || strlen(engine_status_path)>4000) return;
+  if (!engine_evidence_enabled) return;
   if (!force && now-engine_last_status<0.05) return;
   engine_last_status=now;
-  char temporary[4096];
-  snprintf(temporary,sizeof(temporary),"%s.tmp.%ld",engine_status_path,(long)getpid());
-  FILE *file=fopen(temporary,"w");
-  if (!file) { engine_log_failed=1; return; }
-  EngineJson(file,&engine_state,"STATUS",now);
-  if (fclose(file) != 0 || rename(temporary,engine_status_path) != 0) {
-    engine_log_failed=1; unlink(temporary);
-  }
+  QueueEngineJson(&engine_state,"STATUS",now,1);
   double duration=EngineMonotonic()-now;
   if(duration>engine_max_status_write_s) engine_max_status_write_s=duration;
 }
 
 static void EngineCheck(void) {
   if (engine_state.config.mode==COMM_AI_RUNTIME) EngineIpcPoll(&engine_state,EngineMonotonic());
-  if (engine_log_failed) CommFault(&engine_state,"EVIDENCE_WRITE_FAILURE",EngineMonotonic());
+  if (engine_log_failed || EngineEvidenceFailed()) CommFault(&engine_state,"EVIDENCE_WRITE_FAILURE",EngineMonotonic());
   CommTick(&engine_state,EngineMonotonic());
 }
 
 void HandleApplication(void) {
+  double now=EngineMonotonic();
+  if(engine_last_callback_at && now-engine_last_callback_at>engine_max_callback_gap_s)
+    engine_max_callback_gap_s=now-engine_last_callback_at;
+  engine_last_callback_at=now;
   EngineCheck(); WriteEngineStatus(0);
 }
 

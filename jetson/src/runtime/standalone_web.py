@@ -120,15 +120,40 @@ def line_view(status, identity):
 def configure_line_web(app, runtime, identity):
     from src.runtime.supervised_web import PreparationAccess, PREPARE_PATH
     access = None
+    recovery_access = None
     web = getattr(runtime, 'line_profile', {}).get('supervised_web', {})
     if web.get('enabled') is True:
         if not runtime._supervised_policy():
             raise ValueError('SUPERVISED_WEB_REQUIRES_SUPERVISED_POLICY')
         access = PreparationAccess(runtime.initial_approval.root, web.get('allowed_hosts'))
+    maintenance = getattr(runtime, 'line_profile', {}).get('maintenance_recovery', {})
+    if maintenance.get('enabled') is True:
+        if not runtime._automatic_policy():raise ValueError('AUTOMATIC_MAINTENANCE_ONLY')
+        root = runtime.service.journal.root/'maintenance'
+        root.mkdir(mode=0o700, exist_ok=True)
+        if root.is_symlink():raise ValueError('MAINTENANCE_DIRECTORY_SYMLINK')
+        recovery_access = PreparationAccess(root, maintenance.get('allowed_hosts'),
+            purpose='CLOSE_HISTORICAL_PRODUCT_CONTEXT_ONLY')
 
     @app.middleware('http')
     async def read_only_field_ui(request, call_next):
         if request.method not in ('GET', 'HEAD'):
+            if request.method == 'POST' and request.url.path == '/api/v1/maintenance/product-context/close' and recovery_access:
+                if not recovery_access.permits(request):
+                    return JSONResponse({'error':'MAINTENANCE_AUTHENTICATION_REQUIRED'},status_code=403)
+                try:
+                    if not 1 <= int(request.headers.get('content-length','0')) <= 2048:
+                        raise ValueError('BOUNDED_JSON_BODY_REQUIRED')
+                    raw=b''
+                    async for part in request.stream():
+                        raw+=part
+                        if len(raw)>2048:raise ValueError('BODY_TOO_LARGE')
+                    body=json.loads(raw)
+                    if not isinstance(body,dict) or set(body)!={'identifier','actor','reason','confirmations'}:
+                        raise ValueError('EXPLICIT_CONTEXT_RECOVERY_FIELDS_REQUIRED')
+                    return JSONResponse(runtime.close_previous_product_context(**body),headers={'Cache-Control':'no-store'})
+                except (ValueError,KeyError,TypeError) as error:
+                    return JSONResponse({'error':str(error)},status_code=409)
             if request.method == 'POST' and request.url.path == PREPARE_PATH and access:
                 if not access.permits(request):
                     return JSONResponse({'error':'SUPERVISOR_AUTHORIZATION_REQUIRED'}, status_code=403)
@@ -157,6 +182,10 @@ def configure_line_web(app, runtime, identity):
 
     @app.get('/api/v1/line/view')
     def view(): return line_view(runtime.status(), identity)
+
+    @app.get('/api/v1/line/consumed-frames')
+    def consumed_frames():
+        return JSONResponse(runtime.consumed_frame_snapshot(),headers={'Cache-Control':'no-store'})
 
     @app.get('/api/v1/line/final/{identifier}')
     def final(identifier: str):
