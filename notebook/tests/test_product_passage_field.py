@@ -163,6 +163,24 @@ class FieldPassageTests(unittest.TestCase):
         self.assertTrue(self.p.invalid)
         self.assertIsNone(self.p.proof)
 
+    def test_observed_edge_entry_not_exactly_clipped_to_image_boundary(self):
+        # Actual first-entry boxes 2578..2584 from the same field recording,
+        # replayed as a synthetic successor, not a proven physical repeat.
+        self.outbound()
+        for _ in range(20):self.frame(None)
+        proof=None
+        for box in [(0.88551,0.19666,0.99710,0.82111),
+                    (0.87940,0.22041,0.99706,0.82302),
+                    (0.84716,0.23720,0.99892,0.84064),
+                    (0.84219,0.24326,0.99934,0.84647),
+                    (0.82561,0.24869,0.99891,0.89081),
+                    (0.80335,0.24405,0.99896,0.91342),
+                    (0.78898,0.24721,0.99931,0.87907)]:
+            proof=self.frame(box) or proof
+            self.assertFalse(self.p.invalid,self.p.status())
+        self.assertIsNotNone(proof,self.p.status())
+        self.assertFalse(proof['product_exit_claimed'])
+
 
 if __name__ == '__main__':
     unittest.main()

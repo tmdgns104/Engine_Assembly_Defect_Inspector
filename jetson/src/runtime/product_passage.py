@@ -83,7 +83,9 @@ class ProductPassage:
             return False
         center = (x+y)/2
         if self.entry is None:
-            if x > self.pixel or center >= (oa+ob)/2:
+            # Detector boxes need not clip to the exact outer pixel. Reuse the
+            # same spatial hysteresis for the upstream boundary observation.
+            if x > max(self.pixel,self.jitter) or center >= (oa+ob)/2:
                 return False
             self.entry = dict(first_sequence=p['sequence'],last_sequence=p['sequence'],
                 first_frame_id=p['frame_id'],last_frame_id=p['frame_id'],
