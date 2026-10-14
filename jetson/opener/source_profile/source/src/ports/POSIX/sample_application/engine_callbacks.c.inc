@@ -10,6 +10,7 @@ static unsigned long engine_event_count = 0;
 static unsigned long engine_timeouts = 0;
 static const char *engine_status_path = NULL;
 static int engine_initialized = 0;
+static double engine_max_status_write_s, engine_max_event_write_s;
 
 static double EngineMonotonic(void) {
   struct timespec value;
@@ -47,8 +48,19 @@ static void EngineJson(FILE *file, const CommState *s, const char *event, double
   for (unsigned int i=0; i<4; ++i) fprintf(file, "%02x", s->raw100[i]);
   fprintf(file, "\",\"slots\":{\"Inspection_Request\":%u,\"EStop_OK\":%u,"
     "\"Mc_Run\":%u,\"Stop_PB\":%u},\"plc_consumption_confirmed\":false,"
-    "\"inspection_bridge\":\"MODE_DEPENDENT_SEE_IPC\"}\n",
+    "\"inspection_bridge\":\"MODE_DEPENDENT_SEE_IPC\",",
     s->words[0],s->words[1],s->words[2],s->words[3]);
+  const EngineIpcTiming *t=EngineIpcGetTiming();
+  fprintf(file,"\"timing\":{\"max_status_write_s\":%.6f,\"max_event_write_s\":%.6f,"
+    "\"last_ipc_poll\":%.6f,\"max_ipc_poll_gap_s\":%.6f,"
+    "\"last_command_at\":%.6f,\"last_command_age_s\":%.6f,"
+    "\"last_snapshot_at\":%.6f,\"max_snapshot_gap_s\":%.6f,"
+    "\"rejected_future\":%lu,\"rejected_stale\":%lu,\"rejected_context\":%lu,"
+    "\"snapshot_would_block\":%lu,\"last_ipc_loss_at\":%.6f,\"last_ipc_loss\":\"%s\"}}\n",
+    engine_max_status_write_s,engine_max_event_write_s,t->last_poll_at,t->max_poll_gap_s,
+    t->last_command_at,t->last_command_age_s,t->last_snapshot_at,t->max_snapshot_gap_s,
+    t->rejected_future,t->rejected_stale,t->rejected_context,t->snapshot_would_block,
+    t->last_loss_at,t->last_loss_reason?t->last_loss_reason:"NONE");
 }
 
 static void EngineRecord(const CommState *s, const char *event, double now, void *context) {
@@ -60,8 +72,11 @@ static void EngineRecord(const CommState *s, const char *event, double now, void
     engine_log_failed = 1;
     return;
   }
+  double started=EngineMonotonic();
   EngineJson(engine_event_file, s, event, now);
   if (fflush(engine_event_file) != 0 || ferror(engine_event_file)) engine_log_failed = 1;
+  double duration=EngineMonotonic()-started;
+  if(duration>engine_max_event_write_s) engine_max_event_write_s=duration;
 }
 
 static int EngineEquals(const char *name, const char *expected) {
@@ -136,6 +151,8 @@ static void WriteEngineStatus(int force) {
   if (fclose(file) != 0 || rename(temporary,engine_status_path) != 0) {
     engine_log_failed=1; unlink(temporary);
   }
+  double duration=EngineMonotonic()-now;
+  if(duration>engine_max_status_write_s) engine_max_status_write_s=duration;
 }
 
 static void EngineCheck(void) {

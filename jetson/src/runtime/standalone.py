@@ -17,9 +17,9 @@ from src.runtime.inspection_bridge import InspectionBridge
 from src.runtime.production_profile import calibration_sha
 from src.runtime.inspection_start import FULL_FRAME, start_policy, tracked_frame_evidence
 from src.vision.integrated_decision import combine_decisions
-from src.runtime.initial_approval import InitialApproval, POLICY as INITIAL_POLICY
+from src.runtime.initial_approval import InitialApproval, JournalAdmissionGuard, POLICY as INITIAL_POLICY
 from src.runtime.supervised_approval import SupervisedApproval, POLICY as REPEAT_POLICY
-from src.runtime.automatic_admission import AutomaticAdmission, POLICY as AUTO_POLICY
+AUTO_POLICY = 'PLC_AUTOMATIC_REPEAT'
 from src.runtime.product_passage import ProductPassage
 
 
@@ -54,7 +54,11 @@ class StandaloneRuntime(ProductionRuntime):
         if policy == FULL_FRAME and kwargs.get('inspection_motion_mode', 'STATIONARY') != 'STATIONARY':
             raise ValueError('PLC_REQUEST_POLICY_USES_EXISTING_STATIONARY_QUALITY_CHECKS')
         self.initial_approval = None
-        self.automatic_admission = None
+        self.plc_cycle = None
+        self._automatic_previous = None
+        self.prior_product_identity_block = None
+        self._journal_readiness = JournalAdmissionGuard()
+        self._unaccepted_request_at = None
         self.product_passage = None
         self.product_separation = None
         self.automatic_identity_block = None
@@ -77,7 +81,9 @@ class StandaloneRuntime(ProductionRuntime):
         self.service.journal.min_free_bytes = line_profile['min_free_bytes']
         self._restore_aborted_inspection()
         if self._automatic_policy():
-            self.automatic_admission = AutomaticAdmission(self.gateway.runtime_session)
+            self.plc_cycle = dict(policy=AUTO_POLICY, reason='WAIT_STOPPED_BASELINE',
+                software_permission_required=False, per_product_manual_approval=False, browser_required=False)
+            self._restore_previous_product_identity()
         if self._initial_policy() or self._supervised_policy():
             approval_type = SupervisedApproval if self._supervised_policy() else InitialApproval
             self.initial_approval = approval_type(self.service.journal.root/'first-product-approval',
@@ -171,7 +177,7 @@ class StandaloneRuntime(ProductionRuntime):
                 self.last_time = packet['monotonic_s']
                 self.latest_packet = packet
                 # Do not change the identity frozen by an already accepted
-                # ambiguous request. It must complete as ERROR, not switch.
+                # ambiguous request. Preserve ERROR, never switch to a later product.
             return True
         issue = self.cycle_issue
         if not issue:
@@ -218,16 +224,87 @@ class StandaloneRuntime(ProductionRuntime):
 
     def _automatic_policy(self):
         return (self._full_frame_policy()
-            and self.line_profile.get('initial_authorization') == AUTO_POLICY
             and self.line_profile.get('cycle_admission') == AUTO_POLICY)
 
-    def _prepare_automatic_product(self, evidence, now):
-        self._event(dict(event='AUTOMATIC_PRODUCT_ADMISSION_RESERVED', **evidence))
-        # Transaction readiness is not product clearance. Preserve the old
-        # Track and passage observer until product-specific evidence closes it.
-        self.arrival = None
-        self.cyclic_rearm_evidence = evidence
-        self.handshake.retire_automatic()
+    def _restore_previous_product_identity(self):
+        """A service restart is not evidence that the last product has left.
+
+        Use the existing append-only separation event, never an approval row or
+        a synthesized CLEAR. If proof is absent, keep the identity uncertainty;
+        a fresh valid PLC request may report ERROR, but cannot re-inspect it as
+        a different product. Exceptional physical recovery remains maintenance.
+        """
+        journal = self.service.journal
+        with journal.lock:
+            row = journal.db.execute("""
+                SELECT i.inspection_id FROM inspections i
+                JOIN service_state s ON s.key='integrated_decision:' || i.inspection_id
+                WHERE json_extract(i.request_json,'$.runtime_binding.plc_contract')='OPENER_CYCLIC'
+                  AND json_type(i.request_json,'$.runtime_binding.track_id') NOT IN ('null')
+                ORDER BY i.rowid DESC LIMIT 1
+            """).fetchone()
+            proof = None if not row else journal.db.execute("""
+                SELECT 1 FROM events WHERE event_type='AUTOMATIC_PRODUCT_SEPARATED'
+                  AND json_extract(payload_json,'$.payload.evidence.inspection_id')=?
+                  AND json_extract(payload_json,'$.payload.evidence.reason')='PRODUCT_TRAJECTORY_AND_EXIT_STRIP'
+                  AND json_extract(payload_json,'$.payload.evidence.duration_s')>=1.2-1e-9
+                LIMIT 1
+            """,(row[0],)).fetchone()
+        self.prior_product_identity_block = (
+            'PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN' if row and not proof else None)
+
+    def _automatic_health(self, snapshot, healthy, now):
+        """Check actual owners/storage, not an application-issued right to inspect.
+
+        No ID, file, ledger or arm command is created. A C request is identified
+        solely by adapter boot/connection/request counter. Product separation is
+        independently required before binding the next physical product.
+        """
+        self.plc_cycle['reason'] = 'WAIT_AUTO_QUALIFICATION_OR_HEALTH'
+        if not healthy:
+            return False
+        if not (snapshot and snapshot['connected'] and snapshot['fresh']
+                and snapshot['run_idle'] and snapshot['bool_valid']
+                and 0 <= now-snapshot['generated'] <= .5
+                and 0 <= now-snapshot['received'] <= .2):
+            self.plc_cycle['reason'] = 'WAIT_FRESH_PLC_CONNECTION'
+            return False
+        controls = snapshot['controls']
+        unaccepted = snapshot['phase'] in ('DISARMED','SYNC_LOW','IDLE','READY_NEXT')
+        if unaccepted and controls['Inspection_Request']:
+            if self._unaccepted_request_at is None:
+                self._unaccepted_request_at = now
+            if now-self._unaccepted_request_at >= 2:
+                self.gateway.cancel()
+                self.plc_cycle['reason'] = 'UNACCEPTED_REQUEST_RESIDUE_TIMEOUT_PHYSICAL_STOP_REQUIRED'
+                return False
+        else:
+            self._unaccepted_request_at = None
+        # A BUSY owner is healthy. Do not acquire the Journal lock while its
+        # storage worker commits raw/final evidence. The storage health path
+        # and current-request deadlines still detect failure or a stalled job.
+        active = (self.service.active or self.final_pending
+            or self.handshake.state in ('REQUEST_LATCHED','INSPECTING','WAIT_REQUEST_OFF'))
+        if not active:
+            try:
+                journal = self.service.journal
+                with journal.lock:
+                    if self._journal_readiness.count(journal.db):
+                        self.plc_cycle['reason'] = 'JOURNAL_UNFINISHED_INSPECTION'
+                        return False
+                    journal.capacity()
+                settlement = self._supervised_settlement()
+                if not settlement['clean']:
+                    self.plc_cycle['reason'] = settlement['reason']
+                    return False
+            except Exception as error:
+                self.plc_cycle['reason'] = 'JOURNAL_OR_STORAGE_NOT_READY:'+type(error).__name__
+                return False
+        self.plc_cycle['reason'] = ('WAIT_NEW_PHYSICAL_START' if snapshot['phase']=='SYNC_LOW'
+            else 'WAIT_PLC_REQUEST' if snapshot['phase']=='IDLE'
+            else snapshot['reason'] if snapshot['phase']=='DISARMED'
+            else 'CURRENT_CYCLE_ACTIVE')
+        return True
 
     def _automatic_transaction_settled(self):
         now = time.monotonic()
@@ -237,9 +314,9 @@ class StandaloneRuntime(ProductionRuntime):
         return bool(s and s['connected'] and s['fresh'] and s['bool_valid'] and s['run_idle']
             and 0 <= now-s['generated'] <= .5 and 0 <= now-s['received'] <= .2
             and old.get('request_token', '').startswith(prefix)
-            and int(old['request_token'].rsplit(':', 1)[1]) <= s['completed_count']
+            and int(old['request_token'].rsplit(':', 1)[1]) <= s['request_id']
             and s['raw100'] == '00000000'
-            and s['request_id'] == s['completed_count'] == s['result_count'] == s['done_count']
+            and s.get('transaction_settled') is True
             and not s['controls']['Inspection_Request'] and not self.service.active)
 
     def _automatic_exit_evidence(self, now, settlement):
@@ -267,11 +344,11 @@ class StandaloneRuntime(ProductionRuntime):
             return dict(clean=False, reason='WAIT_ASSEMBLY_OWNER_IDLE', previous=None)
         identifier = self.handshake.inspection_id or self.bridge.inspection_id
         expected_token = self.handshake.token
-        if not identifier and not expected_token and self.automatic_admission:
+        if self._automatic_policy() and not expected_token:
             # Retiring a settled software Track does not erase its transaction.
             # Reload the exact saved final, including after a normal PLC STOP.
             # Admission still checks the adapter boot/connection/request token.
-            completed = self.automatic_admission.last_complete or {}
+            completed = self._automatic_previous or {}
             identifier = completed.get('inspection_id')
             expected_token = completed.get('request_token')
         if not identifier:
@@ -499,20 +576,19 @@ class StandaloneRuntime(ProductionRuntime):
                                                 and not self._supervised_policy()):
                 ready = False
         clear = self._clear(now)
-        if self.automatic_admission:
+        if self._automatic_policy():
             snapshot = self.gateway.read_snapshot(now)
             if snapshot: now = snapshot.get('observed_at', now)
-            settlement = self._supervised_settlement()
-            evidence = self._automatic_exit_evidence(now, settlement)
-            clear = self.automatic_admission.poll(snapshot, ready, self.epoch,
-                self.service.generation, now, self.gateway, self.service.journal,
-                settlement=settlement, clearance=evidence, prepare=self._prepare_automatic_product)
-            ready = ready and not self.automatic_admission.failed
-            completed = self.automatic_admission.last_complete
-            if completed:
+            ready = self._automatic_health(snapshot, ready, now)
+            if snapshot:
+                token = f"{snapshot['boot']:016x}:{snapshot['connection']}:{snapshot['request_id']}"
                 for entry in self.history:
-                    if entry['inspection_id'] == completed['inspection_id'] and not entry.get('cyclic_done_reset_observed'):
-                        self._event(dict(event='AUTOMATIC_CYCLIC_COMPLETION_OBSERVED', **completed))
+                    if (entry['request_token'] == token and not entry.get('cyclic_done_reset_observed')
+                            and snapshot.get('transaction_settled') is True
+                            and snapshot['raw100'] == '00000000'
+                            and not snapshot['controls']['Inspection_Request']):
+                        self._event(dict(event='PLC_CYCLIC_COMPLETION_OBSERVED',
+                            inspection_id=entry['inspection_id'], request_token=token))
                         entry['cyclic_done_reset_observed'] = True
                         entry['publication_status'] = 'CYCLIC_DONE_AND_REQUEST_RESET'
         if (self._full_frame_policy() and clear and self.last_retirement
@@ -523,6 +599,7 @@ class StandaloneRuntime(ProductionRuntime):
                 clearance_frame_id=self.latest_packet['frame_id'])
         self.gateway.ready_reason = (health.get('error') or self.error or
             ('APPROVAL_REVOKED' if self.initial_approval and self.initial_approval.state == 'REVOKED'
+             else self.plc_cycle['reason'] if self.plc_cycle and not ready
              else 'READY' if ready else 'PROFILE_MODEL_OR_OPERATING_NOT_READY'))
         self.gateway.health_update(ready, clear, time.monotonic())
         previous = self.handshake.token
@@ -537,22 +614,18 @@ class StandaloneRuntime(ProductionRuntime):
                     self.handshake.fault('FIRST_APPROVAL_ACCEPT_FAILED:'+type(error).__name__)
                     self._cancel_pending(self.handshake.reason)
                     return
-            if self.automatic_admission and not self.automatic_admission.accepts(self.handshake.snapshot):
-                self.handshake.fault('AUTOMATIC_ADMISSION_IDENTITY_MISMATCH')
-                self._cancel_pending(self.handshake.reason)
-                return
             if self._full_frame_policy():
                 repeat_allowed = ((self.line_profile.get('cycle_admission') == 'VERIFIED_CLEARANCE'
                                   and self.cyclic_rearm_evidence is not None)
                                   or (self._supervised_policy() and self.initial_approval.valid())
-                                  or (self._automatic_policy() and self.automatic_admission.accepts(self.handshake.snapshot)))
+                                  or self._automatic_policy())
                 if self.cyclic_admissions and not repeat_allowed:
                     self.handshake.fault('NEXT_PRODUCT_REQUIRES_VERIFIED_CLEARANCE')
                     self._cancel_pending(self.handshake.reason)
                     self.line_wait = self.handshake.reason
                     return
                 if self._automatic_policy():
-                    self.automatic_identity_block = None
+                    self.automatic_identity_block = self.prior_product_identity_block
                     self.request_product_separation = None
                     if self.cyclic_admissions and (self.product_passage or not self.product_separation):
                         self.automatic_identity_block = 'PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN'
@@ -819,8 +892,7 @@ class StandaloneRuntime(ProductionRuntime):
                 track_uid=(str(binding['runtime_session_id'])+':'+str(binding['track_id'])
                            if binding.get('track_id') is not None else None))
         if self._automatic_policy():
-            final.update(automatic_admission_id=self.automatic_admission.admission_id,
-                         admission_policy=AUTO_POLICY,
+            final.update(cycle_policy=AUTO_POLICY, software_permission_required=False,
                          product_separation=self.request_product_separation,
                          sensor_cycle_source='QUALIFIED_PLC_REQUEST_LATCH_NOT_RAW_SENSOR')
         if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
@@ -880,6 +952,8 @@ class StandaloneRuntime(ProductionRuntime):
         if len(self.published_ids) > 512:
             self.published_ids = {item['inspection_id'] for item in self.history} | {identifier}
         self._event(dict(event='INTEGRATED_INSPECTION_COMPLETED', **entry))
+        if self._automatic_policy():
+            self._automatic_previous = dict(inspection_id=identifier, request_token=final['request_token'])
         if self._automatic_policy() and binding.get('track_id') is not None:
             # Retain the last actual product identity through ambiguous requests
             # whose ERROR has no Track. A timeout is never an exit observation.
@@ -1058,10 +1132,10 @@ class StandaloneRuntime(ProductionRuntime):
             actual_motor_feedback='NOT_INSTALLED_COMMAND_AND_VISUAL_STABILITY_ONLY',
             operator_control='PHYSICAL_BUTTONS', laptop_required=False,
             field_acceptance='NOT_RUN', assembly_component=self.assembly.status())
-        result['automatic_admission'] = (self.automatic_admission.status() if self.automatic_admission else None)
-        if self.automatic_admission:
-            result['automatic_admission'].update(
-                product_identity_reason=self.automatic_identity_block or
+        result['plc_cycle'] = dict(self.plc_cycle) if self.plc_cycle else None
+        if self.plc_cycle:
+            result['plc_cycle'].update(
+                product_identity_reason=self.automatic_identity_block or self.prior_product_identity_block or
                     (self.product_passage.reason if self.product_passage else None),
                 product_passage=self.product_passage.status() if self.product_passage else None,
                 product_separation=self.product_separation,

@@ -1,6 +1,7 @@
 /* A communication trial, not an inspector or a safety controller.
  * State changes use current cyclic evidence, never Explicit attribute reads.
- * One accepted request consumes the process's only arm, even on failure.
+ * Automatic cycles use physical PLC baselines and edges, not software grants.
+ * Explicit one-shot policies remain maintenance-only compatibility paths.
  */
 #include "engine_commissioning.h"
 #include <string.h>
@@ -66,7 +67,8 @@ void CommFault(CommState *state, const char *reason, double now) {
 }
 
 void CommOpen(CommState *state, double now) {
-  if (ActiveRequest(state) || state->initial_issued) CommFault(state, "NEW_CONNECTION_REVOKES_APPROVAL", now);
+  if (ActiveRequest(state) || state->initial_issued) CommFault(state, "NEW_CONNECTION_CANCELS_CONTEXT", now);
+  if (state->config.automatic_repeat) state->armed=false;
   state->ai_stopped_seen = false;
   ++state->session_id;
   state->connected = true;
@@ -130,33 +132,34 @@ bool CommSupervisedArm(CommState *s, const char *id, double now) {
   return true;
 }
 
-bool CommAutomaticArm(CommState *s, const char *id, double now) {
-  if (!id || strlen(id)!=32) return false;
-  for (unsigned int i=0;i<32;i++)
-    if (!((id[i]>='0' && id[i]<='9') || (id[i]>='a' && id[i]<='f'))) return false;
-  if (!s->config.automatic_repeat || s->config.supervised_repeat || s->config.mode!=COMM_AI_RUNTIME ||
-      s->armed || !CommControlsValid(s,now) || !s->ai_ready ||
-      !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5) || s->words[0] ||
-      s->words[1]!=s->config.estop_ok_value || s->words[3]!=s->config.stop_released_value ||
-      memcmp(s->raw100,"\0\0\0\0",4) ||
-      s->request_id!=s->completed_count || s->result_count!=s->completed_count ||
-      s->done_count!=s->completed_count || !strcmp(s->approval_id,id)) return false;
-  bool continuing=s->phase==READY_NEXT && s->initial_issued && !s->initial_revoked;
-  if (!continuing && (s->words[2] || (s->phase!=DISARMED && s->phase!=SYNC_LOW && s->phase!=READY_NEXT))) {
-    return false;
+/* Automatic operation has no arm command, approval ID or per-product budget.
+ * Readiness is current device health; the PLC supplies all request edges. */
+static void AutomaticReceive(CommState *s, double now) {
+  if (!s->ai_ready || !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5)) {
+    if (s->armed || ActiveRequest(s)) {
+      Event(s,!s->ai_ready ? "HEALTH_READY_FALSE_RX" : "HEALTH_LEASE_EXPIRED_RX",now);
+      CommFault(s,"PYTHON_NOT_READY",now);
+    }
+    return;
   }
-  /* Old IPC packets are also bound to boot/connection/current request ID.
-   * No 4096-entry human-grant budget or history is reset for automatic cycles. */
-  memcpy(s->approval_id,id,33);
-  s->initial_issued=true; s->initial_consumed=false; s->initial_revoked=false;
-  s->armed=true; s->used=false; s->saw_low=false; s->ai_clear=false;
-  s->reason=continuing ? "AUTO_TRANSACTION_READY_WAIT_REQUEST_LOW" : "AUTO_WAIT_NEW_PHYSICAL_START";
-  Phase(s,SYNC_LOW,"AUTOMATIC_PRODUCT_ADMITTED",now);
-  return true;
+  if (!CommControlsValid(s,now) || s->words[1]!=s->config.estop_ok_value ||
+      s->words[3]!=s->config.stop_released_value) return;
+  if ((s->phase==DISARMED || s->phase==WAIT_CONNECTION) && !s->words[0] && !s->words[2]) {
+    s->armed=true; s->used=false; s->saw_low=false; s->ai_stopped_seen=true;
+    s->reason="WAIT_NEW_PHYSICAL_START";
+    Phase(s,SYNC_LOW,"PLC_STOPPED_BASELINE",now);
+  } else if (s->phase==READY_NEXT && !s->words[0]) {
+    /* Result, Done and Done reset were actually sent for this transaction.
+     * No application permission is required to observe the next PLC edge. */
+    s->armed=true; s->used=false; s->saw_low=false;
+    s->reason="WAIT_PLC_REQUEST_LOW";
+    Phase(s,SYNC_LOW,"PLC_TRANSACTION_SETTLED",now);
+  }
 }
 
 static void AiReceive(CommState *s, double now) {
-  /* Readiness is not authorization; real CLEAR never creates first permission.
+  if (s->config.automatic_repeat) { AutomaticReceive(s,now); return; }
+  /* Maintenance commissioning only: real CLEAR never creates first permission.
    * FIRST_PRODUCT_ONLY also refuses repeat permission when CLEAR is true. */
   if (!s->initial_issued || s->initial_revoked) return;
   if (!s->ai_ready || !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5)) {
@@ -249,7 +252,7 @@ void CommReceive(CommState *state, const uint8_t bytes[8], uint32_t run_idle,
       state->reason = "READY_FOR_ONE_RISING_EDGE";
       Phase(state, IDLE, "REQUEST_LOW_BASELINE", now);
     } else if (state->phase == DONE_SENT || state->phase == WAIT_REQUEST_OFF) {
-      state->raw100[2] = 0;
+      memset(state->raw100, 0, 4);
       Phase(state, CLEARING_DONE, "REQUEST_OFF_RECEIVED", now);
     } else if (state->phase >= REQUEST_RECEIVED && state->phase <= RESULT_SENT) {
       CommFault(state, "REQUEST_WITHDRAWN_BEFORE_DONE", now);
@@ -258,7 +261,7 @@ void CommReceive(CommState *state, const uint8_t bytes[8], uint32_t run_idle,
   }
   if (state->phase == IDLE && state->saw_low && state->armed && !state->used) {
     state->used = true;
-    if (state->config.mode==COMM_AI_RUNTIME) state->initial_consumed=true;
+    if (state->config.mode==COMM_AI_RUNTIME && !state->config.automatic_repeat) state->initial_consumed=true;
     ++state->request_id;
     state->request_at = now;
     state->saw_low = false;
@@ -331,9 +334,11 @@ void CommTxComplete(CommState *state, const uint8_t sent[4], bool success,
     Phase(state, WAIT_REQUEST_OFF, "WAIT_REQUEST_OFF", now);
   } else if (state->phase == CLEARING_DONE && sent[2] == 0) {
     ++state->completed_count;
+    state->completed_request=state->request_id;
+    state->completed_session=state->session_id;
     state->armed = false;
     memset(state->raw100, 0, 4);
-    state->reason = "ONE_SHOT_COMPLETE_REARM_REQUIRED";
+    state->reason = state->config.automatic_repeat ? "PLC_TRANSACTION_COMPLETE" : "ONE_SHOT_COMPLETE_REARM_REQUIRED";
     Phase(state, READY_NEXT, "DONE_RESET_SENT_ONE_SHOT_FINISHED", now);
   }
 }

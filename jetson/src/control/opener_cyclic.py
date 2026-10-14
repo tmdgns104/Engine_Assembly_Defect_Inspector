@@ -31,6 +31,7 @@ def decode_snapshot(data, now):
         bool_valid=bool(flags&4), fresh=bool(flags&8),
         controls={k:bool(flags&(1<<(8+i))) for i,k in enumerate(
             ('Inspection_Request','EStop_OK','Mc_Run','Stop_PB'))},
+        transaction_settled=bool(flags&(1<<16)),
         phase=PHASES[phase], result_count=results, done_count=done, completed_count=complete,
         result_ack=ack, rejected=rejected, raw100=data[76:80].hex(),
         approval_id=data[128:160].rstrip(b'\0').decode('ascii'),
@@ -85,12 +86,6 @@ class OpenerGateway:
                 raise ValueError('SUPERVISED_PERMISSION_NOT_ENABLED_OR_PENDING')
             self.initial_pending=(snapshot['boot'],snapshot['connection'],approval_id,time.monotonic(),5)
 
-    def automatic_arm(self, snapshot, admission_id):
-        with self.lock:
-            if not self.writes_enabled or self.initial_pending or self.pending:
-                raise ValueError('AUTOMATIC_ADMISSION_NOT_ENABLED_OR_PENDING')
-            self.initial_pending=(snapshot['boot'],snapshot['connection'],admission_id,time.monotonic(),6)
-
     def read_snapshot(self, now):
         with self.lock:
             # The IO thread can publish after the caller sampled its loop time.
@@ -116,11 +111,26 @@ class OpenerGateway:
             self.initial_pending=None
             self.health=(False,False,time.monotonic())
 
+    def _diagnose(self, name, **values):
+        # Older software-only fixtures construct the owner without its thread.
+        if hasattr(self, 'diagnostics'):
+            self.diagnostics.record(name, **values)
+
     def _run(self):
         while not self.stop.is_set():
             try:
                 self._connected_loop()
             except (OSError,ValueError) as error:
+                # Preserve the first local cause even after the next connection
+                # clears self.error. Never record message payloads or grant IDs.
+                known = {'IPC_SCHEMA_INVALID','IPC_STALE_OR_INVALID_SNAPSHOT',
+                         'IPC_SNAPSHOT_TIMEOUT','IPC_PEER_UID_MISMATCH',
+                         'PRIVATE_IPC_DIRECTORY_REQUIRED'}
+                reason = str(error) if str(error) in known else type(error).__name__.upper()
+                self._diagnose('IPC_CONNECTION_LOST', reason=reason,
+                    errno=getattr(error,'errno',None),
+                    last_valid_snapshot=getattr(self,'last_valid_snapshot_at',None),
+                    last_receive_at=getattr(self,'last_snapshot_receive_at',None))
                 with self.lock:
                     self.error=type(error).__name__+':'+str(error)
                     self.snapshot=None; self.pending=None; self.initial_pending=None; self.health=(False,False,0)
@@ -148,6 +158,14 @@ class OpenerGateway:
                     continue
                 snapshot=decode_snapshot(data,time.monotonic())
                 last_valid_snapshot=snapshot['generated']
+                received_at=time.monotonic()
+                previous_receive=getattr(self,'last_snapshot_receive_at',received_at)
+                self.last_valid_snapshot_at=last_valid_snapshot
+                self.last_snapshot_receive_at=received_at
+                self._diagnose('IPC_SNAPSHOT_RECEIVED', retain=False,
+                    interval_ms=(received_at-previous_receive)*1000,
+                    snapshot_age_s=received_at-last_valid_snapshot,
+                    connection=snapshot['connection'])
                 with self.lock:
                     self.snapshot=snapshot; self.error=None
                     ready,clear,renewed=self.health; pending=self.pending; initial=self.initial_pending
@@ -173,9 +191,14 @@ class OpenerGateway:
                         with self.lock:
                             self.initial_pending=None
                             self.initial_error='INITIAL_GRANT_CONTEXT_OR_LEASE_EXPIRED'
+                        self._diagnose('IPC_GRANT_NOT_SENT',
+                            reason=self.initial_error, queue_age_s=now-queued,
+                            connection_changed=(boot,connection)!=(snapshot['boot'],snapshot['connection']))
                     elif healthy:
                         with self.lock: self.initial_pending=None
+                        self._diagnose('IPC_GRANT_SEND_ATTEMPT', queue_age_s=now-queued)
                         client.sendall(command(snapshot,self.runtime_session,operation,approval_id=approval_id))
+                        self._diagnose('IPC_GRANT_SENT_AWAIT_C_ACK', queue_age_s=now-queued)
                 if pending:
                     key,identifier,decision,queued=pending
                     current=(snapshot['boot'],snapshot['connection'],snapshot['request_id'])
@@ -268,7 +291,7 @@ class CyclicHandshake:
         # Transaction settlement only; Runtime retains physical product identity
         # independently. seen_token is deliberately never cleared.
         self.retire_supervised()
-        self.reason='WAIT_PLC_AUTOMATIC_ADMISSION'
+        self.reason='WAIT_NEXT_PLC_REQUEST'
 
     def resync(self):
         # Existing maintenance recovery API: only an observed stopped PLC may

@@ -1,6 +1,6 @@
 {
   "upstream_commit": "d8820ef41ce30dda06d213438ba81c81de33ffe2",
-  "profile": "AI_IPC_V3_EXPLICIT_ADMISSION",
+  "profile": "AI_IPC_V3_PLC_OWNED_REPEAT",
   "identity": {
     "vendor_id": 1,
     "device_type": 12,
@@ -42,20 +42,24 @@
   "modified_sample_sha256": "86b3e012d49409ef6fce673b3dfe5a0ef40a88815ca3c0eb685910cac4bb5996",
   "default_mode": "COMM_RX_ONLY",
   "publication_enabled_by_default": false,
-  "field_status": "TASK018_AUTOMATIC_ISOLATED_ONLY_NOT_DEPLOYED",
+  "field_status": "TASK020_ISOLATED_VERIFIED_NOT_DEPLOYED",
   "frozen_parent_profile_sha256": "bff13d9992fdf7f73a549f201ae8503e4573ec0c15b3f5c91847a7c9f1dee83d",
-  "binary_sha256": "5853964c8a891beeac6db7c2cb248532599444107427fa0ca53dafde2d116541",
-  "initial_authorization": "EXPLICIT_ONE_SHOT_V1 by default; supervised or automatic requires explicit matched policy",
+  "binary_sha256": "127cedc473705479f6c135b513b6f9e8f86733b0eb89b50361a53f7ef1be98ac",
   "result_policy": "PASS_OK_OTHER_NG_V1",
   "synthetic_result_emitter_enabled": false,
   "ipc_version": 3,
-  "supported_admission_policies": [
-    "FIRST_PRODUCT_ONLY",
-    "SUPERVISED_REPEAT_TEST",
-    "PLC_AUTOMATIC_REPEAT"
-  ],
   "supervised_field_status": "PRIOR_SUPERVISED_RELEASE_DEPLOYED_THREE_PRODUCT_TRIAL_NOT_COMPLETED",
   "sample_hash_scope": "Exact canonical sampleapplication.c bytes; TASK018 state/IPC files have separate source SHA in the commit.",
   "automatic_field_status": "NOT_DEPLOYED_NOT_FIELD_VERIFIED",
-  "automatic_clearance": "No global CLEAR; durable transaction admission and qualified product-specific passage are separate"
+  "automatic_clearance": "No global CLEAR or per-product grant; transaction completion and actual product passage remain independent",
+  "normal_cycle_policy": "PLC_AUTOMATIC_REPEAT",
+  "normal_cycle_software_permission_required": false,
+  "maintenance_compatibility_policies": [
+    "FIRST_PRODUCT_ONLY",
+    "SUPERVISED_REPEAT_TEST"
+  ],
+  "ipc_transaction_settled_flag_bit": 16,
+  "canonical_eds_sha256": "78c0a78cb4f3e43da8090d41cdddfa14aa86dac7212f229104c0e75f02071b01",
+  "eds_hash_scope": "eds_sha256 identifies the unchanged field-selected EDS; canonical_eds_sha256 identifies the existing repository bytes; neither file changed in TASK020.",
+  "verification": "TASK020 ARM64 isolated 287 Python tests, C sanitizer/state and AF_UNIX suites; no field adapter activation"
 }

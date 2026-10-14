@@ -51,8 +51,9 @@ def line_view(status, identity):
         snap = plc.get('snapshot') or {}
         token = f"{snap.get('boot',0):016x}:{snap.get('connection',0)}:{snap.get('request_id',0)}"
         latest['cyclic_done_reset_observed'] = bool(latest.get('cyclic_done_reset_observed') or
-            (token == latest.get('request_token') and snap.get('phase') == 'READY_NEXT'
-             and snap.get('completed_count') == snap.get('request_id')))
+            (token == latest.get('request_token') and snap.get('transaction_settled') is True
+             and snap.get('raw100') == '00000000'
+             and not (snap.get('controls') or {}).get('Inspection_Request')))
     approval = status.get('initial_approval') or {}
     supervised = approval if approval.get('policy') == 'SUPERVISED_REPEAT_TEST' else None
     if supervised and phase not in ('ERROR', 'WAIT_CAMERA', 'WAIT_PLC', 'INSPECTING', 'WAIT_PRODUCT'):
@@ -64,7 +65,7 @@ def line_view(status, identity):
             if snap.get('approval_id') == supervised.get('approval_id') and snap.get('phase') in ('SYNC_LOW', 'IDLE'):
                 title, detail = '검사 준비됨 · 현장 START 대기', '손을 뗀 상태에서 실제 PLC START를 한 번 누르세요.'
     values = plc.get('last_values') or {}
-    automatic = status.get('automatic_admission')
+    automatic = status.get('plc_cycle')
     if automatic and automatic.get('failed'):
         phase, title = 'ERROR', '자동검사 보류 · 현장 STOP 필요'
         detail = ('자동 복구·결과 재송신을 차단했습니다. 현장 STOP으로 운전을 해제하고 '

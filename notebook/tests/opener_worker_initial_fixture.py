@@ -62,3 +62,37 @@ class AssemblyModels:
         if self.decision=='FAIL_CANDIDATE':
             record['parts']['exhaust']=dict(predicted_state='REVERSED',class_scores={'REVERSED':1.0})
         return record,image,{name:image.copy() for name in names}
+
+
+class PassageCamera(Camera):
+    """5 Hz synthetic source keeps real sequence gaps visible, never renumbers."""
+    mode_path = None
+    def capture(self):
+        import time
+        import json
+        time.sleep(.14)
+        frame=super().capture()
+        command=json.loads(self.mode_path.read_text())
+        # Encode the scripted box in the image itself; detector reads this exact
+        # frame, not an independently sampled control file or a cached bbox.
+        values=command.get('box',[10,20,90,100])
+        frame.image[0,1:5,0]=values
+        return frame
+
+class PassageEngine(Engine):
+    def detect(self,frame,detected,parts_detector=None):
+        super().detect(frame,detected,parts_detector)
+        box=dict(zip(('x1','y1','x2','y2'),map(int,frame.image[0,1:5,0])))
+        detected['detections'][0]['bounding_box']=box
+        detected['engine_dynamic']['product']=detected['detections'][0]
+
+
+def passage_worker(*args):
+    from pathlib import Path
+    from src.vision.inspection_worker import worker_main
+    PassageCamera.mode_path=Path(args[1]['fixture_passage_path'])
+    with patch('src.camera.gstreamer_camera.GStreamerCamera',PassageCamera), \
+         patch('src.vision.detector_factory.create_detector',PartsDetector), \
+         patch('src.vision.engine_inspector.EngineInspector',PassageEngine), \
+         patch('src.observation.area_occupancy.load_area_occupancy',lambda path:None):
+        worker_main(*args)

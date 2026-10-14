@@ -17,13 +17,11 @@ int main(void) {
   init();
   assert(!CommInitialArm(&s,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",t));
   assert(!CommSupervisedArm(&s,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",t));
-  rx(0,1,1,1);assert(!CommAutomaticArm(&s,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",t));
-  rx(0,0,1,1);
+  assert(s.phase==SYNC_LOW && !s.approval_id[0] && !s.initial_issued);
   for(unsigned n=1;n<=4;n++) {
-    char id[33];snprintf(id,sizeof id,"%032x",n);
+
     assert(!s.ai_clear); /* Transport accepts even if global Area is UNKNOWN. */
-    assert(CommAutomaticArm(&s,id,t));
-    assert(!CommAutomaticArm(&s,id,t));
+    assert(!s.approval_id[0] && !s.initial_issued && !s.approval_count);
     rx(0,1,1,1);rx(1,1,1,1);rx(1,1,1,1);
     assert(s.request_id==n && s.phase==REQUEST_RECEIVED);
     assert(!CommAiResult(&s,s.session_id,n-1,n,true,t));
@@ -36,14 +34,40 @@ int main(void) {
   }
   CommDisconnect(&s,"test loss",t);CommOpen(&s,t);
   rx(0,1,1,1);CommAiHealth(&s,true,true,t);
-  assert(!CommAutomaticArm(&s,"ffffffffffffffffffffffffffffffff",t));
-  rx(0,0,1,1);assert(CommAutomaticArm(&s,"ffffffffffffffffffffffffffffffff",t));
+  assert(s.phase==DISARMED);
+  rx(0,0,1,1);assert(s.phase==SYNC_LOW);
   rx(0,1,1,1);rx(1,1,1,1);rx(1,1,1,0);
   assert(s.phase==DISARMED && !s.raw100[2]);
   assert(!CommAiResult(&s,s.session_id,5,1,true,t));
-  rx(0,0,1,1);assert(!CommAutomaticArm(&s,"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",t));
-  init();assert(CommAutomaticArm(&s,"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",t));
+  rx(0,0,1,1);assert(s.phase==SYNC_LOW);
+  init();
   rx(1,1,1,1);assert(!s.request_id); /* START with residual HIGH isn't an edge. */
   CommTick(&s,t+1);assert(s.phase==DISARMED);
-  puts("ISOLATED_PASS automatic4 decisions; one START; no CLEAR required for transport; old-result/STOP/lease guards");
+  /* Recovery and fault matrix in automatic mode, without any arm API. */
+  init(); rx(1,1,1,1); assert(s.phase==SYNC_LOW && s.request_id==0);
+  CommDisconnect(&s,"CONNECTION_TIMEOUT",t);CommOpen(&s,t);
+  rx(1,1,1,1); assert(s.phase==DISARMED && s.request_id==0);
+  rx(0,0,1,1);rx(0,1,1,1);rx(1,1,1,1);
+  assert(s.phase==REQUEST_RECEIVED && s.request_id==1);
+  rx(1,1,0,1);assert(s.phase==DISARMED && !s.raw100[0] && !s.raw100[2]);
+  assert(!CommAiResult(&s,s.session_id,1,3,true,t));
+  init();rx(0,1,1,1);rx(1,1,1,1);CommAiHealth(&s,false,false,t);
+  assert(s.phase==DISARMED && !s.raw100[2]);
+  init();rx(0,1,1,1);rx(1,1,1,1);
+  assert(!CommAiResult(&s,s.session_id,1,4,false,t));
+  assert(CommAiResult(&s,s.session_id,1,4,true,t));
+  CommTxComplete(&s,s.raw100,false,1,t);assert(s.phase==DISARMED && !s.done_count);
+  /* A cancelled request leaves counters unequal. Settlement belongs to the
+   * exact completed request/session, never to aggregate counter equality. */
+  init();rx(0,1,1,1);rx(1,1,1,1);rx(1,1,1,0);
+  assert(s.phase==DISARMED && s.request_id==1 && s.completed_count==0);
+  rx(0,0,1,1);rx(0,1,1,1);rx(1,1,1,1);
+  assert(s.request_id==2 && CommAiResult(&s,s.session_id,2,3,true,t));
+  CommTxComplete(&s,s.raw100,true,10,t);CommPrepareOutput(&s,t);
+  CommTxComplete(&s,s.raw100,true,11,t);rx(0,1,1,1);
+  CommTxComplete(&s,s.raw100,true,12,t);
+  assert(s.completed_count==1 && s.completed_request==2 && s.completed_session==s.session_id);
+  assert(!memcmp(s.raw100,"\0\0\0\0",4));
+  rx(0,1,1,1);rx(1,1,1,1);assert(s.request_id==3 && s.phase==REQUEST_RECEIVED);
+  puts("ISOLATED_PASS automatic4 decisions; cancellation recovery; no software grants; STOP/lease guards");
 }

@@ -20,7 +20,7 @@ typedef struct {
   double request_timeout_s;
   double session_timeout_s;
   bool supervised_repeat; /* Explicit local policy, never selected by PLC data. */
-  bool automatic_repeat; /* Qualified machine admission; separate from web grants. */
+  bool automatic_repeat; /* PLC baselines/edges; no per-product permission. */
 } CommConfig;
 
 typedef struct CommState CommState;
@@ -36,6 +36,7 @@ struct CommState {
   unsigned int words[4];
   unsigned long session_id, request_id, result_count, done_count, completed_count;
   unsigned long receive_count, duplicate_count, send_count;
+  unsigned long completed_request, completed_session;
   uint32_t result_sequence, done_sequence, last_tx_sequence;
   double started_at, last_receive_at, request_at;
   bool ai_ready, ai_clear, ai_stopped_seen;
@@ -65,6 +66,5 @@ bool CommAiResult(CommState *, unsigned long, unsigned long, unsigned int, bool,
 
 bool CommInitialArm(CommState *, const char *, double);
 bool CommSupervisedArm(CommState *, const char *, double);
-bool CommAutomaticArm(CommState *, const char *, double);
 
 #endif

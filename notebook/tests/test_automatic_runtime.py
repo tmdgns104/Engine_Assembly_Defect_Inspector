@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from notebook.tests import test_full_frame_request as base
-from src.runtime.automatic_admission import AutomaticAdmission, POLICY
+from src.runtime.standalone import AUTO_POLICY as POLICY
 from src.runtime.production_profile import calibration_sha
 
 
@@ -22,7 +22,7 @@ class AutomaticRuntimeTests(unittest.TestCase):
                 sensor_cycle_source='QUALIFIED_PLC_REQUEST_LATCH', plc_logic_sha256='a'*64,
                 plc_online_equivalence_verified=True, plc_timeout_stop_recovery_verified=True),
             clearance_qualification=dict(verified=False))
-        self.r.automatic_admission = AutomaticAdmission(self.g.runtime_session)
+        self.r.plc_cycle = dict(policy=POLICY, software_permission_required=False)
         self.g.automatic_arm = Mock()
         self.g.set(self.now,'DISARMED',number=0,request=False,Mc_Run=False)
         self.g.s.update(result_count=0,done_count=0,completed_count=0,approval_id='')
@@ -38,23 +38,17 @@ class AutomaticRuntimeTests(unittest.TestCase):
 
     def poll(self):
         at=self.now+self.at+.03
-        if (self.r.automatic_admission.state=='WAIT_ADAPTER_ADMISSION'
-                and self.g.s.get('approval_id')!=self.r.automatic_admission.admission_id):
-            self.g.s.update(approval_id=self.r.automatic_admission.admission_id,
-                phase='IDLE' if self.g.s['controls']['Mc_Run'] else 'SYNC_LOW')
         self.g.s.update(generated=at,received=at)
         with patch('src.runtime.standalone.time.monotonic',return_value=at):
             self.r._poll_cyclic_plc(at)
 
     def request_and_complete(self, number, decision):
         self.poll()
-        grant=self.r.automatic_admission.admission_id
-        self.assertTrue(grant, self.r.automatic_admission.status())
-        self.g.s.update(approval_id=grant,phase='IDLE')
+        self.g.s.update(phase='IDLE')
         self.g.s['controls']['Mc_Run']=True
         self.poll()
         self.frame()
-        self.g.s.update(phase='REQUEST_RECEIVED',request_id=number,accepted_at=self.now+self.at+.02)
+        self.g.s.update(phase='REQUEST_RECEIVED',transaction_settled=False,request_id=number,accepted_at=self.now+self.at+.02)
         self.g.s['controls']['Inspection_Request']=True
         self.poll()
         self.frame()
@@ -62,7 +56,7 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.assertEqual(len(self.submitted),number,(self.r.issue,self.r.automatic_identity_block))
         with patch('src.runtime.standalone.time.monotonic',return_value=self.now+self.at+.1):
             identifier=self.complete(decision,offset=self.at+.1)
-        self.g.s.update(phase='READY_NEXT',result_count=number,done_count=number,completed_count=number)
+        self.g.s.update(phase='READY_NEXT',result_count=number,done_count=number,completed_count=number,transaction_settled=True)
         self.g.s['controls']['Inspection_Request']=False
         self.poll()
         return identifier
@@ -78,7 +72,7 @@ class AutomaticRuntimeTests(unittest.TestCase):
             if self.r.product_separation:
                 self.frame()
                 return
-        self.fail(str((self.r.last_retirement,self.r.area_observation,self.r.automatic_admission.status())))
+        self.fail(str((self.r.last_retirement,self.r.area_observation,self.r.plc_cycle)))
 
     def test_four_cycles_one_START_no_web_and_unique_products(self):
         identities=[]
@@ -92,7 +86,7 @@ class AutomaticRuntimeTests(unittest.TestCase):
             if number<4:self.depart()
         for index in range(3):self.assertEqual(len({x[index] for x in identities}),4)
         self.assertEqual(self.g.result.call_count,4)
-        self.assertEqual(self.g.automatic_arm.call_count,5)  # Ready to receive the next transaction.
+        self.assertEqual(self.g.automatic_arm.call_count,0)  # Ready to receive the next transaction.
         self.assertIsNone(self.r.initial_approval)
 
     def test_no_detection_or_global_match_is_not_product_exit(self):
@@ -102,7 +96,7 @@ class AutomaticRuntimeTests(unittest.TestCase):
                 self.frame(count=0,area_class=classification)
                 self.poll()
         # Transport rearmed, but AI admission remains blocked for that product.
-        self.assertEqual(self.g.automatic_arm.call_count,2)
+        self.assertEqual(self.g.automatic_arm.call_count,0)
         self.assertIsNone(self.r.last_retirement)
         self.assertIsNone(self.r.product_separation)
         self.assertFalse(self.g.health[1])
@@ -123,9 +117,9 @@ class AutomaticRuntimeTests(unittest.TestCase):
             self.assertIsNone(self.r._automatic_exit_evidence(self.now+self.at+.1,prior))
 
     def next_request(self):
-        self.g.s.update(approval_id=self.r.automatic_admission.admission_id,phase='IDLE')
+        self.g.s.update(phase='IDLE')
         self.poll()
-        self.g.s.update(phase='REQUEST_RECEIVED',request_id=2,accepted_at=self.now+self.at+.02)
+        self.g.s.update(phase='REQUEST_RECEIVED',transaction_settled=False,request_id=2,accepted_at=self.now+self.at+.02)
         self.g.s['controls']['Inspection_Request']=True
         self.poll()
 
@@ -173,14 +167,14 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.g.s.update(phase='DISARMED')
         self.g.s['controls'].update(Mc_Run=False, Stop_PB=False)
         self.poll()
-        self.assertEqual(self.g.automatic_arm.call_count, 2)
+        self.assertEqual(self.g.automatic_arm.call_count, 0)
         self.g.s['controls']['Stop_PB'] = True
         self.at += .2
         self.poll()
-        self.assertEqual(self.g.automatic_arm.call_count, 3)
-        self.assertEqual(self.r.automatic_admission.last_complete['inspection_id'], identifier)
+        self.assertEqual(self.g.automatic_arm.call_count, 0)
+        self.assertEqual(self.r._automatic_previous['inspection_id'], identifier)
         self.assertIsNotNone(self.r.product_separation)
-        self.assertTrue(self.g.automatic_arm.call_args.args[0]['controls']['Mc_Run'] is False)
+        self.g.automatic_arm.assert_not_called()
         self.assertEqual(self.g.result.call_count, 1)  # No replay on STOP/release.
 
     def test_retired_settlement_is_revalidated_from_journal(self):
@@ -194,7 +188,7 @@ class AutomaticRuntimeTests(unittest.TestCase):
                               ('integrated_decision:'+identifier,))
             self.j.db.commit()
         self.poll()
-        self.assertEqual(self.g.automatic_arm.call_count, 2)
+        self.assertEqual(self.g.automatic_arm.call_count, 0)
         self.assertFalse(self.r._supervised_settlement()['clean'])
 
     def test_same_product_reversal_cannot_submit_second_AI_inspection(self):
@@ -214,5 +208,13 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.assertEqual(len(self.submitted),1)
         self.assertEqual(self.g.result.call_count,1)
         self.assertEqual(self.r.automatic_identity_block,'PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN')
+
+    def test_restart_does_not_erase_unproven_product_identity(self):
+        self.request_and_complete(1,'REVIEW')
+        self.r._restore_previous_product_identity()
+        self.assertEqual(self.r.prior_product_identity_block,'PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN')
+        self.depart()
+        self.r._restore_previous_product_identity()
+        self.assertIsNone(self.r.prior_product_identity_block)
 
 if __name__=='__main__':unittest.main()

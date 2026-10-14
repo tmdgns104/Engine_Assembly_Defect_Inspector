@@ -17,9 +17,6 @@ def start_policy(profile, contract):
                 (profile.get('initial_authorization') == supervised)):
             raise ValueError('MATCHED_SUPERVISED_AUTHORIZATION_REQUIRED')
         automatic = 'PLC_AUTOMATIC_REPEAT'
-        if ((profile.get('cycle_admission') == automatic) !=
-                (profile.get('initial_authorization') == automatic)):
-            raise ValueError('MATCHED_AUTOMATIC_AUTHORIZATION_REQUIRED')
         if profile.get('cycle_admission') not in ('FIRST_PRODUCT_ONLY', 'VERIFIED_CLEARANCE', supervised, automatic):
             raise ValueError('EXPLICIT_CYCLE_ADMISSION_REQUIRED')
         qualification = profile.get('request_start_qualification', {})

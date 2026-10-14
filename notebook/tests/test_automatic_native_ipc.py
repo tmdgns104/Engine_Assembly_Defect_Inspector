@@ -33,16 +33,8 @@ class NativeAutomaticIpc(unittest.TestCase):
                     self.fail(str(s))
                 s=wait(lambda s:s['connected'] and s['fresh'])
                 for number,decision in enumerate(('PASS','FAIL','REVIEW','ERROR'),1):
-                    grant=uuid.uuid4().hex
-                    if number>1:
-                        time.sleep(.08)
-                        s=wait(lambda s:s['phase']=='READY_NEXT')
-                        self.assertEqual(s['request_id'],number-1)
-                        self.assertFalse(clear)  # No area-clear authority for transport.
-                    gateway.automatic_arm(s,grant)
-                    s=wait(lambda s:s['approval_id']==grant)
-                    clear=False
-                    handshake.retire_automatic()
+                    self.assertFalse(hasattr(gateway,'automatic_arm'))
+                    self.assertFalse(s['approval_id'])
                     if number==1:process.stdin.write('S');process.stdin.flush()
                     wait(lambda s:s['phase']=='IDLE')
                     process.stdin.write('R');process.stdin.flush()
@@ -51,7 +43,7 @@ class NativeAutomaticIpc(unittest.TestCase):
                     identifier=uuid.uuid4().hex
                     handshake.bind(identifier)
                     handshake.publish(identifier,decision,True,time.monotonic())
-                    s=wait(lambda s:s['phase']=='READY_NEXT' and s['completed_count']==number)
+                    s=wait(lambda s:s['phase'] in ('READY_NEXT','IDLE') and s['completed_count']==number)
                     self.assertEqual(s['result_count'],number)
                     self.assertEqual(s['done_count'],number)
                     self.assertEqual(s['raw100'],'00000000')
