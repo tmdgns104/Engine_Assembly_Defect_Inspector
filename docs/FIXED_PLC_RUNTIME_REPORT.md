@@ -1,6 +1,6 @@
 # 기존 PLC 고정 — 반복검사 Runtime 수정
 
-상태: 소프트웨어 검증 PASS, 운영 전환 및 실제 최대 3제품 시험 진행 중.
+상태: 실제 1제품의 촬영·조립 처리·통합 REVIEW·NG/Done·재가동 확인. 다음 자동 반복의 제품 구분 보완 및 감독형 재시험 진행 중.
 PLC/EDS/4·8·10B/RPI/모델/판정 임계값은 변경하지 않았다.
 
 ## 수정 근거와 범위
@@ -75,3 +75,21 @@ VISION_PASSAGE_STARTED와 PRODUCTION_TRACK_STATE 기록 사이에 403.985ms가 �
 직전 운영본과 이번 완료 ERROR/원장을 포함한 151파일 백업은 노트북에서 모든 해시·SQLite 무결성을 검증했다. SHA `8f28ce0ffc8fa096adc4c6e6b5b8a2bffe1713ca0a8fd9dadc25d35be593322b`. 복원은 코드·설정·서비스만 대상으로 하고 새 검사/승인/ABORTED 기록을 되돌리지 않는다. 추가 현장 START는 아직 진행하지 않았다.
 
 ARM64 집중 회귀 69개: 실패 0, 비공개 PNG fixture 1개 skip. 합성 C/IPC 3제품은 requests/results/done/completed 각각 3, 승인 0; 결과 sequence 367 다음 Done 368. 전체 INTEGRATED_AI_OFFLINE 175파일 패키지 SHA `c6994e4209ed2034c275b914b0d522f4d439ccdc42fc6668cbb6e5abd2c3751e`. 현재 변경은 Runtime 한 파일이며 C/PLC/모델/현장 설정과 기존 400ms lease는 불변이다.
+
+## 실제 촬영·조립 처리와 PLC 반환 확인
+
+Git `8d951f09f5483bc5941aa423bca0c362b914db82`, 운영 Release `engine-integrated-d44c2e926a6553c7`의 추가 1회 시험에서 실제 1280×720 PNG 세 장과 원시 REVIEW를 저장했다. 원시 이유는 ENGINE_OR_HAND_MOTION이다. 필수 조립 프로세스도 실행됐지만 세 프레임의 전처리는 SEED_INSUFFICIENT_SPATIAL_BODY_SUPPORT로 실패했고, 부품 classifier는 판정하지 않았다. 통합 최종판정은 원시 REVIEW와 조립 REVIEW를 보존한 EXISTING_REVIEW_ASSEMBLY_REVIEW다. 조립 모델이 부품을 정상 분류했다고 보고하지 않는다.
+
+저장 397.358ms, 조립 처리 8025.672ms, 요청→발행 10117.764ms였다. health 최대 간격은 292.833ms였으며 기존 400ms lease를 유지했다. C에서 Result sequence 3738 → 다음 cyclic Done sequence 3739 → Request OFF → Done reset을 확인했다. 실제 작업자는 벨트 재가동과 이후 STOP을 확인했다. 전용 PLC 소비 ACK 태그는 없으므로 소프트웨어 증거 범위는 CYCLIC_SEND_AND_REQUEST_RESET_ONLY이며 작업자 재가동 관찰과 구분한다. 시험 중 Class1 timeout 및 IPC 단절은 관측되지 않았으나 장기 안정성을 증명한 것은 아니다.
+
+비공개 원장·PNG·조립 결과·C 이벤트·실제 Runtime 소비 프레임을 포함한 20파일을 SQLite backup API로 수집하고 노트북에서 모두 검증했다. 증거 압축 SHA: `451e1c1d45b6e6cf0c072e07a5073429e417e844e6ea895b083841f4b9f2a8fe`. 원본과 DB는 Git에 포함하지 않는다.
+
+## 다음 제품 구분의 실제 관측 정합성
+
+기존 ProductPassage는 정지한 제품 bbox의 약 0.2픽셀 역방향 흔들림도 영구적인 TRAJECTORY_DISCONTINUITY로 처리했다. 실제 Runtime 소비 기록의 sequence 2002→2003으로 재현했다. 2006→2008의 실제 소비 간격도 관측했다. HTTP 표본 간격만으로 누락을 추정한 것이 아니다. 왼쪽으로 이동하는 제품의 검출은 원래 폭의 약 36%에서 끝났으므로 기존 20% 꼬리 관측 조건은 성립하지 않았다. 미검출이나 사용자의 이탈 설명을 자동 CLEAR로 기록하지 않는다.
+
+`product_passage.py`는 기존 Tracker의 공간 hysteresis·중심 이동 한계를 재사용한다. 작은 흔들림과 짧은 소비 간격을 허용하되 누락 구간은 연속 관측 시간을 초기화한다. 기존의 꼬리·출구 영역 관측 경로는 보존한다. 꼬리 관측이 부족하면 이전 제품의 실제 출구 경계 통과와 충분한 외향 이동, 반대쪽 경계에서 시작한 새 제품의 분리된 연속 진입, 최소 1.2초의 누락 없는 출구 영역 관측을 함께 요구한다. 이 경우 증거는 OUTBOUND_PRODUCT_AND_NEW_UPSTREAM_ENTRY이며 `product_exit_claimed=false`다. 완전한 물리 이탈이나 AI Area CLEAR를 주장하지 않는다. Request OFF, 순간 미검출, 중앙에 갑자기 나타난 물체만으로는 재무장하지 않는다.
+
+실제 소비 96프레임을 재생하면 잘못된 영구 차단은 사라지지만 새 제품 진입 증거가 없어서 proof는 여전히 null이다. 실제 연속검사 PASS가 아니다. ARM64 관련 67개 회귀 및 마지막 진입 추적 보완 후 16개 집중 회귀가 통과했다. 합성 C/IPC 네 판정은 승인 0회, request/result/done/completed 각각 4회와 Result 다음 패킷 Done을 확인했다. `test_product_passage_field.py`의 후속 제품은 합성임을 명시한다. 실제 다음 제품과의 구분은 감독형 현장 반복 시험으로 검증한다.
+
+이번 적용은 Python 두 파일과 Release 메타데이터만 대상으로 한다. C 실행 파일, 현장 설정, PLC, 모델, 무인운전 검증값은 변경하지 않는다. 서비스 정상 종료 후 current/설정/unit/일관된 원장을 노트북에서 검증하고 적용한다. 과거 제품 문맥은 실제 STOP·모형의 벨트 밖 보관·유휴 작업을 확인한 기존 유지보수 경로로 한 번 종료한다. 정상 제품마다 복구나 권한 발급을 요구하지 않는다.

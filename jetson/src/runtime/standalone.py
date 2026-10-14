@@ -1077,7 +1077,7 @@ class StandaloneRuntime(ProductionRuntime):
             self.product_passage = ProductPassage(dict(inspection_id=identifier,
                 tracking_session=self.session_id, cycle_id=binding['cycle_id'],
                 track_id=binding['track_id'], request_token=self.handshake.token),
-                self.latest_packet, q.get('exit_edge'))
+                self.latest_packet, q.get('exit_edge'), tracker_config=self.tracker_config)
             self.product_separation = None
 
     def _poll_result(self, now):

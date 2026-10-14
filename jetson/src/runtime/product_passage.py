@@ -1,16 +1,17 @@
 """Product-specific passage evidence from existing detector observations.
 
-This is a qualified geometry policy, not an empty-scene detector or a new AI
-model. A single product must move continuously towards the configured exit,
-cross it without box growth, and leave a shrinking tail. Subsequent continuous
-observations must exclude that exit strip; a separated upstream product is
-allowed. Camera visibility, direction and spacing need field qualification.
+This uses the existing detector and Track bounds, not an empty-scene model.
+A witnessed shrinking tail plus continuous exit-strip observations can prove
+exit. If partial detection ends earlier, only positive new entry at the opposite
+edge, after the old outbound trajectory, can prove a separate product cycle.
+That second route never claims complete physical exit or AI Area CLEAR.
+Camera visibility, direction and spacing still need field qualification.
 """
 import math
 
 
 class ProductPassage:
-    def __init__(self, identity, packet, edge):
+    def __init__(self, identity, packet, edge, *, tracker_config=None):
         self.identity = dict(identity)
         self.edge = edge
         self.last = packet
@@ -23,6 +24,15 @@ class ProductPassage:
         self.reason = 'WAIT_OUTBOUND_PRODUCT_TRAJECTORY'
         self.invalid = False
         self.proof = None
+        self.tracker_config = tracker_config
+        # Reuse the production Track's spatial hysteresis, not a new detector
+        # threshold. Older packets without dimensions keep exact geometry.
+        self.jitter = (tracker_config.zone_hysteresis if tracker_config and
+                       packet.get('width', 0) > 0 else 0.)
+        self.pixel = 1/packet['width'] if packet.get('width', 0) > 0 else 0.
+        self.furthest = sum(self._axis(self.box))/2 if self.box else 0.
+        self.outbound_samples = 0
+        self.entry = None
 
     def _axis(self, box):
         # Express both supported horizontal directions as progress towards 1.
@@ -35,6 +45,64 @@ class ProductPassage:
         self.proof = None
         return None
 
+    def _associated_outbound(self, current, elapsed):
+        a, b = self._axis(self.box)
+        x, y = self._axis(current)
+        origin_a, origin_b = self._axis(self.origin)
+        center = (x+y)/2
+        if (x < a-self.jitter-1e-9 or x >= b or y < b-self.jitter-1e-9
+                or center < self.furthest-self.jitter-1e-9
+                or y-x > origin_b-origin_a+2*self.jitter+1e-9
+                or min(current['y2'],self.box['y2']) <= max(current['y1'],self.box['y1'])):
+            return False
+        if self.tracker_config:
+            limit = self.tracker_config.max_center_step_norm
+            limit += (self.tracker_config.max_center_speed_norm_s or 0)*elapsed
+            cross_step = (current['y1']+current['y2']-self.box['y1']-self.box['y2'])/2
+            if math.hypot(center-(a+b)/2,cross_step) > limit:
+                return False
+        elif current['y2']-current['y1'] > self.box['y2']-self.box['y1']+1e-9:
+            return False
+        self.furthest = max(self.furthest,center)
+        return True
+
+    def _observe_entry(self, current, p):
+        """Positive entry from the opposite edge, separate from the old box.
+
+        This proves a separate inspection cycle, not that every old pixel left
+        the image. Neither Request LOW nor missing detections can supply it.
+        """
+        if not self.tracker_config or not self.crossed or self.outbound_samples < 6:
+            return False
+        x,y = self._axis(current)
+        old_start,_ = self._axis(self.box)
+        oa,ob = self._axis(self.origin)
+        if self.furthest-(oa+ob)/2 < (ob-oa)/2 or y >= old_start:
+            self.entry = None
+            return False
+        center = (x+y)/2
+        if self.entry is None:
+            if x > self.pixel or center >= (oa+ob)/2:
+                return False
+            self.entry = dict(first_sequence=p['sequence'],last_sequence=p['sequence'],
+                first_frame_id=p['frame_id'],last_frame_id=p['frame_id'],
+                first_time=p['monotonic_s'],last_time=p['monotonic_s'],
+                first_center=center,last_center=center,last_box=dict(current),samples=1)
+        else:
+            e = self.entry
+            step = center-e['last_center']
+            if (p['sequence'] != e['last_sequence']+1 or step < -self.jitter
+                    or step > self.tracker_config.max_center_step_norm
+                    or min(current['x2'],e['last_box']['x2']) <= max(current['x1'],e['last_box']['x1'])
+                    or min(current['y2'],e['last_box']['y2']) <= max(current['y1'],e['last_box']['y1'])):
+                self.entry = None
+                return False
+            e.update(last_sequence=p['sequence'],last_frame_id=p['frame_id'],
+                last_time=p['monotonic_s'],last_center=center,last_box=dict(current),samples=e['samples']+1)
+        e = self.entry
+        return (e['samples'] >= 3 and e['last_time']-e['first_time'] >= .2-1e-9
+                and e['last_center']-e['first_center'] >= max(self.jitter,self.pixel))
+
     def observe(self, p, now):
         if self.invalid:
             return None
@@ -43,10 +111,16 @@ class ProductPassage:
                 or not p.get('frame_id') or p['frame_id'] == old.get('frame_id')
                 or p.get('integrity', {}).get('valid') is not True
                 or any(p.get(k) != old.get(k) for k in ('camera_epoch', 'generation', 'package_sha256'))
-                or p['sequence'] != old['sequence']+1
+                or p['sequence'] <= old['sequence']
+                or (not self.tracker_config and p['sequence'] != old['sequence']+1)
                 or not 0 < p['monotonic_s']-old['monotonic_s'] <= .5
                 or not 0 <= now-p['monotonic_s'] <= 1):
             return self._fail('PRODUCT_PASSAGE_FRAME_CONTINUITY_INVALID')
+        if p['sequence'] != old['sequence']+1:
+            # Tracking may associate two actual observations across a short
+            # gap. Missing frames never count towards the exit-strip window.
+            self.samples = []
+            self.entry = None
         self.last = p
         provider = p['provider']
         boxes = provider['observations']
@@ -57,54 +131,60 @@ class ProductPassage:
                 for k in ('x1', 'y1', 'x2', 'y2')) and
                 0 <= current['x1'] < current['x2'] <= 1 and 0 <= current['y1'] < current['y2'] <= 1):
             return self._fail('PRODUCT_PASSAGE_INVALID_BOX')
-        if not self.tail:
-            if not current:
+        entry_ready = False
+        if current and self.crossed:
+            entry_ready = self._observe_entry(current,p)
+        if not self.tail and not self.entry:
+            if not current and not (self.tracker_config and self.crossed):
                 return self._fail('PRODUCT_LOST_BEFORE_OBSERVED_EXIT_TAIL')
+        if current and not self.entry:
             a, b = self._axis(self.box)
             x, y = self._axis(current)
             origin_a, origin_b = self._axis(self.origin)
-            # IoU identity is not inferred across a jump, reversal or enlargement.
-            if (x < a-1e-9 or x >= b or y < b-1e-9 or
-                    y-x > b-a+1e-9 or
-                    min(current['y2'], self.box['y2']) <= max(current['y1'], self.box['y1']) or
-                    current['y2']-current['y1'] > self.box['y2']-self.box['y1']+1e-9):
-                return self._fail('PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY')
-            if b < 1 and y == 1 and x > a:
+            # A disjoint upstream successor after a witnessed shrinking tail
+            # is still the original supported exit-strip path.
+            disjoint_after_tail = self.tail and y < a
+            if not disjoint_after_tail and not self._associated_outbound(current,p['monotonic_s']-old['monotonic_s']):
+                return self._fail('PRODUCT_EXIT_TAIL_REVERSED_OR_CHANGED' if self.tail
+                                  else 'PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY')
+            if (origin_b < 1-self.pixel and b < 1-self.pixel
+                    and y >= 1-self.pixel and x > origin_a+self.jitter):
                 self.crossed = True
-            self.box = current
-            # A box initially clipped at the edge never supplies the crossing.
-            self.tail = self.crossed and y == 1 and y-x <= .2*(origin_b-origin_a)+1e-9
-            self.reason = 'WAIT_EXIT_STRIP_OBSERVATIONS' if self.tail else self.reason
-            return None
+            if not disjoint_after_tail:
+                self.box = current
+                self.outbound_samples += 1
+                # Once witnessed, retain the tail through subpixel boundary jitter.
+                self.tail = self.tail or (self.crossed and y >= 1-self.pixel
+                                          and y-x <= .2*(origin_b-origin_a)+1e-9)
+                self.samples = []
+                self.reason = 'PREVIOUS_EXIT_STRIP_STILL_OCCUPIED' if self.tail else 'WAIT_OUTBOUND_PRODUCT_TRAJECTORY'
+                return None
         # No need for a globally empty image. A single disjoint upstream engine
         # can occupy the image while the old product's exit strip is observed.
         exit_start, _ = self._axis(self.box)
-        if current:
+        if current and not self.entry:
             x, y = self._axis(current)
             if y >= exit_start:
-                # A tail that grows or reverses is still the previous product,
-                # never a disjoint successor after several occupied frames.
-                a, b = self._axis(self.box)
-                if (x < a-1e-9 or x >= b or y < b-1e-9 or
-                        y-x > b-a+1e-9 or
-                        min(current['y2'], self.box['y2']) <= max(current['y1'], self.box['y1']) or
-                        current['y2']-current['y1'] > self.box['y2']-self.box['y1']+1e-9):
-                    return self._fail('PRODUCT_EXIT_TAIL_REVERSED_OR_CHANGED')
-                self.box = current
                 self.samples = []
-                self.reason = 'PREVIOUS_EXIT_STRIP_STILL_OCCUPIED'
                 return None
+        if not current:
+            self.entry = None
         self.samples.append((p['sequence'], p['monotonic_s']))
         self.samples = self.samples[-128:]
         if len(self.samples) < 6 or self.samples[-1][1]-self.samples[0][1] < 1.2-1e-9:
             return None
-        self.proof = dict(self.identity, reason='PRODUCT_TRAJECTORY_AND_EXIT_STRIP',
+        if not self.tail and not entry_ready:
+            self.reason = 'WAIT_POSITIVE_UPSTREAM_ENTRY_AFTER_OUTBOUND'
+            return None
+        self.proof = dict(self.identity, reason=('PRODUCT_TRAJECTORY_AND_EXIT_STRIP' if self.tail
+            else 'OUTBOUND_PRODUCT_AND_NEW_UPSTREAM_ENTRY'),
             edge=self.edge, frame_id=p['frame_id'], sequence=p['sequence'],
             source_monotonic=p['monotonic_s'], camera_epoch=p['camera_epoch'],
             generation=p['generation'], sequences=[s for s, _ in self.samples],
             duration_s=self.samples[-1][1]-self.samples[0][1],
             whole_scene_empty_required=False, area_clearance_used=False,
-            next_product_visible=bool(current), sensor_cycle_observed=False)
+            next_product_visible=bool(current), sensor_cycle_observed=False,
+            product_exit_claimed=self.tail, upstream_entry=dict(self.entry) if self.entry else None)
         self.reason = 'PRODUCT_SEPARATION_OBSERVED'
         return self.proof
 
