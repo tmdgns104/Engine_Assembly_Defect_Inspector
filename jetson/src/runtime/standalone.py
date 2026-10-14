@@ -181,6 +181,35 @@ class StandaloneRuntime(ProductionRuntime):
         self._reset_departure_candidate()
         self.area_window.reset()
 
+    def _release_unused_preview(self, packet):
+        """Forget a lost preview, never a PLC-bound or previously inspected product."""
+        from src.tracking.contracts import TrackState, TrackingReason
+        tracker = self.coordinator._tracker
+        if (not self._automatic_policy() or not self.operating or self.error
+                or tracker._state != TrackState.WAIT_AREA_CLEAR
+                or tracker._reason != TrackingReason.MISSED_OBSERVATION_LIMIT
+                or self.handshake.token or self.service.active or self.bridge.inspection_id
+                or self.final_pending or tracker._inspection_id or self.inspected_tracks
+                or self.product_passage or self.prior_product_identity_block
+                or self.automatic_identity_block
+                or (self.cyclic_admissions and not self.product_separation)):
+            return False
+        now = time.monotonic()
+        snapshot = self.gateway.read_snapshot(now)
+        if (not snapshot or not snapshot['connected'] or not snapshot['fresh']
+                or not snapshot['run_idle'] or not snapshot['bool_valid']
+                or not 0 <= now-snapshot['generated'] <= .5
+                or not 0 <= now-snapshot['received'] <= .2
+                or snapshot['phase'] not in ('SYNC_LOW', 'IDLE')
+                or snapshot['controls']['Inspection_Request'] or snapshot['raw100'] != '00000000'):
+            return False
+        previous = self.session_id
+        self._reset_unbound_observation(packet['monotonic_s'])
+        self.service.health_diagnostics.record('UNBOUND_PREVIEW_REACQUIRED',
+            previous_tracking_session=previous, runtime_session_id=self.session_id,
+            frame_id=packet['frame_id'], product_exit_claimed=False)
+        return True
+
     def _observation_hold(self, packet, provider):
         if self._automatic_policy() and self.product_passage:
             # Parent has checked frame identity, order, quality and model hash.
@@ -200,6 +229,8 @@ class StandaloneRuntime(ProductionRuntime):
                 # Do not change the identity frozen by an already accepted
                 # ambiguous request. Preserve ERROR, never switch to a later product.
             return True
+        if self._release_unused_preview(packet):
+            return True  # Reacquire from a subsequent valid Worker frame.
         issue = self.cycle_issue
         if not issue:
             return False

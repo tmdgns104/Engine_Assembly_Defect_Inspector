@@ -63,3 +63,15 @@ VISION_PASSAGE_STARTED와 PRODUCTION_TRACK_STATE 기록 사이에 403.985ms가 �
 이번 정상 종료 후 백업 159파일은 노트북에서 모두 해시 및 SQLite 무결성을 확인했다. SHA-256: `ceba32b37fe0e28266088c0f35db83aff7b36b836342b37513f830be155b2a48`. 복원 대상은 코드·설정·서비스이며 최신 검사/사진/ABORTED/소비 이력은 되돌리지 않는다.
 
 최종 집중 ARM64 회귀: 64개 실행, 실패 0, 비공개 PNG fixture 1개 skip. C/IPC 합성 3제품은 request/result/done/completed 각각 3, 별도 승인 0을 확인했다. install --check-only --require-assembly 및 INTEGRATED_AI_OFFLINE 패키지 생성도 통과했다. 패키지 175파일, SHA `1a962d3582de4a030d99b13f4a293fa7ab2e37f09690e8f51c18bcdb207c95d3`. 실제 카메라 단일 소유자·PLC 미연결 정지 진단에서 추적 처리 최대 2.639ms, 상태 갱신 최대 206.802ms였다. 이는 실제 PLC 재시험 성공 근거가 아니다. 배포 변경은 standalone.py 한 파일과 release 메타데이터이며 C/현장 설정은 그대로 유지한다.
+
+## 세 번째 현장 시도: 통신 완료, 실제 AI 시작 미완료
+
+`engine-integrated-b90026f57a3d8b3c` / Git `dc73af8e4a75c253cf5e0bfb9c2302bb4df5ca52`에서 새 요청 `756c08e340299d0f:1:1`을 수신했다. Runtime health 최대 간격은 248.288ms로 유지됐고 Class1 연결 ID는 1로 유지됐다. 그러나 START 이전 미리보기에서 모형을 옮긴 뒤 MISSED_OBSERVATION_LIMIT / WAIT_AREA_CLEAR가 남았다. 이 상태는 실제 START보다 약 88초 전부터 있었고, 아직 요청 토큰이 없었다.
+
+30초 뒤 검사 `1ef61078d8ce4edeb12fde1e1ffe99e3`는 NO_VALID_CURRENT_PRODUCT_AT_PLC_REQUEST / ERROR로 저장됐다. 원본 촬영·기존 AI·필수 조립 검사는 실행되지 않았고 `source=NO_ACTUAL_INSPECTION`, `existing_decision=NOT_RUN`, `assembly_decision=NOT_RUN`으로 구분된다. 사용자가 정한 ERROR→NG 정책에 따라 Result 1회(sequence 6441), 다음 패킷 Done 1회(6442), PLC Request 해제와 출력 초기화를 확인했다. 작업자는 약 30초 뒤 실제 재가동과 이후 STOP을 확인했다. 통신 반환 성공을 실제 AI 검사 성공으로 세지 않는다.
+
+추적 수정은 유효한 PLC 기준 상태에서, 아직 요청/검사에 연결되지 않은 미리보기의 관측 손실만 폐기하고 이후 새 프레임으로 다시 추적한다. PLC 요청 접수 후의 Track, 저장/조립 진행 상태, 과거 제품 이탈 미확인 상태와 ProductPassage는 그대로 유지한다. 이를 CLEAR나 제품 이탈 증거로 기록하지 않는다. 현장과 같은 정지 미리보기→관측 손실→새 요청 재현은 수정 전 실패, 수정 후 정상 제출됨을 확인했다. 노트북 관련 41개 회귀 PASS.
+
+직전 운영본과 이번 완료 ERROR/원장을 포함한 151파일 백업은 노트북에서 모든 해시·SQLite 무결성을 검증했다. SHA `8f28ce0ffc8fa096adc4c6e6b5b8a2bffe1713ca0a8fd9dadc25d35be593322b`. 복원은 코드·설정·서비스만 대상으로 하고 새 검사/승인/ABORTED 기록을 되돌리지 않는다. 추가 현장 START는 아직 진행하지 않았다.
+
+ARM64 집중 회귀 69개: 실패 0, 비공개 PNG fixture 1개 skip. 합성 C/IPC 3제품은 requests/results/done/completed 각각 3, 승인 0; 결과 sequence 367 다음 Done 368. 전체 INTEGRATED_AI_OFFLINE 175파일 패키지 SHA `c6994e4209ed2034c275b914b0d522f4d439ccdc42fc6668cbb6e5abd2c3751e`. 현재 변경은 Runtime 한 파일이며 C/PLC/모델/현장 설정과 기존 400ms lease는 불변이다.
