@@ -76,7 +76,7 @@ static unsigned int EngineControlValue(const char *name) {
 static void EngineInitialize(void) {
   if (engine_initialized) return;
   engine_initialized=1;
-  CommConfig config={COMM_RX_ONLY,false,true,1,1,0.20,10.0,120.0};
+  CommConfig config={COMM_RX_ONLY,false,true,1,1,0.20,10.0,120.0,false};
   const char *mode=getenv("ENGINE_OPENER_MODE");
   if (mode && strcmp(mode,"COMM_RX_ONLY") != 0) {
     if (strcmp(mode,"COMM_AI_RUNTIME")==0) {
@@ -85,6 +85,11 @@ static void EngineInitialize(void) {
         fprintf(stderr,"AI mode requires verified encoding and exclusive private IPC socket\n"); exit(EXIT_FAILURE);
       }
       config.mode=COMM_AI_RUNTIME; config.session_timeout_s=0; config.request_timeout_s=120;
+      const char *admission=getenv("ENGINE_OPENER_ADMISSION");
+      if (admission && strcmp(admission,"FIRST_PRODUCT_ONLY") && strcmp(admission,"SUPERVISED_REPEAT_TEST")) {
+        fprintf(stderr,"Unknown AI admission policy\n"); exit(EXIT_FAILURE);
+      }
+      config.supervised_repeat=admission && !strcmp(admission,"SUPERVISED_REPEAT_TEST");
     } else {
     if (strcmp(mode,"COMM_SYNTHETIC_RESULT") != 0) {
       fprintf(stderr,"Unknown commissioning mode; no listener started\n"); exit(EXIT_FAILURE);

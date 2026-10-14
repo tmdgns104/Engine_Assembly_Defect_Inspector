@@ -89,7 +89,7 @@ bool CommInitialArm(CommState *s, const char *id, double now) {
   if (!id || strlen(id)!=32) return false;
   for (unsigned int i=0;i<32;i++)
     if (!((id[i]>='0' && id[i]<='9') || (id[i]>='a' && id[i]<='f'))) return false;
-  if (s->config.mode!=COMM_AI_RUNTIME || s->initial_issued ||
+  if (s->config.mode!=COMM_AI_RUNTIME || s->config.supervised_repeat || s->initial_issued ||
       !CommControlsValid(s,now) || !s->ai_ready ||
       !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5) ||
       s->words[0] || s->words[2] ||
@@ -105,6 +105,31 @@ bool CommInitialArm(CommState *s, const char *id, double now) {
   return true;
 }
 
+bool CommSupervisedArm(CommState *s, const char *id, double now) {
+  if (!id || strlen(id)!=32) return false;
+  for (unsigned int i=0;i<32;i++)
+    if (!((id[i]>='0' && id[i]<='9') || (id[i]>='a' && id[i]<='f'))) return false;
+  if (!s->config.supervised_repeat || s->config.mode!=COMM_AI_RUNTIME ||
+      s->armed || s->approval_count>=4096 || !CommControlsValid(s,now) ||
+      !s->ai_ready || !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5) ||
+      s->words[0] || s->words[2] ||
+      s->words[1]!=s->config.estop_ok_value || s->words[3]!=s->config.stop_released_value ||
+      memcmp(s->raw100,"\0\0\0\0",4) ||
+      (s->phase!=READY_NEXT && s->phase!=DISARMED && s->phase!=SYNC_LOW) ||
+      s->request_id!=s->completed_count || s->result_count!=s->completed_count ||
+      s->done_count!=s->completed_count) return false;
+  for (unsigned int i=0;i<s->approval_count;i++)
+    if (!strcmp(s->issued_approvals[i],id)) return false;
+  memcpy(s->issued_approvals[s->approval_count++],id,33);
+  memcpy(s->approval_id,id,33);
+  s->initial_issued=true; s->initial_consumed=false; s->initial_revoked=false;
+  /* Only the per-grant budget is renewed; cumulative request/result IDs remain. */
+  s->armed=true; s->used=false; s->saw_low=false;
+  s->reason="SUPERVISED_WAIT_NEW_START";
+  Phase(s,SYNC_LOW,"SUPERVISED_PRODUCT_APPROVAL",now);
+  return true;
+}
+
 static void AiReceive(CommState *s, double now) {
   /* Readiness is not authorization; real CLEAR never creates first permission.
    * FIRST_PRODUCT_ONLY also refuses repeat permission when CLEAR is true. */
@@ -113,7 +138,8 @@ static void AiReceive(CommState *s, double now) {
     if (s->armed || ActiveRequest(s)) CommFault(s,"PYTHON_NOT_READY",now);
     return;
   }
-  if (s->phase==READY_NEXT) s->reason="FIRST_CYCLE_COMPLETE_NO_AUTOMATIC_REARM";
+  if (s->phase==READY_NEXT) s->reason=s->config.supervised_repeat ?
+    "WAIT_SUPERVISOR_PRODUCT_CLEAR_AND_NEW_GRANT" : "FIRST_CYCLE_COMPLETE_NO_AUTOMATIC_REARM";
 }
 
 void CommAiHealth(CommState *s, bool ready, bool clear, double now) {

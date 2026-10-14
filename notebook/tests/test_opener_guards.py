@@ -48,13 +48,13 @@ class CyclicGuards(unittest.TestCase):
     def test_snapshot_length_version_and_timestamp_rejected(self):
         for value in (bytes(128),b'EAI1\x01\x00\x01\x00',bytes(129)):
             with self.assertRaises(ValueError):decode_snapshot(value,10)
-        b=bytearray(160);b[:8]=b'EAI1\x02\x00\x01\x00'
+        b=bytearray(160);b[:8]=b'EAI1\x03\x00\x01\x00'
         struct.pack_into('<QIIddd',b,8,1,1,1,9,9,9)
         with self.assertRaises(ValueError):decode_snapshot(b,10)
     def test_packet_atomic_identity_and_completion_flags(self):
         p=command(snapshot(),'a'*32,2,identifier='b'*32,decision=2,flags=7,now=2,approval_id='c'*32)
         self.assertEqual(len(p),160)
-        self.assertEqual(p[:8],b'EAI1\x02\x00\x02\x00')
+        self.assertEqual(p[:8],b'EAI1\x03\x00\x02\x00')
         self.assertEqual(p[128:160],b'c'*32)
         self.assertEqual(struct.unpack_from('<QII',p,8),(123,1,1))
         self.assertEqual(p[32:96],b'a'*32+b'b'*32)

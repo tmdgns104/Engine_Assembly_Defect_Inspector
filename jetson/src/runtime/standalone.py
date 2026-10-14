@@ -18,6 +18,7 @@ from src.runtime.production_profile import calibration_sha
 from src.runtime.inspection_start import FULL_FRAME, start_policy, tracked_frame_evidence
 from src.vision.integrated_decision import combine_decisions
 from src.runtime.initial_approval import InitialApproval, POLICY as INITIAL_POLICY
+from src.runtime.supervised_approval import SupervisedApproval, POLICY as REPEAT_POLICY
 
 
 def arrival_evidence(packet, accepted_at, epoch, generation, zone):
@@ -65,9 +66,10 @@ class StandaloneRuntime(ProductionRuntime):
         self.shadow = assembly  # Reuse existing evidence routes, not post-commit shadow dispatch.
         self.service.journal.outbox_limit = None  # Optional notebook export is not a PLC dependency.
         self.service.journal.min_free_bytes = line_profile['min_free_bytes']
-        if self._initial_policy():
-            self.initial_approval = InitialApproval(self.service.journal.root/'first-product-approval',
-                                                    self.gateway.runtime_session)
+        if self._initial_policy() or self._supervised_policy():
+            approval_type = SupervisedApproval if self._supervised_policy() else InitialApproval
+            self.initial_approval = approval_type(self.service.journal.root/'first-product-approval',
+                                                  self.gateway.runtime_session)
         self.configured.set()
 
     def start_auto(self):
@@ -154,8 +156,63 @@ class StandaloneRuntime(ProductionRuntime):
             and self.line_profile.get('initial_authorization') == INITIAL_POLICY
             and self.line_profile.get('cycle_admission') == 'FIRST_PRODUCT_ONLY')
 
+    def _supervised_policy(self):
+        return (self._full_frame_policy()
+            and self.line_profile.get('initial_authorization') == REPEAT_POLICY
+            and self.line_profile.get('cycle_admission') == REPEAT_POLICY)
+
+    def _supervised_settlement(self):
+        """Durable previous result and idle owners; never infer physical clearance."""
+        if self.error or self.service.error or self.service.active:
+            return dict(clean=False, reason='WAIT_HEALTHY_IDLE_INSPECTION_OWNER', previous=None)
+        assembly = self.assembly.status()
+        if assembly.get('active_identifier') or assembly.get('pending') or assembly.get('outstanding'):
+            return dict(clean=False, reason='WAIT_ASSEMBLY_OWNER_IDLE', previous=None)
+        identifier = self.handshake.inspection_id or self.bridge.inspection_id
+        if not identifier:
+            return dict(clean=True, reason=None, previous=None)
+        journal = self.service.journal
+        row = journal.detail(identifier)
+        with journal.lock:
+            saved = journal.db.execute('SELECT value FROM service_state WHERE key=?',
+                                      ('integrated_decision:'+identifier,)).fetchone()
+        final = json.loads(saved[0]) if saved else None
+        if (not row or row['state'] not in ('COMPLETE', 'CANCELLED') or not final
+                or not row['result'].get('storage_success')
+                or final.get('request_token') != self.handshake.token
+                or identifier not in self.published_ids):
+            return dict(clean=False, reason='PREVIOUS_RESULT_NOT_DURABLE_OR_IDENTIFIED', previous=None)
+        binding = row['request'].get('runtime_binding', {})
+        previous = dict(inspection_id=identifier, request_token=final['request_token'],
+            decision=final['decision'], durable=True, tracking_session=binding.get('runtime_session_id'),
+            cycle_id=binding.get('cycle_id'), track_id=binding.get('track_id'))
+        return dict(clean=True, reason=None, previous=previous)
+
+    def _prepare_supervised_product(self, evidence, now):
+        """Close the old software identity under explicit human evidence, not CLEAR."""
+        self._event(dict(event='SUPERVISED_PRODUCT_CONTEXT_CLOSED',
+            approval_id=evidence['approval_id'], previous=evidence['previous'],
+            confirmations=evidence['confirmations'], ai_clearance_granted=False))
+        self._reset_unbound_observation(now)
+        self.latest_packet = None
+        self.observation_started_at = now
+        self.absent = []
+        self.arrival = None
+        self.cycle_issue = None
+        self.issue = None
+        self.last_retirement = None
+        self.cyclic_rearm_evidence = None
+        self.handshake.retire_supervised()
+
+    def prepare_supervised(self, challenge_id, confirmations):
+        with self.lock, self.service.lock:
+            if not self._supervised_policy() or not self.initial_approval:
+                raise ValueError('SUPERVISED_POLICY_NOT_ENABLED')
+            identifier = self.initial_approval.submit(challenge_id, confirmations, time.monotonic())
+            return dict(approval_id=identifier, state='QUEUED_NOT_ARMED', motor_command=False)
+
     def _profile_ready(self):
-        if self._initial_policy():
+        if self._initial_policy() or self._supervised_policy():
             # Software policy selection only. Actual permission is a live, durable
             # operator grant; field qualification remains explicitly unverified.
             return True
@@ -171,6 +228,8 @@ class StandaloneRuntime(ProductionRuntime):
             and self.area_config_version)
 
     def _clear(self, now):
+        if self._supervised_policy():
+            return False  # Operator product removal never becomes AI Area CLEAR.
         if self._full_frame_policy():
             # Actual departure evidence only; initial permission has its own IPC
             # command and durable ledger. Never synthesize this from an approval.
@@ -299,9 +358,19 @@ class StandaloneRuntime(ProductionRuntime):
         if self.initial_approval:
             snapshot = self.gateway.read_snapshot(now)
             if snapshot: now = snapshot.get('observed_at', now)
+            options = (dict(settlement=self._supervised_settlement(), prepare=self._prepare_supervised_product)
+                       if self._supervised_policy() else {})
             self.initial_approval.poll(snapshot, ready, self.epoch, self.service.generation,
-                                       now, self.gateway, self.service.journal)
-            if self.initial_approval.failed or self.initial_approval.state == 'REVOKED':
+                                       now, self.gateway, self.service.journal, **options)
+            if self._supervised_policy() and self.initial_approval.last_complete:
+                completed = self.initial_approval.last_complete
+                for entry in self.history:
+                    if entry['inspection_id'] == completed['inspection_id'] and not entry.get('cyclic_done_reset_observed'):
+                        self._event(dict(event='SUPERVISED_CYCLIC_COMPLETION_OBSERVED', **completed))
+                        entry['cyclic_done_reset_observed'] = True
+                        entry['publication_status'] = 'CYCLIC_DONE_AND_REQUEST_RESET'
+            if self.initial_approval.failed or (self.initial_approval.state == 'REVOKED'
+                                                and not self._supervised_policy()):
                 ready = False
         clear = self._clear(now)
         if (self._full_frame_policy() and clear and self.last_retirement
@@ -324,8 +393,9 @@ class StandaloneRuntime(ProductionRuntime):
                     self._cancel_pending(self.handshake.reason)
                     return
             if self._full_frame_policy():
-                repeat_allowed = (self.line_profile.get('cycle_admission') == 'VERIFIED_CLEARANCE'
+                repeat_allowed = ((self.line_profile.get('cycle_admission') == 'VERIFIED_CLEARANCE'
                                   and self.cyclic_rearm_evidence is not None)
+                                  or (self._supervised_policy() and self.initial_approval.valid()))
                 if self.cyclic_admissions and not repeat_allowed:
                     self.handshake.fault('NEXT_PRODUCT_REQUIRES_VERIFIED_CLEARANCE')
                     self._cancel_pending(self.handshake.reason)
@@ -552,7 +622,13 @@ class StandaloneRuntime(ProductionRuntime):
             line_session_id=self.handshake.session_id, request_token=self.handshake.token,
             runtime_session_id=self.session_id, completed_monotonic=now,
             track_id=binding.get('track_id'), completed_at=datetime.now(timezone.utc).isoformat(),
+            inspection_elapsed_ms=max(0, now-self.handshake.accepted_at)*1000,
             source='INTEGRATED_ACTUAL_INSPECTION', synthetic=False)
+        if self._supervised_policy():
+            final.update(supervised_approval_id=self.initial_approval.approval_id,
+                admission_policy=REPEAT_POLICY,
+                track_uid=(str(binding['runtime_session_id'])+':'+str(binding['track_id'])
+                           if binding.get('track_id') is not None else None))
         if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
             if (binding.get('runtime_session_id') != self.session_id or
                     binding.get('worker_generation') != self.service.generation or
@@ -716,7 +792,7 @@ class StandaloneRuntime(ProductionRuntime):
             field_acceptance='NOT_RUN', assembly_component=self.assembly.status())
         if self._full_frame_policy():
             result.update(inspection_start_policy=FULL_FRAME,
-                request_start_qualified=(False if self._initial_policy() else self._profile_ready()),
+                request_start_qualified=(False if self._initial_policy() or self._supervised_policy() else self._profile_ready()),
                 software_start_policy_ready=self._profile_ready(),
                 initial_approval=(self.initial_approval.status() if self.initial_approval else None),
                 next_product_policy=self.line_profile['cycle_admission'],

@@ -19,6 +19,7 @@ typedef struct {
   double receive_max_age_s;
   double request_timeout_s;
   double session_timeout_s;
+  bool supervised_repeat; /* Explicit local policy, never selected by PLC data. */
 } CommConfig;
 
 typedef struct CommState CommState;
@@ -40,6 +41,9 @@ struct CommState {
   /* One explicit reservation per adapter process. Faults never clear "issued". */
   bool initial_issued, initial_consumed, initial_revoked;
   char approval_id[33];
+  /* Keep spent IDs, including revoked grants. Exhaustion requires maintenance. */
+  char issued_approvals[4096][33];
+  unsigned int approval_count;
   double ai_heartbeat_at;
   const char *reason;
 };
@@ -59,5 +63,6 @@ void CommAiHealth(CommState *, bool, bool, double);
 bool CommAiResult(CommState *, unsigned long, unsigned long, unsigned int, bool, double);
 
 bool CommInitialArm(CommState *, const char *, double);
+bool CommSupervisedArm(CommState *, const char *, double);
 
 #endif

@@ -65,7 +65,7 @@ void EngineIpcPoll(CommState *s,double now) {
     uint8_t b[161]; ssize_t n=recv(peer,b,sizeof(b),MSG_DONTWAIT|MSG_TRUNC);
     if(n<0 && (errno==EAGAIN||errno==EWOULDBLOCK)) break;
     if(n<=0) { lost(s,now,"IPC_DISCONNECTED"); return; }
-    if(n!=160 || memcmp(b,"EAI1\x02\x00\x02\x00",8) || !identifier(b+32)) {
+    if(n!=160 || memcmp(b,"EAI1\x03\x00\x02\x00",8) || !identifier(b+32)) {
       lost(s,now,"IPC_SCHEMA_INVALID"); return;
     }
     double generated=number(b+24);
@@ -80,6 +80,10 @@ void EngineIpcPoll(CommState *s,double now) {
       char approval[33]; memcpy(approval,b+128,32); approval[32]=0;
       if(!CommInitialArm(s,approval,now)) ++rejected;
     }
+    else if(command==5 && flags==0 && identifier(b+128) && u32(b+20)==s->request_id) {
+      char approval[33]; memcpy(approval,b+128,32); approval[32]=0;
+      if(!CommSupervisedArm(s,approval,now)) ++rejected;
+    }
     else if(command==2 && flags==7 && identifier(b+64)
             && s->initial_consumed && !s->initial_revoked && !memcmp(b+128,s->approval_id,32) && u32(b+20)==s->request_id) {
       if(CommAiResult(s,u32(b+16),u32(b+20),u32(b+96),true,now)) result_ack=s->request_id;
@@ -88,7 +92,7 @@ void EngineIpcPoll(CommState *s,double now) {
     else ++rejected;
   }
   if(now-last_snapshot<.04) return;
-  uint8_t b[160]={0}; memcpy(b,"EAI1\x02\x00\x01\x00",8);
+  uint8_t b[160]={0}; memcpy(b,"EAI1\x03\x00\x01\x00",8);
   put64(b+8,boot_nonce); put32(b+16,s->session_id); put32(b+20,s->request_id);
   putnumber(b+24,now); putnumber(b+32,s->last_receive_at); putnumber(b+40,s->request_at);
   uint32_t flags=(s->connected?1:0)|(s->run?2:0)|(s->bool_valid?4:0)|(CommControlsValid(s,now)?8:0);

@@ -14,8 +14,12 @@ import threading
 import time
 
 class OpenerProcess:
-    def __init__(self, binary, expected_sha, ipc_path, *, approved=False, interface='enP8p1s0'):
+    def __init__(self, binary, expected_sha, ipc_path, *, approved=False, interface='enP8p1s0',
+                 admission='FIRST_PRODUCT_ONLY'):
         if approved is not True: raise ValueError('FIELD_TRANSPORT_ACTIVATION_NOT_APPROVED')
+        if admission not in ('FIRST_PRODUCT_ONLY', 'SUPERVISED_REPEAT_TEST'):
+            raise ValueError('UNKNOWN_OPENER_ADMISSION_POLICY')
+        self.admission=admission
         self.binary=Path(binary).resolve(); self.ipc=Path(ipc_path)
         if hashlib.sha256(self.binary.read_bytes()).hexdigest()!=expected_sha:
             raise ValueError('OPENER_BINARY_HASH_MISMATCH')
@@ -40,6 +44,7 @@ class OpenerProcess:
             folder=self.ipc.parent/('session-'+str(time.monotonic_ns()))
             folder.mkdir(mode=0o700)
             env=dict(os.environ,ENGINE_OPENER_MODE='COMM_AI_RUNTIME',
+                ENGINE_OPENER_ADMISSION=self.admission,
                 ENGINE_OPENER_ENCODING='BOOL16_LE_0_1_VERIFIED',ENGINE_OPENER_IPC=str(self.ipc),
                 ENGINE_OPENER_EVENTS=str(folder/'events.jsonl'),ENGINE_OPENER_STATUS=str(folder/'status.json'))
             try:

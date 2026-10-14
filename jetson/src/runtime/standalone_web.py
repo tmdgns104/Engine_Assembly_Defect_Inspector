@@ -1,7 +1,7 @@
-"""Read-only field HMI; web requests cannot start motion or mutate line state."""
+"""Field HMI with an opt-in authenticated preparation path; never web START."""
 import json
 from pathlib import Path
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 
 
 def line_view(status, identity):
@@ -37,7 +37,7 @@ def line_view(status, identity):
     elif not plc.get('network_plc_writes_enabled'):
         phase, title, detail = 'BLOCKED', '결과 전송 비활성', '현재 설정은 PLC 읽기 전용입니다. 자동공정 실행 준비 완료가 아닙니다.'
     latest = next((dict(row) for row in status.get('history', [])
-                   if row.get('source') == 'INTEGRATED_ACTUAL_INSPECTION'
+                   if row.get('source') in ('INTEGRATED_ACTUAL_INSPECTION', 'NO_ACTUAL_INSPECTION')
                    and row.get('synthetic') is False
                    and row.get('decision') in ('PASS', 'FAIL', 'REVIEW', 'ERROR')), None)
     legacy = plc.get('contract_version') == 'LEGACY_THREE_BOOL'
@@ -46,6 +46,23 @@ def line_view(status, identity):
     if latest:
         latest['existing_inspector'] = latest.get('existing_decision', latest.get('existing_inspector'))
         latest['assembly_inspector'] = latest.get('assembly_decision', latest.get('assembly_inspector'))
+        latest['journal_saved'] = True  # History is appended only after the durable final.
+        # Receipt/consumption must be tied to this cycle, not a later global count.
+        snap = plc.get('snapshot') or {}
+        token = f"{snap.get('boot',0):016x}:{snap.get('connection',0)}:{snap.get('request_id',0)}"
+        latest['cyclic_done_reset_observed'] = bool(latest.get('cyclic_done_reset_observed') or
+            (token == latest.get('request_token') and snap.get('phase') == 'READY_NEXT'
+             and snap.get('completed_count') == snap.get('request_id')))
+    approval = status.get('initial_approval') or {}
+    supervised = approval if approval.get('policy') == 'SUPERVISED_REPEAT_TEST' else None
+    if supervised and phase not in ('ERROR', 'WAIT_CAMERA', 'WAIT_PLC', 'INSPECTING', 'WAIT_PRODUCT'):
+        if (supervised.get('challenge') or {}).get('eligible'):
+            phase, title, detail = 'PREPARE', '다음 검사 · 사용자 확인 대기', '벨트 실제 정지와 이전 제품 정리 후 아래 확인란을 선택하세요.'
+        elif supervised.get('state') == 'RESERVED':
+            phase, title, detail = 'WAIT_START', '승인 접수 · 시작 준비 확인 중', '새 승인이 OpENer에 반영되는지 확인 중입니다. 아직 START를 누르지 마세요.'
+            snap = plc.get('snapshot') or {}
+            if snap.get('approval_id') == supervised.get('approval_id') and snap.get('phase') in ('SYNC_LOW', 'IDLE'):
+                title, detail = '검사 준비됨 · 현장 START 대기', '손을 뗀 상태에서 실제 PLC START를 한 번 누르세요.'
     values = plc.get('last_values') or {}
     return dict(phase=phase, title=title, detail=detail, verdict=verdict,
         issue=status.get('runtime_issue'), runtime_loop_alive=status.get('runtime_loop_alive', False),
@@ -60,15 +77,43 @@ def line_view(status, identity):
             publication_status=plc.get('publication_status', 'NOT_STARTED'),
             consumption_confirmed=not legacy and plc.get('plc_consumption_confirmed') is True,
             duplicate_requests_ignored=plc.get('duplicate_requests_ignored', 0)),
-        last_result=latest, counts=status.get('integrated_counts') or {},
+        last_result=latest, counts=status.get('integrated_counts') or {}, supervised=supervised,
         motor_feedback='UNVERIFIED', final_policy='기존 검사 + 네 부품 조립 검사 모두 필수')
 
 
 def configure_line_web(app, runtime, identity):
+    from src.runtime.supervised_web import PreparationAccess, PREPARE_PATH
+    access = None
+    web = getattr(runtime, 'line_profile', {}).get('supervised_web', {})
+    if web.get('enabled') is True:
+        if not runtime._supervised_policy():
+            raise ValueError('SUPERVISED_WEB_REQUIRES_SUPERVISED_POLICY')
+        access = PreparationAccess(runtime.initial_approval.root, web.get('allowed_hosts'))
+
     @app.middleware('http')
     async def read_only_field_ui(request, call_next):
         if request.method not in ('GET', 'HEAD'):
+            if request.method == 'POST' and request.url.path == PREPARE_PATH and access:
+                if not access.permits(request):
+                    return JSONResponse({'error':'SUPERVISOR_AUTHORIZATION_REQUIRED'}, status_code=403)
+                try:
+                    # Reject over-size/chunked bodies without buffering unbounded data.
+                    if not 1 <= int(request.headers.get('content-length', '0')) <= 2048:
+                        raise ValueError('BOUNDED_JSON_BODY_REQUIRED')
+                    raw = b''
+                    async for part in request.stream():
+                        raw += part
+                        if len(raw) > 2048: raise ValueError('BODY_TOO_LARGE')
+                    body = json.loads(raw)
+                    if not isinstance(body, dict) or set(body) != {'challenge_id','confirmations'}:
+                        raise ValueError('EXPLICIT_PREPARATION_FIELDS_REQUIRED')
+                    result = runtime.prepare_supervised(body['challenge_id'], body['confirmations'])
+                    return JSONResponse(result, status_code=202, headers={'Cache-Control':'no-store'})
+                except (ValueError, TypeError, KeyError):
+                    return JSONResponse({'error':'PREPARATION_REJECTED_REFRESH_AND_RECONFIRM'}, status_code=409)
             return JSONResponse({'error': 'PHYSICAL_BUTTONS_ONLY_IN_STANDALONE_MODE'}, status_code=403)
+        if request.url.path == '/auto' and access:
+            return RedirectResponse('/line')
         return await call_next(request)
 
     @app.get('/api/v1/release')

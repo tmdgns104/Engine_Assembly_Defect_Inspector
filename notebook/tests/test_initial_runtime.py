@@ -49,7 +49,7 @@ class GrantQueueRace(unittest.TestCase):
                     assert g.initial_pending is not None
                     g.health_update(True,False,time.monotonic())
                 reads.append(1)
-                b=bytearray(160);b[:8]=b'EAI1\x02\0\x01\0'
+                b=bytearray(160);b[:8]=b'EAI1\x03\0\x01\0'
                 now=time.monotonic();struct.pack_into('<QIIddd',b,8,1,1,0,now,now,0)
                 struct.pack_into('<7I',b,48,15,10,0,0,0,0,0)
                 return bytes(b)
@@ -104,7 +104,7 @@ class IpcReceivePolling(unittest.TestCase):
                 if kind=='timeout':raise ipc.socket.timeout('poll')
                 if kind=='eof':return b''
                 if kind=='stop':g.stop.set()
-                b=bytearray(160);b[:8]=b'EAI1\x02\0\x01\0'
+                b=bytearray(160);b[:8]=b'EAI1\x03\0\x01\0'
                 struct.pack_into('<QIIddd',b,8,1,1,0,when,when,0)
                 struct.pack_into('<7I',b,48,15,10,0,0,0,0,0)
                 return bytes(b)

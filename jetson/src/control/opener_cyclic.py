@@ -19,7 +19,7 @@ DECISIONS = {'PASS':1, 'FAIL':2, 'REVIEW':3, 'ERROR':4}
 PLC_RESULT_POLICY = 'PASS_OK_OTHER_NG_V1'
 
 def decode_snapshot(data, now):
-    if len(data)!=160 or data[:8]!=b'EAI1\x02\x00\x01\x00':
+    if len(data)!=160 or data[:8]!=b'EAI1\x03\x00\x01\x00':
         raise ValueError('IPC_SCHEMA_INVALID')
     boot, connection, request, generated, received, accepted = struct.unpack_from('<QIIddd', data,8)
     flags, phase, results, done, complete, ack, rejected = struct.unpack_from('<7I',data,48)
@@ -38,7 +38,7 @@ def decode_snapshot(data, now):
 def command(snapshot, session, op, *, flags=0, identifier='', decision=0, now=None, approval_id=''):
     if len(session)!=32 or (identifier and len(identifier)!=32):
         raise ValueError('IPC_IDENTITY_LENGTH')
-    b=bytearray(160); b[:8]=b'EAI1\x02\x00\x02\x00'
+    b=bytearray(160); b[:8]=b'EAI1\x03\x00\x02\x00'
     struct.pack_into('<QIId',b,8,snapshot['boot'],snapshot['connection'],snapshot['request_id'],
                      time.monotonic() if now is None else now)
     b[32:64]=session.encode('ascii'); b[64:96]=identifier.encode('ascii').ljust(32,b'\0')
@@ -68,6 +68,12 @@ class OpenerGateway:
 
     def health_update(self, ready, clear, now):
         with self.lock: self.health=(bool(ready),bool(clear),now)
+
+    def supervised_arm(self, snapshot, approval_id):
+        with self.lock:
+            if not self.writes_enabled or self.initial_pending or self.pending:
+                raise ValueError('SUPERVISED_PERMISSION_NOT_ENABLED_OR_PENDING')
+            self.initial_pending=(snapshot['boot'],snapshot['connection'],approval_id,time.monotonic(),5)
 
     def read_snapshot(self, now):
         with self.lock:
@@ -133,7 +139,8 @@ class OpenerGateway:
                 healthy=ready and 0<=now-renewed<=.4 and self.writes_enabled
                 client.sendall(command(snapshot,self.runtime_session,1,flags=int(healthy)|(int(healthy and clear)<<1)))
                 if initial:
-                    boot,connection,approval_id,queued=initial
+                    boot,connection,approval_id,queued=initial[:4]
+                    operation=initial[4] if len(initial)==5 else 4
                     # Reservation is queued before the owner renews health.
                     # Wait for that renewal; remove only before the first send
                     # or at expiration. Never retry an attempted/ambiguous send.
@@ -143,7 +150,7 @@ class OpenerGateway:
                             self.initial_error='INITIAL_GRANT_CONTEXT_OR_LEASE_EXPIRED'
                     elif healthy:
                         with self.lock: self.initial_pending=None
-                        client.sendall(command(snapshot,self.runtime_session,4,approval_id=approval_id))
+                        client.sendall(command(snapshot,self.runtime_session,operation,approval_id=approval_id))
                 if pending:
                     key,identifier,decision,queued=pending
                     current=(snapshot['boot'],snapshot['connection'],snapshot['request_id'])
@@ -222,6 +229,15 @@ class CyclicHandshake:
 
     def shutdown(self):
         self.closed=True; self.fault('LOCAL_SERVICE_STOP')
+
+    def retire_supervised(self):
+        # Runtime checked durable completion and operator evidence before this.
+        # No resync command/health cancellation: C still owns admission and IDs.
+        self.token=self.inspection_id=self.accepted_at=None
+        self.clearance_required_after=None
+        self.cancelled=False; self.closed=False
+        self.state='SYNC_LOW'; self.reason='WAIT_NEW_SUPERVISED_START'
+        self.publication='NOT_STARTED'
 
     def resync(self):
         # Existing maintenance recovery API: only an observed stopped PLC may

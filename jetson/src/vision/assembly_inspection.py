@@ -10,6 +10,7 @@ class AssemblyInspector(ShadowObserver):
     def __init__(self, *args, **kwargs):
         self.ready = False
         self.load_error = None
+        self.active_identifier = None
         super().__init__(*args, **kwargs)
 
     def _save(self, identifier, value):
@@ -37,6 +38,7 @@ class AssemblyInspector(ShadowObserver):
         while not self.stop.is_set():
             try: row = self.jobs.get(timeout=.2)
             except queue.Empty: continue
+            self.active_identifier = row['inspection_id']
             try:
                 self.process_one(row)
             except Exception as error:
@@ -48,11 +50,19 @@ class AssemblyInspector(ShadowObserver):
                     self.ready = False
                     self.load_error = 'ASSEMBLY_RECORDING_FAILED:' + str(storage_error)
                     return
+            finally:
+                self.active_identifier = None
+                self.jobs.task_done()
 
     def result(self, identifier):
         path = self.evidence_path(identifier)
         return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else None
 
     def status(self):
+        # unfinished_tasks spans enqueue -> get -> completion, including the
+        # brief handoff before active_identifier is assigned by the worker.
+        with self.jobs.mutex:
+            outstanding = self.jobs.unfinished_tasks
         return dict(self.latest, pending=self.jobs.qsize(), ready=self.ready,
+                    active_identifier=self.active_identifier, outstanding=outstanding,
                     error=self.load_error, mode='REQUIRED_FINAL_COMPONENT')

@@ -115,5 +115,5 @@ class ApprovalTests(unittest.TestCase):
             with self.assertRaises(ValueError):decode_snapshot(b,self.now)
     def test_v2_command_layout(self):
         b=command(self.s,'a'*32,4,approval_id='b'*32,now=self.now)
-        self.assertEqual(len(b),160);self.assertEqual(b[:8],b'EAI1\x02\0\x02\0')
+        self.assertEqual(len(b),160);self.assertEqual(b[:8],b'EAI1\x03\0\x02\0')
         self.assertEqual(b[128:],b'b'*32)

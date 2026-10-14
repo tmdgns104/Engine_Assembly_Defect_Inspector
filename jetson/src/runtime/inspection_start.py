@@ -12,7 +12,11 @@ def start_policy(profile, contract):
     if policy == FULL_FRAME and contract != 'OPENER_CYCLIC':
         raise ValueError('FULL_FRAME_REQUIRES_OPENER_CYCLIC')
     if policy == FULL_FRAME:
-        if profile.get('cycle_admission') not in ('FIRST_PRODUCT_ONLY', 'VERIFIED_CLEARANCE'):
+        supervised = 'SUPERVISED_REPEAT_TEST'
+        if ((profile.get('cycle_admission') == supervised) !=
+                (profile.get('initial_authorization') == supervised)):
+            raise ValueError('MATCHED_SUPERVISED_AUTHORIZATION_REQUIRED')
+        if profile.get('cycle_admission') not in ('FIRST_PRODUCT_ONLY', 'VERIFIED_CLEARANCE', 'SUPERVISED_REPEAT_TEST'):
             raise ValueError('EXPLICIT_CYCLE_ADMISSION_REQUIRED')
         qualification = profile.get('request_start_qualification', {})
         if type(qualification.get('verified')) is not bool:
