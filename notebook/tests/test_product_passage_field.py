@@ -129,6 +129,40 @@ class FieldPassageTests(unittest.TestCase):
         proof=self.frame((.77,.24,.99,.86))
         self.assertIsNotNone(proof,self.p.status())
 
+    def test_recorded_outbound_width_changes_use_adjacent_geometry(self):
+        # Actual next field trial 2703..2719: gradual bbox width changes while
+        # both horizontal edges move left. A fixed initial-width ceiling lost
+        # this continuous track at 2719 (0.59226 versus 0.58828 ceiling).
+        self.origin=self.make((.35843,.24587,.89670,.95530))
+        self.p=ProductPassage({'inspection_id':'old'},self.origin,'left',
+                              tracker_config=tracker_config(ZONE))
+        boxes=[
+            (0.35877, 0.24543, 0.89886, 0.94469),
+            (0.35815, 0.24273, 0.89691, 0.94595),
+            (0.35954, 0.24388, 0.89694, 0.91972),
+            (0.35694, 0.24112, 0.8938, 0.92124),
+            (0.34144, 0.24512, 0.88807, 0.89494),
+            (0.314, 0.24383, 0.87876, 0.9352),
+            (0.29123, 0.24093, 0.85327, 0.8953),
+            (0.26092, 0.23754, 0.84244, 1),
+            (0.24162, 0.24337, 0.81504, 0.9764),
+            (0.23756, 0.23596, 0.79652, 1),
+            (0.20093, 0.2281, 0.76865, 1),
+            (0.19058, 0.231, 0.75304, 1),
+            (0.14917, 0.22536, 0.7352, 1),
+            (0.13063, 0.2301, 0.71553, 1),
+            (0.1051, 0.23488, 0.69157, 1),
+            (0.08427, 0.23268, 0.67653, 1),
+        ]
+        for b in boxes:
+            self.assertIsNone(self.frame(b))
+            self.assertFalse(self.p.invalid,self.p.status())
+
+    def test_sudden_unassociated_width_expansion_still_blocks(self):
+        self.frame((.10,.24,.92,.95))
+        self.assertTrue(self.p.invalid)
+        self.assertIsNone(self.p.proof)
+
 
 if __name__ == '__main__':
     unittest.main()

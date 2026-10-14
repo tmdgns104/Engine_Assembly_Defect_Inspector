@@ -48,11 +48,12 @@ class ProductPassage:
     def _associated_outbound(self, current, elapsed):
         a, b = self._axis(self.box)
         x, y = self._axis(current)
-        origin_a, origin_b = self._axis(self.origin)
         center = (x+y)/2
         if (x < a-self.jitter-1e-9 or x >= b or y < b-self.jitter-1e-9
                 or center < self.furthest-self.jitter-1e-9
-                or y-x > origin_b-origin_a+2*self.jitter+1e-9
+                # Detector width changes along the image. Bound its change
+                # against the adjacent associated box, not the first box.
+                or y-x > b-a+2*self.jitter+1e-9
                 or min(current['y2'],self.box['y2']) <= max(current['y1'],self.box['y1'])):
             return False
         if self.tracker_config:
