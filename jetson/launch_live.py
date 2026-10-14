@@ -16,10 +16,15 @@ def sha256(path):
 
 
 def check_files(package, station, *, plc_bench=False, mock_auto_request=False,
-                inspection_motion_mode='STATIONARY', conveyor_capture_zone=None):
+                inspection_motion_mode='STATIONARY', conveyor_capture_zone=None,
+                plc_contract='LEGACY_THREE_BOOL'):
     """추론·DB·카메라를 시작하기 전에 파일과 PLC 벤치 경계를 확인한다."""
     if plc_bench and mock_auto_request:
         raise ValueError('MOCK_AUTO_REQUEST_AND_REAL_PLC_ARE_EXCLUSIVE')
+    if plc_contract not in ('LEGACY_THREE_BOOL', 'EXTENDED_V2'):
+        raise ValueError('PLC_CONTRACT_VERSION_INVALID')
+    if plc_contract == 'EXTENDED_V2' and not plc_bench:
+        raise ValueError('V2_REQUIRES_EXPLICIT_REAL_PLC_MODE')
     if inspection_motion_mode not in ('STATIONARY','CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
         raise ValueError('INSPECTION_MOTION_MODE_INVALID')
     if inspection_motion_mode=='CONVEYOR_MOTION_DEV':
@@ -47,10 +52,23 @@ def check_files(package, station, *, plc_bench=False, mock_auto_request=False,
                           'Jetson_Done': 'JETSON_TO_PLC_BOOL'}):
         raise ValueError('PLC_BENCH_TAG_CONTRACT_MISMATCH')
     area = json.loads((config / 'area_clearance.json').read_text(encoding='utf-8'))
+    if area.get('mode') == 'CONVEYOR_HORIZONTAL_TEXTURE_V1':
+        from src.observation.horizontal_conveyor import validate_horizontal_config
+        validate_horizontal_config(area)
+        # Loading observation code is not field clearance qualification.
+        raise ValueError('HORIZONTAL_TEXTURE_ISOLATED_VALIDATION_ONLY')
     if area.get('mode') == 'DARK_SURFACE_SELF_OBSERVED':
         if (area.get('references') or area.get('roi') != 'DYNAMIC_DARK_SURFACE_FULL_HEIGHT'
                 or area.get('shape') != [720, 1280, 3]):
             raise ValueError('DARK_SURFACE_CONFIG_INVALID')
+    elif area.get('mode') == 'CONVEYOR_DARK_BELT_SELF_OBSERVED':
+        from src.observation.conveyor_occupancy import validate_conveyor_config
+        validate_conveyor_config(area)
+    elif area.get('mode') == 'CONVEYOR_FROZEN_EMPTY_ENVELOPE':
+        from src.observation.conveyor_reference import ConveyorReferenceOccupancy
+        # Verify fixed geometry, source sequence and all reference hashes before
+        # any hardware startup. A parseable JSON file is not a valid calibration.
+        ConveyorReferenceOccupancy.from_config(config / 'area_clearance.json')
     else:
         for reference in area['references']:
             path = (config / reference['path']).resolve()
@@ -82,6 +100,7 @@ def check_files(package, station, *, plc_bench=False, mock_auto_request=False,
         'area_config_sha256': sha256(config / 'area_clearance.json'),
         'station_sha256': sha256(station),
         'backend': 'OMRON_CIP_BENCH' if plc_bench else 'MOCK',
+        'plc_contract': plc_contract,
         'mock_auto_request_enabled': bool(mock_auto_request),
         'inspection_motion_mode': inspection_motion_mode,
         'conveyor_capture_zone_normalized': conveyor_capture_zone,
@@ -97,6 +116,11 @@ def add_arguments(parser):
     parser.add_argument('--port', type=int, default=18771)
     parser.add_argument('--plc-bench', action='store_true',
                         help='192.168.50.3의 세 검증된 태그만 사용; 실제 PLC 결과/Done 쓰기')
+    parser.add_argument('--plc-contract', choices=('LEGACY_THREE_BOOL', 'EXTENDED_V2'),
+                        default='LEGACY_THREE_BOOL',
+                        help='명시적 PLC 계약 선택. v2는 시작 후 7개 태그 자료형을 먼저 읽어 검증')
+    parser.add_argument('--misassembly-shadow', action='store_true',
+                        help='같은 요청의 저장 원본에서 동결된 오조립 모델 실행; PLC 판정과 분리')
     parser.add_argument('--mock-auto-request', action='store_true',
                         help='개발용 MOCK: 새 Track의 검사영역 진입에서 Request 자동 생성')
     parser.add_argument('--inspection-motion-mode',choices=('STATIONARY','CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'),default='STATIONARY')
@@ -112,9 +136,15 @@ def main():
     package = args.package.resolve()
     station, identity = check_files(package, args.station.resolve(), plc_bench=args.plc_bench,
                                    mock_auto_request=args.mock_auto_request,
+                                   plc_contract=args.plc_contract,
                                    inspection_motion_mode=args.inspection_motion_mode,
                                    conveyor_capture_zone=args.conveyor_capture_zone)
     identity['data_root'] = str(args.data_root.resolve())
+    identity['misassembly_shadow_enabled'] = args.misassembly_shadow
+    shadow_assets = ROOT.parent/'assets/misassembly_runtime'
+    if args.misassembly_shadow:
+        from src.vision.misassembly_shadow import verify_assets
+        verify_assets(shadow_assets)  # Hash-only; no torch/model/camera execution.
     if args.check_only:
         print(json.dumps(identity, ensure_ascii=False))
         return
@@ -124,12 +154,18 @@ def main():
     gateway = None
     if args.plc_bench:
         from src.control.omron_cip import OmronCipGateway
-        gateway = OmronCipGateway('192.168.50.3', '192.168.50.2')
+        from src.control.plc_v2 import OmronCipV2Gateway
+        gateway_type = OmronCipV2Gateway if args.plc_contract == 'EXTENDED_V2' else OmronCipGateway
+        gateway = gateway_type('192.168.50.3', '192.168.50.2')
     runtime = build_runtime(package, station, args.data_root.resolve(), mode='production',
                             production_gateway=gateway,auto_mock_request=args.mock_auto_request,
                             inspection_motion_mode=args.inspection_motion_mode,
                             conveyor_capture_zone=args.conveyor_capture_zone)
     try:
+        if args.misassembly_shadow:
+            from src.vision.misassembly_shadow import ShadowObserver
+            runtime.shadow = ShadowObserver(args.data_root.resolve(), args.data_root.resolve()/'misassembly_shadow',
+                                            assets_root=shadow_assets)
         # 모델 의존 패키지 envelope는 운영자 선택 목록에 노출하지 않는다.
         app = create_integrated_app(runtime, {package.parent.name + '/' + package.name: package})
 

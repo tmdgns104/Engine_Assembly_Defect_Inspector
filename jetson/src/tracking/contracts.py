@@ -158,6 +158,7 @@ class SingleActiveTrackerConfig:
     zone_hysteresis: float = 0.0
     zone_entry_frames: int = 1
     wait_area_clear: bool = False
+    plc_request_tracking: bool = False
 
     def __post_init__(self) -> None:
         if type(self.inspection_window) is not InspectionWindow:
@@ -182,6 +183,10 @@ class SingleActiveTrackerConfig:
                     raise ValueError(name + ' must be positive')
         if type(self.free_motion) is not bool: raise TypeError('free_motion must be bool')
         if type(self.wait_area_clear) is not bool: raise TypeError('wait_area_clear must be bool')
+        if type(self.plc_request_tracking) is not bool:
+            raise TypeError('plc_request_tracking must be bool')
+        if self.plc_request_tracking and not self.free_motion:
+            raise ValueError('PLC_REQUEST_TRACKING_REQUIRES_FREE_MOTION')
         if self.wait_area_clear and not self.free_motion:
             raise ValueError('AREA_CLEARANCE_REQUIRES_FREE_MOTION_BENCH')
         require_number(self.zone_hysteresis, 'zone_hysteresis')

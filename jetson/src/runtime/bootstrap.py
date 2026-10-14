@@ -13,7 +13,8 @@ from src.tracking.contracts import InspectionWindow, SingleActiveTrackerConfig
 def build_runtime(package_root, station, data_root, mode='mock', diagnostic_devices=False,
                   tracker_config=None, recovery_policy=None, package_self_test_replay=False, auto_profile=None,
                   production_gateway=None, auto_mock_request=False,
-                  inspection_motion_mode='STATIONARY', conveyor_capture_zone=None):
+                  inspection_motion_mode='STATIONARY', conveyor_capture_zone=None,
+                  standalone_profile=None, assembly=None):
     if mode not in ('mock','auto','production'):
         raise ValueError('REAL_PLC_NOT_IMPLEMENTED')
     if mode == 'auto':
@@ -62,11 +63,12 @@ def build_runtime(package_root, station, data_root, mode='mock', diagnostic_devi
                 if area_path.exists():
                     raw=area_path.read_bytes()
                     area_mode=json.loads(raw).get('mode')
-                    # The real PLC bench may use only the reference-free dark
-                    # surface mode; old static references remain development-only.
-                    if production_gateway is None or area_mode=='DARK_SURFACE_SELF_OBSERVED':
+                    # Real PLC modes require current-frame surface evidence;
+                    # old stored-image references remain development-only.
+                    self_observed=area_mode in ('DARK_SURFACE_SELF_OBSERVED','CONVEYOR_DARK_BELT_SELF_OBSERVED')
+                    if production_gateway is None or self_observed:
                         area_version=hashlib.sha256(raw).hexdigest()
-                        area_reference_required=area_mode!='DARK_SURFACE_SELF_OBSERVED'
+                        area_reference_required=not self_observed
                 elif production_gateway is None:
                     area_version='MISSING_AREA_CONFIG'
             if inspection_motion_mode not in ('STATIONARY', 'CONVEYOR_MOTION_DEV', 'CONVEYOR_MOTION_PLC_BENCH'):
@@ -86,12 +88,23 @@ def build_runtime(package_root, station, data_root, mode='mock', diagnostic_devi
                 validate_zone(active_zone)
             else:
                 active_zone=zone
-            config=production_tracker_config(active_zone,wait_area_clear=bool(area_version))
+            from src.runtime.inspection_start import start_policy, FULL_FRAME
+            policy = start_policy(standalone_profile, getattr(production_gateway, 'contract_version', None))
+            config=production_tracker_config(active_zone,wait_area_clear=bool(area_version) or policy == FULL_FRAME,
+                                             plc_request_tracking=policy == FULL_FRAME)
             coordinator=VisionRuntimeCoordinator(uuid.uuid4().hex,config)
-            return ProductionRuntime(service,coordinator,WorkerObservationSource(),LocalResultOutput(),log_owner,config,
+            runtime_type = ProductionRuntime
+            line_options = {}
+            if standalone_profile is not None:
+                from src.runtime.standalone import StandaloneRuntime
+                if assembly is None or getattr(production_gateway, 'contract_version', None) not in ('STANDALONE_V3', 'LEGACY_THREE_BOOL', 'OPENER_CYCLIC'):
+                    raise ValueError('STANDALONE_REQUIRES_EXPLICIT_PLC_CONTRACT_AND_ASSEMBLY')
+                runtime_type = StandaloneRuntime
+                line_options = dict(line_profile=standalone_profile, assembly=assembly)
+            return runtime_type(service,coordinator,WorkerObservationSource(),LocalResultOutput(),log_owner,config,
                 recovery_policy or FaultPolicy(),zone=active_zone,area_config_version=area_version,
                 area_reference_required=area_reference_required,gateway=production_gateway,
-                auto_mock_request=auto_mock_request,inspection_motion_mode=inspection_motion_mode)
+                auto_mock_request=auto_mock_request,inspection_motion_mode=inspection_motion_mode,**line_options)
         if mode == 'auto':
             auto_profile=service.station['auto_profile']
             config=validate_profile(auto_profile,service.package)

@@ -110,7 +110,7 @@ class Journal:
             pending = self.db.execute("SELECT count(*) FROM outbox WHERE state!='ACKED'").fetchone()[0]
         if shutil.disk_usage(self.root).free < self.min_free_bytes:
             raise OSError("DISK_SPACE_LOW")
-        if pending >= self.outbox_limit:
+        if self.outbox_limit is not None and pending >= self.outbox_limit:
             raise OSError("OUTBOX_FULL")
 
     def find_request(self, request):

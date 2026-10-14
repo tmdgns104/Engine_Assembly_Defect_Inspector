@@ -28,8 +28,17 @@ def load_area_occupancy(path):
     try:
         raw=path.read_bytes()
         version=hashlib.sha256(raw).hexdigest()
+        if json.loads(raw).get('mode') == 'CONVEYOR_HORIZONTAL_TEXTURE_V1':
+            from src.observation.horizontal_conveyor import HorizontalTextureOccupancy
+            return HorizontalTextureOccupancy.from_config(path,raw)
         if json.loads(raw).get('mode')=='DARK_SURFACE_SELF_OBSERVED':
             return DarkSurfaceOccupancy.from_config(path,raw)
+        if json.loads(raw).get('mode')=='CONVEYOR_DARK_BELT_SELF_OBSERVED':
+            from src.observation.conveyor_occupancy import ConveyorSurfaceOccupancy
+            return ConveyorSurfaceOccupancy.from_config(path,raw)
+        if json.loads(raw).get('mode')=='CONVEYOR_FROZEN_EMPTY_ENVELOPE':
+            from src.observation.conveyor_reference import ConveyorReferenceOccupancy
+            return ConveyorReferenceOccupancy.from_config(path,raw)
         return BackgroundOccupancy.from_config(path)
     except (OSError,ValueError,KeyError,TypeError) as error:
         return UnavailableOccupancy(version,'AREA_REFERENCE_UNAVAILABLE:'+type(error).__name__)

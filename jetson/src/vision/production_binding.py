@@ -1,5 +1,6 @@
 """Verify each inspected envelope against its latched product, never against parts."""
 import math
+from src.runtime.inspection_start import FULL_FRAME
 from src.decision.engine_dynamic import box_of,SLOTS
 
 
@@ -16,6 +17,8 @@ def verify_observations(result,observations,binding,generation,package_sha):
     if generation!=binding['worker_generation'] or package_sha!=binding['package_manifest_sha']:
         reasons.append('WORKER_OR_PACKAGE_IDENTITY_CHANGED')
     zone=binding['inspection_zone']['polygon_normalized']
+    request_tracking = (binding.get('inspection_start_policy') == FULL_FRAME
+                        and binding.get('plc_contract') == 'OPENER_CYCLIC')
     for i,o in enumerate(observations,1):
         fresh=o['freshness']; failed=[]
         if fresh.get('camera_epoch')!=epoch: failed.append('CAMERA_EPOCH_CHANGED')
@@ -26,7 +29,7 @@ def verify_observations(result,observations,binding,generation,package_sha):
         if product:
             x1,y1,x2,y2=box_of(product); box=[x1/o['width'],y1/o['height'],x2/o['width'],y2/o['height']]
             center=((box[0]+box[2])/2,(box[1]+box[3])/2)
-            if not (zone[0][0]-.025<=center[0]<=zone[2][0]+.025 and zone[0][1]-.025<=center[1]<=zone[2][1]+.025):
+            if not request_tracking and not (zone[0][0]-.025<=center[0]<=zone[2][0]+.025 and zone[0][1]-.025<=center[1]<=zone[2][1]+.025):
                 failed.append('PRODUCT_OUTSIDE_INSPECTION_ZONE')
             if binding.get('track_id') is None: failed.append('NO_ELIGIBLE_TRACK_AT_REQUEST_DEADLINE')
             if previous:

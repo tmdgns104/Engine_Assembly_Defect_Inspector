@@ -58,17 +58,27 @@ def postprocess(outputs, contract, names, confidence, nms_iou, transform, *, dia
     height, width = transform.original_shape
     left, top, _, _ = transform.padding
     detections = []
+    coordinate_trace = []
     for index in kept:
         box = (xyxy[index] - np.array([left, top, left, top])) / transform.gain
+        before_clip = box.copy()
         box = np.clip(box, [0, 0, 0, 0], [width, height, width, height])
         if not np.isfinite(box).all() or box[0] >= box[2] or box[1] >= box[3]:
             raise DetectorError("OUTPUT_CONTRACT_MISMATCH: degenerate restored box")
         raw_index = eligible[index]
         class_id = int(classes[raw_index])
+        if diagnostics is not None and candidate_trace:
+            coordinate_trace.append(dict(raw_index=int(raw_index),
+                raw_xywh=boxes[index].tolist(), letterbox_xyxy=xyxy[index].tolist(),
+                restored_before_clip=before_clip.tolist(), restored_after_clip=box.tolist(),
+                clipped_edges=[edge for edge, a, b in
+                    zip(('left','top','right','bottom'), before_clip, box) if a != b],
+                confidence=float(best[raw_index]), class_id=class_id))
         detections.append(Detection(class_id, names[class_id], float(best[raw_index]),
                                     BoundingBox(*(float(v) for v in box))))
     if diagnostics is not None:
         if candidate_trace:
+            diagnostics['bbox_coordinate_trace'] = coordinate_trace
             diagnostics.update(eligible_raw_indices=eligible.tolist(),kept_raw_indices=eligible[kept].tolist(),
                                nms_suppressed_raw_indices=suppressed,max_det_discarded_raw_indices=eligible[order].tolist(),
                                raw_output_saved_separately=True)

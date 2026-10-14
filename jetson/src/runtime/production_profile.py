@@ -21,10 +21,11 @@ def validate_zone(value):
     return InspectionWindow(x1,y1,x2,y2)
 
 
-def tracker_config(zone, *, wait_area_clear=False):
+def tracker_config(zone, *, wait_area_clear=False, plc_request_tracking=False):
     return SingleActiveTrackerConfig(validate_zone(zone),'x',1,.22,.22,12,1,
         max_center_speed_norm_s=.2,max_unobserved_seconds=3,
-        free_motion=True,zone_hysteresis=.025,zone_entry_frames=3,wait_area_clear=wait_area_clear)
+        free_motion=True,zone_hysteresis=.025,zone_entry_frames=3,wait_area_clear=wait_area_clear,
+        plc_request_tracking=plc_request_tracking)
 
 
 def proposed_zone():

@@ -181,3 +181,37 @@ class OmronCipGateway:
                 connection.close()
             finally:
                 self.session = 0
+
+
+class LegacyStandaloneGateway(OmronCipGateway):
+    """Explicit existing-ladder selection; never fall back from a failed V3 probe."""
+    contract_version = 'LEGACY_THREE_BOOL'
+
+    def __init__(self, *args, writes_enabled=False, **kwargs):
+        if type(writes_enabled) is not bool:
+            raise ValueError('EXPLICIT_BOOL_WRITE_PERMISSION_REQUIRED')
+        super().__init__(*args, **kwargs)
+        self.writes_enabled = writes_enabled
+        self.contract_verified = False
+
+    def probe_contract(self):
+        self.contract_verified = False
+        values = {tag: self._read_bool(tag) for tag in sorted(self._ALLOWED_READS)}
+        self.contract_verified = True
+        return values
+
+    def _write_bool(self, tag, value):
+        if tag not in self._ALLOWED_WRITES or type(value) is not bool:
+            raise ValueError('EXISTING_RESULT_DONE_BOOL_ONLY')
+        if not self.writes_enabled or not self.contract_verified:
+            return IoResult('FAILED', error='LEGACY_PUBLICATION_DISABLED_OR_UNVERIFIED')
+        return super()._write_bool(tag, value)
+
+    def health(self):
+        result = super().health()
+        result.update(contract_version=self.contract_version,
+                      network_plc_writes_enabled=self.writes_enabled,
+                      contract_schema_verified=self.contract_verified,
+                      hardware_status='EXISTING_THREE_BOOL_ONLY',
+                      ack_scope='WRITE_READBACK_ONLY', plc_consumption_confirmed=False)
+        return result

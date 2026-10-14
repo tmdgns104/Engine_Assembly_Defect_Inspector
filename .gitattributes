@@ -1,6 +1,9 @@
 # Jetson launch scripts must retain Unix line endings on Windows checkouts.
 *.sh text eol=lf
 /jetson/** text eol=lf
+/jetson/opener/OpENer -text
+# Preserve the audited upstream C stack, EDS and license bytes verbatim.
+/jetson/opener/source_profile/** -text
 /jetson/products/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /jetson/runtime.example.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /jetson/station.example.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

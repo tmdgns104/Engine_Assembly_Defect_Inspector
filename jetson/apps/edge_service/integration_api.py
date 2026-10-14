@@ -4,13 +4,34 @@ import logging
 from contextlib import asynccontextmanager
 from functools import wraps
 
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+import json
 from apps.edge_service.inspection_api import create_app
 from src.journal.sqlite import ConflictError
 
 
 def create_integrated_app(runtime, catalog):
     app = create_app(runtime.service,catalog,own_service=False)
+
+    @app.get('/api/v1/runtime/shadow/{inspection_id}')
+    def shadow_result(inspection_id: str):
+        observer = getattr(runtime, 'shadow', None)
+        if observer is None:
+            return JSONResponse({'state': 'INCLUDED_DISABLED'}, status_code=404)
+        path = observer.evidence_path(inspection_id)
+        if not path.is_file():
+            return JSONResponse({'state': 'PENDING_OR_NOT_RUN'}, status_code=202)
+        return json.loads(path.read_text(encoding='utf-8'))
+
+    @app.get('/api/v1/runtime/shadow/{inspection_id}/images/{name}')
+    def shadow_image(inspection_id: str, name: str):
+        observer = getattr(runtime, 'shadow', None)
+        if observer is None:
+            return JSONResponse({'error': 'SHADOW_DISABLED'}, status_code=404)
+        path = observer.evidence_path(inspection_id, name)
+        if not path.is_file():
+            return JSONResponse({'error': 'SHADOW_IMAGE_NOT_CREATED'}, status_code=404)
+        return FileResponse(path, media_type='image/png')
 
     @asynccontextmanager
     async def lifespan(app):

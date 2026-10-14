@@ -17,7 +17,7 @@ def decision_bit(decision):
 @dataclass(frozen=True)
 class IoResult:
     status: str
-    value: bool | None = None
+    value: bool | int | None = None
     error: str | None = None
 
 
@@ -73,6 +73,11 @@ class RequestHandshake:
         self.state='RESYNC_REQUIRED'; self.reason=reason
         if publication: self.publication=publication
         self.record('PLC_FAULT',reason=reason)
+    def _request_withdrawn(self, now):
+        self.early_off=True
+        self.record('PLC_REQUEST_EARLY_OFF',inspection_cancelled=False,product_clearance=False)
+    def _done_cleared(self, now):
+        self.state='ARMED'; self.token=None; self.inspection_id=None
     def resync(self):
         if self.inspection_id and self.state=='INSPECTING': raise ValueError('INSPECTION_RUNNING')
         read=self.gateway.read_request()
@@ -105,7 +110,7 @@ class RequestHandshake:
             self.state='REQUEST_LATCHED'; self.record('PLC_REQUEST_LATCHED')
         elif self.state in ('REQUEST_LATCHED','INSPECTING'):
             if not read.value and not self.early_off:
-                self.early_off=True; self.record('PLC_REQUEST_EARLY_OFF',inspection_cancelled=False,product_clearance=False)
+                self._request_withdrawn(now)
             elif read.value and previous is False and self.early_off:
                 self.fault('OVERLAPPING_REQUEST_BEFORE_COMPLETION')
         elif self.state=='WAIT_REQUEST_OFF':
@@ -115,7 +120,7 @@ class RequestHandshake:
                     self.fault('DONE_RESET_UNCONFIRMED',reply.status if reply.status in ('FAILED','UNKNOWN') else 'UNKNOWN')
                     return
                 self.record('PLC_DONE_CLEARED',product_clearance=False,result_retained=True)
-                self.state='ARMED'; self.token=None; self.inspection_id=None
+                self._done_cleared(now)
             elif now-self.published_at>self.clear_timeout:
                 self.fault('REQUEST_CLEAR_TIMEOUT')
     def bind(self,inspection_id):
@@ -154,3 +159,135 @@ class RequestHandshake:
         return dict(self.gateway.health(),state=self.state,plc_request_token=self.token,
             inspection_id=self.inspection_id,request_early_off=self.early_off,
             publication_status=self.publication,reason=self.reason)
+
+
+class LegacyStandaloneHandshake(RequestHandshake):
+    """Use the existing PLC BOOLs without inventing an ACK or a stop signal.
+
+    Request OFF can mean sensor clearance or STOP in the saved PLC ladder.
+    Request OFF blocks this cycle's output. Repeated edges do not stop camera
+    acquisition or admit a second inspection. Only verified product departure
+    and idle PLC tags can release the cycle; neither implies motor permission.
+    """
+    def __init__(self, gateway, event, *, clear_timeout=20):
+        super().__init__(gateway, event, clear_timeout=clear_timeout)
+        self.initialized = False
+        self.cancelled = False
+        self.cycle_id = None  # No PLC cycle/session identifiers exist in this contract.
+        self.session_id = None
+        self.inputs = {}
+        self.outputs = {}
+        self.duplicate_requests_ignored = 0
+        self.clearance_required_after = None
+
+    def record(self, name, **extra):
+        super().record(name, ack_scope='WRITE_READBACK_ONLY',
+                       plc_consumption_confirmed=False, **extra)
+
+    def poll(self, now):
+        if self.state == 'RESYNC_REQUIRED':
+            return
+        if self.state == 'WAIT_PRODUCT_CLEAR':
+            read = self.gateway.read_request()
+            if read.status != 'ACK' or type(read.value) is not bool:
+                self.fault('REQUEST_READ_FAILED')
+                return
+            previous, self.request = self.request, read.value
+            if read.value and previous is False:
+                self.duplicate_requests_ignored += 1
+                self.record('PLC_DUPLICATE_REQUEST_IGNORED',
+                    duplicate_requests_ignored=self.duplicate_requests_ignored,
+                    new_inspection=False, product_clearance=False)
+            return
+        if not self.initialized:
+            try:
+                values = self.gateway.probe_contract()
+            except Exception as error:
+                self.reason = 'WAIT_EXISTING_PLC_TAGS:' + str(error)
+                return
+            if values['Inspection_Request'] or values['Jetson_Done']:
+                self.fault('LEGACY_BOOT_RESIDUAL_REQUEST_OR_DONE', 'BLOCKED')
+                return
+            self.initialized = True
+            self.reason = None
+        super().poll(now)
+        if self.state == 'SYNC_LOW':
+            # Recheck every existing tag after idle link loss. A residual Done
+            # from a PLC/reconnect boundary must not be adopted as a new cycle.
+            self.initialized = False
+
+    def publish(self, inspection_id, decision, durable, now):
+        if durable is not True or inspection_id != self.inspection_id or not self.token:
+            raise ValueError('PUBLICATION_IDENTITY_OR_DURABILITY_MISMATCH')
+        if self.state == 'WAIT_PRODUCT_CLEAR':
+            self.record('PLC_PUBLICATION_BLOCKED', reason=self.reason)
+            return
+        if decision in ('REVIEW', 'ERROR'):
+            if self.state != 'INSPECTING' or self.cancelled:
+                self.record('PLC_PUBLICATION_BLOCKED', reason=self.reason)
+                return
+            self.poll(now)
+            if self.state != 'INSPECTING':
+                return
+            # A valid diagnostic outcome is not a broken communication channel.
+            # Preserve the product boundary, but keep polling and observing.
+            self.state = 'WAIT_PRODUCT_CLEAR'
+            self.reason = 'LEGACY_BOOL_UNREPRESENTABLE_' + decision
+            self.publication = 'NOT_SENT'
+            self.clearance_required_after = now
+            self.record('PLC_DIAGNOSTIC_RESULT_HELD', vision_decision=decision,
+                        reason=self.reason, plc_writes=0)
+            return
+        super().publish(inspection_id, decision, durable, now)
+
+    def _request_withdrawn(self, now):
+        self.early_off = True
+        self.state = 'WAIT_PRODUCT_CLEAR'
+        self.reason = 'LEGACY_REQUEST_WITHDRAWN_RESULT_BLOCKED'
+        self.publication = 'BLOCKED'
+        self.clearance_required_after = now
+        self.record('PLC_REQUEST_EARLY_OFF', inspection_cancelled=True,
+                    product_clearance=False, reason=self.reason)
+
+    def _done_cleared(self, now):
+        # Keep the same product identity after handshake completion. Sensor
+        # bounce on its way out is not another product, even after Done=OFF.
+        self.state = 'WAIT_PRODUCT_CLEAR'
+        self.reason = 'LEGACY_COMPLETED_WAIT_PRODUCT_CLEAR'
+        self.clearance_required_after = now
+
+    def release_cleared_cycle(self, *, product_clear):
+        if self.state != 'WAIT_PRODUCT_CLEAR' or product_clear is not True:
+            return False
+        try:
+            values = self.gateway.probe_contract()
+        except Exception:
+            self.fault('CLEARANCE_PLC_READ_FAILED')
+            return False
+        if values.get('Inspection_Request') is not False or values.get('Jetson_Done') is not False:
+            return False
+        self.record('PLC_PRODUCT_CYCLE_RELEASED', product_clearance=True,
+                    previous_outcome=self.reason, plc_writes=0)
+        self.state, self.request, self.reason = 'ARMED', False, None
+        self.token = self.inspection_id = self.accepted_at = None
+        self.early_off = False
+        self.publication = 'NOT_STARTED'
+        self.clearance_required_after = None
+        return True
+
+    def shutdown(self):
+        # No PLC motor/stop channel exists here. Never claim physical stopping.
+        self.cancelled = True
+        self.fault('LOCAL_SERVICE_STOP_RESULT_BLOCKED', 'BLOCKED')
+
+    def status(self):
+        return dict(super().status(), contract_version='LEGACY_THREE_BOOL',
+                    contract_schema_verified=self.initialized,
+                    ack_scope='WRITE_READBACK_ONLY', plc_consumption_confirmed=False,
+                    plc_consumed_cycle_id=None, motor_feedback='NOT_AVAILABLE',
+                    physical_stop_observable=False, cancelled=self.cancelled,
+                    duplicate_requests_ignored=self.duplicate_requests_ignored,
+                    clearance_required_after=self.clearance_required_after,
+                    limitations=['REQUEST_OFF_SENSOR_OR_STOP_AMBIGUOUS',
+                                 'NO_PLC_CONSUMPTION_ACK', 'NO_PLC_READY_HEARTBEAT',
+                                 'PLC_PUSHER_SEQUENCE_UNCHANGED'])

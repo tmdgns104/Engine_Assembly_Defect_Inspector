@@ -1,0 +1,741 @@
+"""Continuous line owner: existing vision + frozen assembly, then one PLC result.
+
+Software acquisition starts without a browser. Physical Run remains PLC-owned.
+The upstream sensor opens a serial arrival window; only its first unambiguous
+new track can be bound. No previous-product pose or prediction is inherited.
+"""
+import json
+import queue
+import threading
+import time
+import uuid
+from datetime import datetime, timezone
+
+from src.control.standalone_plc import LineHandshake
+from src.runtime.production import ProductionRuntime
+from src.runtime.inspection_bridge import InspectionBridge
+from src.runtime.production_profile import calibration_sha
+from src.runtime.inspection_start import FULL_FRAME, start_policy, tracked_frame_evidence
+from src.vision.integrated_decision import combine_decisions
+from src.runtime.initial_approval import InitialApproval, POLICY as INITIAL_POLICY
+
+
+def arrival_evidence(packet, accepted_at, epoch, generation, zone):
+    """Geometry/freshness only; class labels are not arguments."""
+    if not packet or packet['monotonic_s'] <= accepted_at:
+        return False
+    if packet['camera_epoch'] != epoch or packet['generation'] != generation:
+        return False
+    observations = packet.get('provider', {}).get('observations', [])
+    if len(observations) != 1 or not packet['integrity']['valid']:
+        return False
+    box = observations[0]['bbox']
+    x1, y1 = zone['polygon_normalized'][0]
+    x2, y2 = zone['polygon_normalized'][2]
+    return bool(x1 < box['x1'] < box['x2'] < x2 and y1 < box['y1'] < box['y2'] < y2)
+
+
+class StandaloneRuntime(ProductionRuntime):
+    OBSERVATION_ISSUES = frozenset({
+        'TRACK_ASSOCIATION_OR_GAP_LOST', 'PRODUCT_OBSERVATION_GAP',
+        'INVALID_OR_STALE_PRODUCT_OBSERVATION', 'PRODUCT_FRAME_ORDER_INVALID',
+        'MULTIPLE_PRODUCT_AMBIGUITY', 'PRODUCT_DEPARTURE_NOT_OBSERVED',
+    })
+
+    def __init__(self, *args, line_profile, assembly, **kwargs):
+        self.configured = threading.Event()
+        self.line_profile, self.assembly = dict(line_profile), assembly
+        policy = start_policy(self.line_profile, getattr(kwargs.get('gateway'), 'contract_version', None))
+        if (policy == FULL_FRAME) != args[5].plc_request_tracking:
+            raise ValueError('START_POLICY_TRACKER_CONFIG_MISMATCH')
+        if policy == FULL_FRAME and kwargs.get('inspection_motion_mode', 'STATIONARY') != 'STATIONARY':
+            raise ValueError('PLC_REQUEST_POLICY_USES_EXISTING_STATIONARY_QUALITY_CHECKS')
+        self.initial_approval = None
+        self.cyclic_admissions = 0
+        self.cyclic_rearm_evidence = None
+        self.arrival = None
+        self.assembly_submitted = {}
+        self.recovery_at = 0
+        self.camera_retry_at = 0
+        self.camera_recovery = None
+        self.issue = None
+        self.cycle_issue = None
+        self.line_wait = 'INITIALIZING'
+        super().__init__(*args, **kwargs)
+        self.shadow = assembly  # Reuse existing evidence routes, not post-commit shadow dispatch.
+        self.service.journal.outbox_limit = None  # Optional notebook export is not a PLC dependency.
+        self.service.journal.min_free_bytes = line_profile['min_free_bytes']
+        if self._initial_policy():
+            self.initial_approval = InitialApproval(self.service.journal.root/'first-product-approval',
+                                                    self.gateway.runtime_session)
+        self.configured.set()
+
+    def start_auto(self):
+        raise ValueError('PHYSICAL_START_OWNS_LINE_RUN; SOFTWARE_ACQUISITION_IS_AUTOMATIC')
+
+    def _fault(self, reason):
+        if (getattr(self.gateway, 'contract_version', None) in ('LEGACY_THREE_BOOL', 'OPENER_CYCLIC')
+                and reason in self.OBSERVATION_ISSUES and self.operating and not self.error):
+            self._observation_issue(reason)
+            return
+        super()._fault(reason)
+        if self.handshake.state != 'RESYNC_REQUIRED':
+            self.handshake.fault(reason, 'BLOCKED')
+
+    def _observation_issue(self, reason):
+        """Keep acquisition alive; never recycle an accepted product's identity."""
+        if self.cycle_issue:
+            return
+        now = time.monotonic()
+        unbound = (self.handshake.token is None and self.handshake.state in ('SYNC_LOW', 'ARMED')
+                   and not self.service.active and not self.bridge.inspection_id)
+        self.issue = dict(reason=reason, scope='UNBOUND_PREVIEW' if unbound else 'REQUEST',
+            request_token=self.handshake.token, inspection_id=self.bridge.inspection_id,
+            occurred_at=datetime.now(timezone.utc).isoformat(), monotonic_s=now,
+            active=not unbound, action='REACQUIRE_PREVIEW' if unbound else 'WAIT_VERIFIED_PRODUCT_CLEAR')
+        self._event(dict(event='LINE_OBSERVATION_ISSUE', **self.issue))
+        self.eligible = False
+        if unbound:
+            self._reset_unbound_observation(now)
+            return
+        self.cycle_issue = dict(self.issue)
+        # Preserve the raw worker record. A late PASS can only become ERROR for
+        # this token; it cannot enter the next request or be sent to the PLC.
+        if self.service.active:
+            self.service.cancel(self.service.active['inspection_id'])
+        elif self.handshake.state == 'REQUEST_LATCHED':
+            self._finish_without_frames('ERROR', reason, now)
+
+    def _reset_unbound_observation(self, now):
+        self._replace_tracking_session(uuid.uuid4().hex)
+        self.inspected_tracks.clear()
+        self.window_event = None
+        self.eligible = False
+        self.new_product_after = now
+        self._reset_departure_candidate()
+        self.area_window.reset()
+
+    def _observation_hold(self, packet, provider):
+        issue = self.cycle_issue
+        if not issue:
+            return False
+        if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
+            # Continue the parent's validated clearance observation after C has
+            # cancelled/completed a token. Never call the legacy release API.
+            return bool(self.service.active)
+        # Parent validated packet identity, age, absence and the configured area
+        # evidence already. Request OFF or a timeout is never product clearance.
+        area = self.area_observation or {}
+        healthy_clear = bool(self.area_config_version and self._absence_ready()
+            and self._area_approval_current(area) and area.get('state') == 'CLEAR'
+            and area.get('first_clear_monotonic', -1) >= issue['monotonic_s']
+            and not self.service.active and not self.service.error)
+        self._diagnostic_reason = 'REQUEST_ISSUE_OBSERVING_FOR_CLEARANCE'
+        if (healthy_clear and self.handshake.state == 'WAIT_PRODUCT_CLEAR'
+                and self.handshake.release_cleared_cycle(product_clear=True)):
+            self._event(dict(event='LINE_REQUEST_ISSUE_CLEARED', previous_issue=issue,
+                             clearance_frame_id=packet['frame_id'], plc_writes=0))
+            self._reset_unbound_observation(time.monotonic())
+            self.arrival = None
+            self.cycle_issue = None
+            self.issue = dict(issue, active=False, action='CLEARED_WAIT_NEW_REQUEST')
+        return True
+
+    def stop_auto(self):
+        # Maintenance stop cannot assert motion. Physical independent STOP remains required.
+        with self.lock, self.service.lock:
+            self._fault('LOCAL_MAINTENANCE_HOLD')
+            self.handshake.fault('LOCAL_MAINTENANCE_HOLD', 'BLOCKED')
+            self.handshake.shutdown()
+            return self.status()
+
+    def _initial_policy(self):
+        return (self._full_frame_policy()
+            and self.line_profile.get('initial_authorization') == INITIAL_POLICY
+            and self.line_profile.get('cycle_admission') == 'FIRST_PRODUCT_ONLY')
+
+    def _profile_ready(self):
+        if self._initial_policy():
+            # Software policy selection only. Actual permission is a live, durable
+            # operator grant; field qualification remains explicitly unverified.
+            return True
+        if self._full_frame_policy():
+            qualification = self.line_profile.get('request_start_qualification', {})
+            return bool(qualification.get('verified') is True
+                and qualification.get('policy') == FULL_FRAME
+                and qualification.get('calibration_sha') == calibration_sha(self.service.calibration)
+                and isinstance(qualification.get('evidence'), str) and qualification['evidence'].strip())
+        return bool(self.line_profile.get('field_profile_verified') is True
+            and self.zone.get('confirmed')
+            and self.zone.get('calibration_sha') == calibration_sha(self.service.calibration)
+            and self.area_config_version)
+
+    def _clear(self, now):
+        if self._full_frame_policy():
+            # Actual departure evidence only; initial permission has its own IPC
+            # command and durable ledger. Never synthesize this from an approval.
+            qualification = self.line_profile.get('clearance_qualification', {})
+            if not (qualification.get('verified') is True and self.area_config_version
+                    and qualification.get('config_sha') == self.area_config_version
+                    and qualification.get('calibration_sha') == calibration_sha(self.service.calibration)
+                    and isinstance(qualification.get('evidence'), str) and qualification['evidence'].strip()):
+                return False
+            if (self.line_profile.get('cycle_admission') == 'FIRST_PRODUCT_ONLY'
+                    and self.cyclic_admissions):
+                return False
+        area = self.area_observation
+        return bool(self._absence_ready() and self._area_approval_current(area)
+            and area['state'] == 'CLEAR' and self.coordinator.active_cycle is None
+            and not self.service.active and self.latest_packet
+            and 0 <= now-self.latest_packet['processed_monotonic'] < 2)
+
+    def _full_frame_policy(self):
+        return (getattr(self, 'line_profile', {}).get('inspection_start_policy') == FULL_FRAME
+                and getattr(getattr(self, 'gateway', None), 'contract_version', None) == 'OPENER_CYCLIC')
+
+    def _inspection_start_ready(self, bound_eligible, motion_mode, motion_ready):
+        if self._full_frame_policy():
+            # Worker still evaluates blur/motion/pose and the three fresh frames.
+            return bound_eligible
+        return super()._inspection_start_ready(bound_eligible, motion_mode, motion_ready)
+
+    def _area_transaction_block(self):
+        if (getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC'
+                and self.handshake.state in ('WAIT_PRODUCT_CLEAR', 'HOLD')
+                and not self.handshake.request
+                and not self.service.active and not self.service.error
+                and self.operating and not self.error):
+            return None
+        if (getattr(self.gateway, 'contract_version', None) != 'LEGACY_THREE_BOOL'
+                or self.handshake.state != 'WAIT_PRODUCT_CLEAR'):
+            return super()._area_transaction_block()
+        # A withdrawn request may retire visually without a PLC publication.
+        # The cancelled worker must finish first; no fabricated ACK or CLEAR.
+        if not self.operating or self.error:
+            return 'USER_STOP_OR_SYSTEM_FAULT'
+        if (getattr(self.service, 'error', None) or
+                getattr(self.service, 'state', 'IDLE') in ('RECOVERY', 'STOPPED', 'CANCELLING')):
+            return 'INSPECTION_SERVICE_OR_CAMERA_FAULT'
+        if self.service.active:
+            return 'INSPECTION_IN_FLIGHT'
+        if self.bridge.inspection_id and self.bridge.inspection_id not in self.published_ids:
+            return 'RESULT_NOT_SETTLED'
+        if self.handshake.reason not in ('LEGACY_REQUEST_WITHDRAWN_RESULT_BLOCKED',
+                                        'LEGACY_COMPLETED_WAIT_PRODUCT_CLEAR',
+                                        'LEGACY_BOOL_UNREPRESENTABLE_REVIEW',
+                                        'LEGACY_BOOL_UNREPRESENTABLE_ERROR'):
+            return 'LEGACY_TRANSACTION_UNSETTLED'
+        return None
+
+    def _cancel_pending(self, reason):
+        if self.bridge.inspection_id and self.bridge.inspection_id not in self.published_ids:
+            self.published_ids.add(self.bridge.inspection_id)
+            self._event(dict(event='LINE_CANCELLED_RESULT_BLOCKED', inspection_id=self.bridge.inspection_id, reason=reason))
+        if self.service.active:
+            self.service.cancel(self.service.active['inspection_id'])
+        self.arrival = None
+
+    def _poll_plc(self, now):
+        if now < self.next_plc_poll_at: return
+        self.next_plc_poll_at = now + .1
+        if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
+            self._poll_cyclic_plc(now)
+            return
+        if getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':
+            self._poll_legacy_plc(now)
+            return
+        if self.handshake.state == 'RESYNC_REQUIRED':
+            self._cancel_pending(self.handshake.reason)
+            self.line_wait = self.handshake.reason
+            if now < self.recovery_at or self.service.active: return
+            self.recovery_at = now + 5
+            # New session is the only reconnect path. Never retry an uncertain result.
+            # PLC V3 drops Run on session change and requires a fresh physical Start.
+            previous = self.handshake.status()
+            self.gateway.close()
+            session = self.service.journal.new_session('standalone-line')
+            self.handshake = LineHandshake(self.gateway, self._event, session_id=session)
+            self._event(dict(event='LINE_RESYNC_NEW_SESSION', previous=previous, new_session=session))
+            self._replace_tracking_session(uuid.uuid4().hex)
+            self.bridge = InspectionBridge(self.service, self.coordinator)
+            self.inspected_tracks.clear()
+            self.absent.clear()
+            self.error = None
+            self.latest_packet = None
+            self.epoch = None
+            self.last_sequence, self.last_time = -1, 0
+            self.worker_generation = self.service.generation
+            self.eligible = False
+            self.observation_started_at = now
+            self._reset_departure_candidate()
+        previous = self.handshake.token
+        clear = self._clear(now)
+        ready = bool(self.operating and not self.error and self._profile_ready()
+            and self.assembly.ready and self.service.status()['ready'])
+        self.handshake.service_tick(now, ready=ready, product_clear=clear)
+        if self.handshake.state == 'RESYNC_REQUIRED':
+            self._cancel_pending(self.handshake.reason)
+            self.operating = False
+            return
+        if self.handshake.token and self.handshake.token != previous:
+            # A pre-existing track at the sensor edge cannot silently be adopted.
+            track = self.coordinator._tracker._track_id
+            self.arrival = dict(token=self.handshake.token, epoch=self.epoch,
+                generation=self.service.generation, track=None, conveyor_off_at=None,
+                preexisting_track=track)
+            self._event(dict(event='UPSTREAM_ENTRY_ACCEPTED', line_cycle_id=self.handshake.cycle_id,
+                             camera_epoch=self.epoch, preexisting_track=track))
+        self.line_wait = (self.handshake.reason or ('WAIT_FIELD_PROFILE' if not self._profile_ready()
+            else 'WAIT_ASSEMBLY_MODEL' if not self.assembly.ready
+            else 'READY_WAIT_PHYSICAL_START' if not self.handshake.inputs.get('PLC_RunPermit')
+            else self.handshake.state))
+
+    def _poll_cyclic_plc(self, now):
+        health = self.service.status()
+        # BUSY is a healthy inspector, not a reason to revoke an active request.
+        ready = bool(self.operating and not self.error and self._profile_ready()
+            and not health.get('error') and self.assembly.ready and health.get('camera_ready')
+            and health.get('state') in ('IDLE', 'BUSY'))
+        if self.initial_approval:
+            snapshot = self.gateway.read_snapshot(now)
+            if snapshot: now = snapshot.get('observed_at', now)
+            self.initial_approval.poll(snapshot, ready, self.epoch, self.service.generation,
+                                       now, self.gateway, self.service.journal)
+            if self.initial_approval.failed or self.initial_approval.state == 'REVOKED':
+                ready = False
+        clear = self._clear(now)
+        if (self._full_frame_policy() and clear and self.last_retirement
+                and self.handshake.state == 'WAIT_PRODUCT_CLEAR'
+                and self.last_retirement['source_monotonic'] > self.handshake.accepted_at
+                and self.arrival and self.last_retirement['track_id'] == self.arrival['track']):
+            self.cyclic_rearm_evidence = dict(self.last_retirement or {},
+                clearance_frame_id=self.latest_packet['frame_id'])
+        self.gateway.health_update(ready, clear, now)
+        previous = self.handshake.token
+        self.handshake.poll(now)
+        if self.handshake.cancelled:
+            self._cancel_pending(self.handshake.reason)
+        if self.handshake.token and self.handshake.token != previous:
+            if self.initial_approval:
+                try:
+                    self.initial_approval.accept(self.handshake.snapshot, self.handshake.token)
+                except Exception as error:
+                    self.handshake.fault('FIRST_APPROVAL_ACCEPT_FAILED:'+type(error).__name__)
+                    self._cancel_pending(self.handshake.reason)
+                    return
+            if self._full_frame_policy():
+                repeat_allowed = (self.line_profile.get('cycle_admission') == 'VERIFIED_CLEARANCE'
+                                  and self.cyclic_rearm_evidence is not None)
+                if self.cyclic_admissions and not repeat_allowed:
+                    self.handshake.fault('NEXT_PRODUCT_REQUIRES_VERIFIED_CLEARANCE')
+                    self._cancel_pending(self.handshake.reason)
+                    self.line_wait = self.handshake.reason
+                    return
+                self.cyclic_admissions += 1
+                self.cyclic_rearm_evidence = None
+            # This PLC raises Request AFTER transfer and its stop command.
+            # A currently tracked product may already be present; require the
+            # same track and NEW source frames under the selected start policy.
+            self.arrival = dict(token=self.handshake.token, epoch=self.epoch,
+                generation=self.service.generation, track=None,
+                preexisting_track=self.coordinator._tracker._track_id)
+            if self._full_frame_policy():
+                cycle = self.coordinator.active_cycle
+                self.arrival.update(track=self.coordinator._tracker._track_id,
+                    cycle_id=cycle.cycle_id if cycle else None,
+                    sequence_at_request=self.last_sequence,
+                    frame_id_at_request=(self.latest_packet or {}).get('frame_id'))
+                self._event(dict(event='PLC_REQUEST_TRACK_FROZEN', **self.arrival))
+            self.cycle_issue = None
+        self.line_wait = ('WAIT_FIELD_PROFILE' if not self._profile_ready() else
+            'CYCLIC_PUBLICATION_DISABLED' if not self.gateway.writes_enabled else
+            self.handshake.reason or self.handshake.state)
+
+    def _trigger_cyclic(self, now):
+        if now-self.handshake.accepted_at >= self.line_profile['arrival_deadline_s']:
+            self._finish_without_frames('ERROR', 'NO_VALID_CURRENT_PRODUCT_AT_PLC_REQUEST', now)
+            return
+        if not self._profile_ready() or self.error or not self.operating: return
+        if self.initial_approval and not self.initial_approval.valid():
+            self.handshake.fault('FIRST_PRODUCT_APPROVAL_NOT_VALID')
+            return
+        if self._full_frame_policy():
+            self._trigger_tracked_frame(now)
+            return
+        context, packet = self.arrival, self.latest_packet
+        if not context or not arrival_evidence(packet, self.handshake.accepted_at,
+                context['epoch'], context['generation'], self.zone): return
+        track = self.coordinator._tracker._track_id
+        if track is None or not self.eligible or not packet.get('stable'): return
+        expected = context['track'] or context['preexisting_track']
+        if expected is not None and expected != track:
+            self._finish_without_frames('ERROR', 'CURRENT_PRODUCT_CHANGED', now)
+            return
+        context['track'] = track
+        self.request_wait_seconds = self.line_profile['arrival_deadline_s']
+        super()._trigger(now)
+
+    def _trigger_tracked_frame(self, now):
+        context, packet = self.arrival, self.latest_packet
+        if not context or context['token'] != self.handshake.token:
+            self.handshake.fault('REQUEST_TRACK_CONTEXT_MISMATCH')
+            return
+        snapshot = self.handshake.snapshot
+        if (not snapshot or not snapshot['connected'] or not snapshot['fresh']
+                or not snapshot['bool_valid'] or not snapshot['run_idle']
+                or not 0 <= now-snapshot['generated'] <= .5
+                or not all(snapshot['controls'].get(k) for k in
+                    ('Inspection_Request', 'EStop_OK', 'Mc_Run', 'Stop_PB'))):
+            self.handshake.fault('REQUEST_CONTROL_CONTEXT_INVALID')
+            return
+        tracker = self.coordinator._tracker
+        cycle = self.coordinator.active_cycle
+        if context['track'] is not None and (tracker._track_id != context['track']
+                or cycle is None or cycle.cycle_id != context['cycle_id']):
+            self._finish_without_frames('ERROR', 'CURRENT_PRODUCT_CHANGED', now)
+            return
+        # No camera existed at the edge: bind its first observed epoch once, never
+        # replace an existing epoch or worker generation with a later session.
+        if context['epoch'] is None and packet:
+            context['epoch'] = packet['camera_epoch']
+        if not tracked_frame_evidence(packet, self.handshake.accepted_at,
+                context['epoch'], context['generation'], now):
+            return
+        if packet['sequence'] <= context['sequence_at_request']:
+            return
+        if (tracker._track_id is None or not self.eligible or cycle is None
+                or tracker._track_id in self.inspected_tracks):
+            return
+        if context['track'] is None:
+            context.update(track=tracker._track_id, cycle_id=cycle.cycle_id)
+            self._event(dict(event='PLC_REQUEST_FIRST_TRACK_BOUND', **context))
+        self.request_wait_seconds = self.line_profile['arrival_deadline_s']
+        super()._trigger(now)
+
+    def _poll_legacy_plc(self, now):
+        """Existing three-tag ladder: software readiness is not PLC Run permission."""
+        previous = self.handshake.token
+        self.handshake.poll(now)
+        if self.handshake.state == 'RESYNC_REQUIRED':
+            self._cancel_pending(self.handshake.reason)
+            self.line_wait = self.handshake.reason
+            if not self.error:
+                self._fault(self.handshake.reason)
+            return
+        if self.handshake.state == 'WAIT_PRODUCT_CLEAR':
+            if self.handshake.early_off:
+                self._cancel_pending(self.handshake.reason)
+            after = self.handshake.clearance_required_after
+            area = self.area_observation or {}
+            fresh_clear = bool(self._clear(now) and self.latest_packet
+                and self.latest_packet['monotonic_s'] > after
+                and area.get('first_clear_monotonic', -1) >= after)
+            if not self.handshake.release_cleared_cycle(product_clear=fresh_clear):
+                self.line_wait = self.handshake.reason
+                return
+            self.arrival = None
+        if self.handshake.token and self.handshake.token != previous:
+            track = self.coordinator._tracker._track_id
+            self.arrival = dict(token=self.handshake.token, epoch=self.epoch,
+                generation=self.service.generation, track=None, preexisting_track=track)
+            self._event(dict(event='LEGACY_UPSTREAM_REQUEST_ACCEPTED',
+                camera_epoch=self.epoch, preexisting_track=track,
+                plc_cycle_id=None, sensor_or_stop_off_distinguishable=False))
+        self.line_wait = (self.handshake.reason or
+            ('WAIT_FIELD_PROFILE' if not self._profile_ready() else
+             'WAIT_ASSEMBLY_MODEL' if not self.assembly.ready else
+             'LEGACY_READ_ONLY_STANDBY' if not getattr(self.gateway, 'writes_enabled', False) else
+             'READY_WAIT_EXISTING_PLC_REQUEST' if self.handshake.state == 'ARMED' else
+             self.handshake.state))
+
+    def _trigger(self, now):
+        if self.handshake.state != 'REQUEST_LATCHED' or self.service.active: return
+        if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
+            self._trigger_cyclic(now)
+            return
+        if getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':
+            self._trigger_legacy(now)
+            return
+        elapsed = now - self.handshake.accepted_at
+        expired = elapsed >= self.line_profile['arrival_deadline_s']
+        if expired:
+            self._finish_without_frames('ERROR', 'NO_INSPECTION_ARRIVAL_OR_STOP_NOT_CONFIRMED', now)
+            return
+        context = self.arrival
+        if not context or context['preexisting_track'] is not None: return
+        if self.error or not self.operating: return
+        packet = self.latest_packet
+        if not arrival_evidence(packet, self.handshake.accepted_at, context['epoch'],
+                                context['generation'], self.zone): return
+        track = self.coordinator._tracker._track_id
+        if track is None or not self.eligible: return
+        if context['track'] is None:
+            context['track'] = track
+            self._event(dict(event='UPSTREAM_ENTRY_TRACK_BOUND', track_id=track,
+                             line_cycle_id=self.handshake.cycle_id, frame_id=packet['frame_id']))
+        if context['track'] != track:
+            self._finish_without_frames('ERROR', 'ARRIVING_PRODUCT_IDENTITY_CHANGED', now)
+            return
+        if not self.handshake.outputs.get('Jetson_InPosition'):
+            if not self.handshake.in_position(): return
+        if self.handshake.inputs.get('PLC_ConveyorRun'):
+            context['conveyor_off_at'] = None
+            return
+        if context['conveyor_off_at'] is None:
+            context['conveyor_off_at'] = now
+            return
+        # Output OFF is not physical feedback. Existing observed stability plus
+        # a source frame captured after the OFF readback are both required.
+        if packet['monotonic_s'] <= context['conveyor_off_at'] or not packet.get('stable'): return
+        self.request_wait_seconds = self.line_profile['arrival_deadline_s']
+        super()._trigger(now)
+
+    def _trigger_legacy(self, now):
+        # The installed ladder has no InPosition/ConveyorRun interface. Do not
+        # forge one or claim the belt stopped from a visually stable frame.
+        if now-self.handshake.accepted_at >= self.line_profile['arrival_deadline_s']:
+            reason = ('FIELD_PROFILE_NOT_VERIFIED' if not self._profile_ready()
+                      else self.error or 'LEGACY_NO_FRESH_STABLE_PRODUCT')
+            self._finish_without_frames('ERROR', reason, now)
+            return
+        if not self._profile_ready() or self.error or not self.operating:
+            return
+        context = self.arrival
+        if not context or context['preexisting_track'] is not None:
+            return
+        packet = self.latest_packet
+        if not arrival_evidence(packet, self.handshake.accepted_at, context['epoch'],
+                                context['generation'], self.zone):
+            return
+        track = self.coordinator._tracker._track_id
+        if track is None or not self.eligible or not packet.get('stable'):
+            return
+        if context['track'] is None:
+            context['track'] = track
+            self._event(dict(event='LEGACY_REQUEST_TRACK_BOUND', track_id=track,
+                             frame_id=packet['frame_id'], physical_stop_verified=False))
+        if context['track'] != track:
+            self._finish_without_frames('ERROR', 'ARRIVING_PRODUCT_IDENTITY_CHANGED', now)
+            return
+        self.request_wait_seconds = self.line_profile['arrival_deadline_s']
+        super()._trigger(now)
+
+    def _finish_without_frames(self, decision, reason, now):
+        binding = dict(runtime_session_id=self.session_id, cycle_id=None, track_id=None,
+            plc_request_token=self.handshake.token,
+            plc_contract=getattr(self.gateway, 'contract_version', 'STANDALONE_V3'),
+            line_cycle_id=self.handshake.cycle_id, line_session_id=self.handshake.session_id,
+            camera_epoch=self.epoch, worker_generation=self.service.generation)
+        request = dict(self.service.allocate_request(), kind='inspect', control_mode='production',
+                       source_mode='PRODUCTION_AUTO', runtime_binding=binding, view_assessment={})
+        identifier, created = self.service.journal.admit(request, self.service.package.snapshot())
+        if not created: raise ValueError('DUPLICATE_LINE_DEADLINE_RESULT')
+        self.service.journal.finish(identifier, dict(decision=decision, reason=reason,
+            reason_code=reason, disposition='HOLD', observations=[], assets=[],
+            production_identity=dict(binding, inspection_id=identifier),
+            execution=dict(source='not_executed', control='production', worker_generation=self.service.generation)))
+        self.handshake.bind(identifier)
+        final = dict(decision=decision, existing_decision='NOT_RUN', assembly_decision='NOT_RUN',
+                     policy='NO_INPUT_IS_NEVER_PASS', reason=reason)
+        self._commit_and_publish(identifier, final, now)
+
+    def _commit_and_publish(self, identifier, final, now):
+        row = self.service.journal.detail(identifier)
+        binding = ((row or {}).get('request') or {}).get('runtime_binding', {})
+        cancelled_error = bool(row and row['state'] == 'CANCELLED'
+                               and row['decision'] == final['decision'] == 'ERROR')
+        if (not row or (row['state'] != 'COMPLETE' and not cancelled_error)
+                or not row['result'].get('storage_success')
+                or binding.get('plc_request_token') != self.handshake.token):
+            raise ValueError('SAME_REQUEST_DURABLE_COMPONENT_REQUIRED')
+        final = dict(final, inspection_id=identifier, line_cycle_id=self.handshake.cycle_id,
+            line_session_id=self.handshake.session_id, request_token=self.handshake.token,
+            runtime_session_id=self.session_id, completed_monotonic=now,
+            track_id=binding.get('track_id'), completed_at=datetime.now(timezone.utc).isoformat(),
+            source='INTEGRATED_ACTUAL_INSPECTION', synthetic=False)
+        if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
+            if (binding.get('runtime_session_id') != self.session_id or
+                    binding.get('worker_generation') != self.service.generation or
+                    binding.get('camera_epoch') != self.epoch):
+                raise ValueError('CYCLIC_FINAL_CONTEXT_MISMATCH')
+            if binding.get('track_id') is not None:
+                cycle = self.coordinator.active_cycle
+                if (cycle is None or cycle.cycle_id != binding.get('cycle_id') or
+                        self.coordinator._tracker._track_id != binding['track_id']):
+                    raise ValueError('CYCLIC_FINAL_PRODUCT_CHANGED')
+            if self._full_frame_policy() and final['decision'] in ('PASS', 'FAIL'):
+                from src.tracking.contracts import TrackState
+                tracker = self.coordinator._tracker
+                if (tracker._state in (TrackState.LOST, TrackState.WAIT_AREA_CLEAR)
+                        or self.cycle_issue or not tracked_frame_evidence(self.latest_packet,
+                            self.handshake.accepted_at, self.epoch, self.service.generation, now)):
+                    raise ValueError('CYCLIC_FINAL_TRACK_EVIDENCE_INVALID')
+            from src.control.opener_cyclic import PLC_RESULT_POLICY
+            final.update(plc_result_policy=PLC_RESULT_POLICY,
+                plc_decision='PASS' if final['decision']=='PASS' else 'FAIL',
+                plc_result_value=0 if final['decision']=='PASS' else 1,
+                plc_done_requested=True)
+            final.update(plc_contract='OPENER_CYCLIC', plc_consumption_confirmed=False,
+                         ack_scope='CYCLIC_SEND_AND_REQUEST_RESET_ONLY')
+            execution = row['result'].get('execution', {}).get('source', 'not_executed')
+            final.update(inference_execution_source=execution, synthetic=execution=='mock',
+                source='INTEGRATED_FIXTURE_INSPECTION' if execution=='mock' else
+                       'INTEGRATED_ACTUAL_INSPECTION' if execution=='live' else 'NO_ACTUAL_INSPECTION')
+        if getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':
+            final.update(plc_contract='LEGACY_THREE_BOOL',
+                         ack_scope='WRITE_READBACK_ONLY', plc_consumption_confirmed=False)
+        journal = self.service.journal
+        with journal.lock, journal.db:
+            # INSERT only: a committed final decision is immutable.
+            journal.db.execute('INSERT INTO service_state VALUES (?, ?)',
+                               ('integrated_decision:'+identifier, json.dumps(final)))
+            journal._event('INTEGRATED_FINAL_DURABLE', final)
+        self.published_ids.add(identifier)
+        self.handshake.publish(identifier, final['decision'], True, time.monotonic())
+        entry = dict(final, vision_decision=final['decision'],
+            publication_status=self.handshake.publication,
+            request_to_publication_ms=(time.monotonic()-self.handshake.accepted_at)*1000)
+        self.history.appendleft(entry)
+        self.assembly_submitted.pop(identifier, None)
+        if len(self.published_ids) > 512:
+            self.published_ids = {item['inspection_id'] for item in self.history} | {identifier}
+        self._event(dict(event='INTEGRATED_INSPECTION_COMPLETED', **entry))
+
+    def _poll_result(self, now):
+        identifier = self.bridge.inspection_id
+        if not identifier or identifier in self.published_ids: return
+        if self.handshake.cancelled or self.handshake.state != 'INSPECTING':
+            self._cancel_pending('LINE_CONTEXT_ENDED')
+            return
+        issue = getattr(self, 'cycle_issue', None)
+        row = self.service.journal.detail(identifier)
+        if issue and issue['request_token'] == self.handshake.token:
+            if not row or row['state'] not in ('COMPLETE', 'CANCELLED'):
+                return  # Existing worker cancellation/timeout owns the raw record.
+            self._commit_and_publish(identifier, dict(decision='ERROR',
+                existing_decision=row['decision'], assembly_decision='NOT_RUN',
+                policy='INVALID_CURRENT_PRODUCT_CONTEXT', reason=issue['reason']), now)
+            return
+        if row and row.get('state') == 'CANCELLED':
+            self._commit_and_publish(identifier, dict(decision='ERROR',
+                existing_decision='ERROR', assembly_decision='NOT_RUN',
+                policy='CANCELLED_REQUEST_IS_NOT_A_VALID_CLASSIFICATION',
+                reason=row['result']['reason']), now)
+            return
+        updated = self.bridge.poll()
+        if updated: self.snapshot = updated
+        if self.bridge.error:
+            self._fault('DURABLE_BOUNDARY:'+self.bridge.error)
+            return
+        if self.bridge.phase != 'INSPECTION_DURABLE': return
+        row = self.service.journal.detail(identifier)
+        try:
+            if identifier not in self.assembly_submitted:
+                self.assembly_submitted[identifier] = now
+                self.assembly.submit(row)
+            result = self.assembly.result(identifier)
+        except Exception as error:
+            result = dict(state='ERROR', reason='ASSEMBLY_EXECUTION:'+type(error).__name__+':'+str(error))
+        if result is None and now-self.assembly_submitted[identifier] < self.line_profile['assembly_deadline_s']:
+            self.phase = 'ASSEMBLY_INSPECTING'
+            return
+        if result is None:
+            result = dict(state='ERROR', reason='ASSEMBLY_DEADLINE')
+        final = combine_decisions(row['decision'], result)
+        final['assembly_evidence'] = str(self.assembly.evidence_path(identifier))
+        if self.error:
+            final.update(decision='ERROR', reason=self.error)
+        self._commit_and_publish(identifier, final, now)
+
+    def _acquisition(self, now):
+        status = self.service.status()
+        if status['ready'] and not self.operating and not self.error:
+            self.operating = True  # Software frame acquisition only, never PLC Run.
+            self.observation_started_at = now
+            self.worker_generation = self.service.generation
+            self.service.production_tracking.set()
+        if status['state'] == 'RECOVERY' and not status['camera_ready'] and not self.service.active:
+            self.line_wait = 'WAIT_CAMERA'
+            if now >= self.camera_retry_at and (not self.camera_recovery or not self.camera_recovery.is_alive()):
+                self.camera_retry_at = now + 30
+                self.camera_recovery = threading.Thread(target=self._recover_camera, daemon=True,
+                                                       name='camera-recovery')
+                self.camera_recovery.start()
+
+    def _recover_camera(self):
+        # Activation can briefly hold the service lock while replacing its child.
+        # V3 requires a stopped PLC session. Legacy can only establish an idle
+        # request context; it has no physical-stop input or motor command.
+        try:
+            legacy = getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL'
+            if legacy and (self.handshake.token or self.handshake.state not in ('SYNC_LOW', 'ARMED')):
+                return
+            if not self.handshake.inputs.get('PLC_RunPermit') and not self.service.active:
+                self.service.activate(self.service.package.root)
+        except Exception:
+            self.logger.exception('Camera recovery waits for next bounded attempt')
+
+    def _run(self):
+        self.configured.wait()
+        while not self.stop.wait(.02):
+            with self.lock, self.service.lock:
+                if self.closing: continue
+                try:
+                    now = time.monotonic()
+                    self._acquisition(now)
+                    self._poll_plc(now)  # Observe the selected contract before any late result.
+                    while True:
+                        try: packet = self.service.products.get_nowait()
+                        except queue.Empty: break
+                        self._packet(packet)
+                    now = time.monotonic()
+                    if self.operating and self.observation_started_at is not None:
+                        since = self.latest_packet['processed_monotonic'] if self.latest_packet else self.observation_started_at
+                        if now-since > self.observation_stale_seconds:
+                            self._fault('CAMERA_OR_OBSERVATION_STREAM_UNAVAILABLE')
+                    self._poll_result(now)
+                    self._trigger(now)
+                except Exception as error:
+                    self.logger.exception('Standalone cycle boundary failed')
+                    try: self._fault(type(error).__name__+':'+str(error))
+                    except Exception:
+                        self.error, self.operating = 'JOURNAL_UNAVAILABLE', False
+                        self.gateway.close()  # V3 watchdog only; legacy has no heartbeat/stop channel.
+
+    def status(self):
+        result = super().status()
+        with self.service.journal.lock:
+            totals = self.service.journal.db.execute("SELECT json_extract(value,'$.decision'),count(*) "
+                "FROM service_state WHERE key LIKE 'integrated_decision:%' GROUP BY 1").fetchall()
+        result.update(line_mode=self.line_profile['mode'], line_state=self.line_wait,
+            runtime_issue=self.issue, runtime_loop_alive=self.thread.is_alive() and not self.closing,
+            final_result_policy='EXISTING_AND_FROZEN_ASSEMBLY_REQUIRED',
+            line_profile=self.line_profile, arrival_context=self.arrival,
+            actual_motor_feedback='NOT_INSTALLED_COMMAND_AND_VISUAL_STABILITY_ONLY',
+            operator_control='PHYSICAL_BUTTONS', laptop_required=False,
+            field_acceptance='NOT_RUN', assembly_component=self.assembly.status())
+        if self._full_frame_policy():
+            result.update(inspection_start_policy=FULL_FRAME,
+                request_start_qualified=(False if self._initial_policy() else self._profile_ready()),
+                software_start_policy_ready=self._profile_ready(),
+                initial_approval=(self.initial_approval.status() if self.initial_approval else None),
+                next_product_policy=self.line_profile['cycle_admission'],
+                accepted_request_count=self.cyclic_admissions,
+                repeat_clearance_evidence=self.cyclic_rearm_evidence,
+                initial_opener_arm='EXPLICIT_ONE_SHOT_APPROVAL_AND_NEW_PHYSICAL_START',
+                field_acceptance='NOT_RUN')
+        result['integrated_counts'] = dict.fromkeys(('PASS','FAIL','REVIEW','ERROR'), 0)
+        result['integrated_counts'].update(dict(totals))
+        if getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':
+            result.update(pusher_control='EXISTING_PLC_UNCHANGED_NO_JETSON_COMMANDS',
+                          actual_motor_feedback='NOT_AVAILABLE_IN_EXISTING_CONTRACT',
+                          physical_stop_observable=False, plc_consumption_confirmed=False)
+        return result
+
+    def close(self):
+        with self.lock:
+            self.operating = False
+            self.handshake.shutdown()
+        super().close()
+        if self.initial_approval:
+            self.initial_approval.close()

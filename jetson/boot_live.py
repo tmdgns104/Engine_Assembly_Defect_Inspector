@@ -30,6 +30,8 @@ def start_allowed(status, *, mock_auto_request=False):
         return False, 'RUNTIME_NOT_IDLE'
     if not service.get('ready') or not service.get('camera_ready'):
         return False, 'CAMERA_OR_MODEL_NOT_READY'
+    if plc.get('contract_version') == 'EXTENDED_V2' and not plc.get('contract_schema_verified'):
+        return False, 'PLC_V2_SCHEMA_NOT_VERIFIED'
     if mock_auto_request:
         if (not status.get('mock_auto_request_enabled') or plc.get('backend') != 'MOCK'
                 or plc.get('physical_output_enabled') is not False
@@ -94,6 +96,8 @@ def run(config, interval=10):
                 if (release.get('release_id') != expected
                         or release.get('runtime_path') != str(manage_live.ROOT)
                         or release.get('backend') != ('MOCK' if mock_auto_request else 'OMRON_CIP_BENCH')
+                        or release.get('plc_contract', 'LEGACY_THREE_BOOL') != settings.get('plc_contract', 'LEGACY_THREE_BOOL')
+                        or release.get('misassembly_shadow_enabled', False) is not settings.get('misassembly_shadow', False)
                         or release.get('mock_auto_request_enabled') is not mock_auto_request
                         or release.get('inspection_motion_mode') != settings.get('inspection_motion_mode','STATIONARY')
                         or release.get('conveyor_capture_zone_normalized') != settings.get('conveyor_capture_zone_normalized')

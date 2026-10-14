@@ -1,0 +1,28 @@
+[Unit]
+Description=Engine integrated standalone PLC inspection
+After=network.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=jetson
+Group=jetson
+SupplementaryGroups=video render
+WorkingDirectory=/home/jetson/oned_device_bench/current
+EnvironmentFile=/home/jetson/oned_device_bench/config/standalone.env
+ExecStart=/home/jetson/oned_device_bench/envs/app_v1/bin/python -B -X utf8 /home/jetson/oned_device_bench/current/standalone_service.py --config /home/jetson/oned_device_bench/config/standalone.json
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=180
+TimeoutStopSec=45
+KillMode=control-group
+KillSignal=SIGTERM
+UMask=0027
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=engine-inspector
+
+[Install]
+WantedBy=multi-user.target

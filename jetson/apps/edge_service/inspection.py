@@ -128,6 +128,25 @@ class InspectionService:
         if self.process.is_alive():
             raise RuntimeError('WORKER_STOP_UNCONFIRMED')
 
+    def _record_request_failure(self, reason):
+        """V2 accepted requests end with a durable ERROR, not a lost cancellation.
+
+        The worker is still cancelled/drained by the existing monitor. A late
+        result cannot replace this terminal record. Legacy cancellation is kept.
+        """
+        binding = self.active.get('production_binding') or {}
+        if binding.get('plc_contract') in ('EXTENDED_V2', 'STANDALONE_V3'):
+            row = self.journal.detail(self.active['inspection_id'])
+            if row is not None and row['state'] != 'ACCEPTED':
+                return
+            self.journal.finish(self.active['inspection_id'], dict(
+                decision='ERROR', reason=reason, reason_code=reason, observations=[],
+                evidence_missing_reason='REQUEST_FAILED_BEFORE_VALID_EVIDENCE',
+                production_identity=binding, physical_output_enabled=False,
+                execution={'source': 'live', 'control': 'production', 'worker_generation': self.generation}))
+        else:
+            self.journal.cancel(self.active['inspection_id'], reason)
+
     def _fault(self, reason):
         logging.getLogger(__name__).error('검사 Service RECOVERY: %s',reason)
         self.state, self.error, self.preview = 'RECOVERY', reason, None
@@ -186,9 +205,9 @@ class InspectionService:
                                 continue
                             rejection = self._result_context_error(message['result'])
                             if rejection:
-                                self.journal.cancel(message['inspection_id'], rejection)
+                                self._record_request_failure(rejection)
                             elif time.monotonic() > self.active['deadline'] or self.cancellation.is_set():
-                                self.journal.cancel(message['inspection_id'], 'CANCELLED_OR_EXPIRED')
+                                self._record_request_failure('CANCELLED_OR_EXPIRED')
                             else:
                                 message['result']['execution'] = {'source': 'mock' if self.backend.get('backend')=='mock' else 'live', 'control': self.active['request'].get('control_mode','manual'),
                                     'station_id': self.station['station_id'], 'worker_generation': self.generation}
@@ -242,7 +261,7 @@ class InspectionService:
                     pass
                 if self.active and time.monotonic() > self.active['deadline']:
                     # Cancel acknowledgement is not worker termination. Remain unavailable.
-                    self.journal.cancel(self.active['inspection_id'], 'DEADLINE_EXCEEDED')
+                    self._record_request_failure('DEADLINE_EXCEEDED')
                     self.cancellation.set()
                     self.state = 'CANCELLING'
                     if time.monotonic() > self.active['deadline'] + 5:

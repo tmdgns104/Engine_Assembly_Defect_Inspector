@@ -1,7 +1,8 @@
 """Single camera, existing coordinator and inspection bridge; separate request latch.
 
 The runtime thread owns all tracking/handshake mutations under runtime->Service locks.
-This candidate uses an in-memory gateway only. It cannot connect to a physical PLC.
+The explicitly selected gateway may write PLC handshake tags. Motion and pusher
+outputs are not part of its allowlist. Legacy and extended contracts are separate.
 """
 from collections import deque
 from dataclasses import asdict
@@ -13,7 +14,9 @@ from pathlib import Path
 import time
 import uuid
 
-from src.control.production_plc import MockPlcGateway,RequestHandshake
+from src.control.production_plc import MockPlcGateway,RequestHandshake,LegacyStandaloneHandshake
+from src.control.plc_v2 import ExtendedRequestHandshake
+from src.control.standalone_plc import LineHandshake
 from src.integration.clearance import VisionAbsenceEvidence, AreaClearEvidence
 from src.observation.area_occupancy import ClearWindow
 from src.integration.cycle_track_binding import BoundClearanceEvidence
@@ -37,6 +40,7 @@ class ProductionRuntime(IntegratedRuntime):
         self.last_sequence=-1; self.last_time=0; self.epoch=None; self.worker_generation=None
         self.absent=[]; self.observation_times=deque(maxlen=40); self.history=deque(maxlen=30)
         self.gateway=gateway if gateway is not None else MockPlcGateway()
+        self.shadow = None
         if auto_mock_request and self.gateway.backend!='MOCK':
             raise ValueError('AUTO_MOCK_REQUEST_REQUIRES_MOCK_GATEWAY')
         self.auto_mock_request=auto_mock_request
@@ -51,7 +55,17 @@ class ProductionRuntime(IntegratedRuntime):
         self.next_plc_poll_at=0
         self.auto_requested_tracks=set()
         self.auto_request_token=None
-        self.handshake=RequestHandshake(self.gateway,self._event)
+        handshake_type = (ExtendedRequestHandshake if getattr(self.gateway, 'contract_version', None)
+                          == 'EXTENDED_V2' else RequestHandshake)
+        if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
+            from src.control.opener_cyclic import CyclicHandshake
+            self.handshake = CyclicHandshake(self.gateway, self._event)
+        elif getattr(self.gateway, 'contract_version', None) == 'STANDALONE_V3':
+            self.handshake = LineHandshake(self.gateway, self._event, session_id=args[0].journal.new_session('standalone-line'))
+        elif getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':
+            self.handshake = LegacyStandaloneHandshake(self.gateway, self._event)
+        else:
+            self.handshake=handshake_type(self.gateway,self._event)
         self.pending_started=None; self.published_ids=set(); self.inspected_tracks=set()
         self.window_event=None; self.eligible=False; self.last_transition=None
         self.request_wait_seconds=8.; self.observation_stale_seconds=2.
@@ -75,7 +89,10 @@ class ProductionRuntime(IntegratedRuntime):
             self._diagnostic_events.append(dict(value))
         journal=self.service.journal
         payload=dict(runtime_session_id=self.session_id,monotonic_s=time.monotonic(),
-            worker_generation=self.service.generation,physical_output_enabled=False,**value)
+            worker_generation=self.service.generation,physical_output_enabled=False)
+        # Observation/completion events already carry their occurrence metadata.
+        # Preserve it rather than passing duplicate keyword arguments to dict().
+        payload.update(value)
         with journal.lock,journal.db:
             journal._event(payload['event'],payload)
             if payload.get('inspection_id'):
@@ -91,6 +108,8 @@ class ProductionRuntime(IntegratedRuntime):
             if not self.zone.get('confirmed') or self.zone.get('calibration_sha')!=calibration_sha(self.service.calibration):
                 raise ValueError('INSPECTION_ZONE_CONFIRMATION_REQUIRED')
             if self.handshake.state=='RESYNC_REQUIRED': raise ValueError('PLC_RESYNC_REQUIRED')
+            if isinstance(self.handshake, ExtendedRequestHandshake) and not self.handshake.initialized:
+                raise ValueError('PLC_V2_SCHEMA_NOT_VERIFIED')
             if self.gateway.backend != 'MOCK':
                 if self.handshake.state not in ('SYNC_LOW', 'ARMED'):
                     raise ValueError('PLC_HANDSHAKE_NOT_IDLE')
@@ -121,6 +140,8 @@ class ProductionRuntime(IntegratedRuntime):
         with self.lock,self.service.lock:
             self.auto_stop_requested=True
             self.operating=False
+            if isinstance(self.handshake, ExtendedRequestHandshake):
+                self.handshake.shutdown()
             # An admitted request finishes under its original identity; STOP admits no next edge.
             if self.handshake.state=='REQUEST_LATCHED': self.handshake.fault('STOP_BEFORE_INSPECTION')
             if not self.coordinator.active_cycle and not self.service.active:
@@ -439,6 +460,8 @@ class ProductionRuntime(IntegratedRuntime):
         else: self.absent=[]
         if self.error:
             self._diagnostic_reason='HALTED_'+self.error; return
+        if self._observation_hold(packet, provider):
+            return
         tracker=self.coordinator._tracker
         if (provider.status==ProviderStatus.PRODUCT_OBSERVED and
                 tracker._state==TrackState.WAIT_AREA_CLEAR and
@@ -453,6 +476,9 @@ class ProductionRuntime(IntegratedRuntime):
                 'reason':'SHORT_AMBIGUITY_SAME_PRODUCT','frame_id':packet['frame_id']})
         if provider.status==ProviderStatus.AMBIGUOUS_FOREGROUND:
             self.eligible=False; self.phase='AMBIGUOUS_HOLD'
+            if self.tracker_config.plc_request_tracking and self.handshake.token:
+                self._fault('MULTIPLE_PRODUCT_AMBIGUITY')
+                return
             if tracker._track_id is not None:
                 if self.area_config_version:
                     tracker.wait_for_area_clear(TrackingReason.AMBIGUOUS_ACTIVE_OBSERVATIONS)
@@ -487,7 +513,8 @@ class ProductionRuntime(IntegratedRuntime):
         observed_outside_zone=bool(last_box and not (
             window.x1-margin<=last_box.center_x<=window.x2+margin and
             window.y1-margin<=last_box.center_y<=window.y2+margin))
-        if (not self.area_config_version and self.coordinator.active_cycle and self._absence_ready() and clearance_gap_elapsed
+        if (not self.area_config_version and not self.tracker_config.plc_request_tracking
+                and self.coordinator.active_cycle and self._absence_ready() and clearance_gap_elapsed
                 and observed_outside_zone and self.departure_edge and self.departure_clearance_eligible
                 and not self.service.active and
                 (not self.bridge.inspection_id or self.bridge.inspection_id in self.published_ids)):
@@ -513,8 +540,7 @@ class ProductionRuntime(IntegratedRuntime):
             # The bridge intentionally holds CLEARING without exit authority;
             # stop on unresolved absence instead of silently retiring or hanging.
             self._fault('PRODUCT_DEPARTURE_NOT_OBSERVED'); return
-        self.eligible=bool(provider.observations and tracker._state==TrackState.INSPECTION_READY
-            and tracker._relation==WindowRelation.INSIDE and tracker._track_id not in self.inspected_tracks)
+        self.eligible=self._track_eligible(provider, tracker)
         if self.eligible:
             self._auto_request_for_track(packet)
         if self.snapshot.cycle_retired:
@@ -551,6 +577,10 @@ class ProductionRuntime(IntegratedRuntime):
             'track_id':tracker._track_id,'phase':self.phase,'packet':packet},ensure_ascii=False))
         if not self.operating and not self.coordinator.active_cycle and not self.service.active:
             self.service.production_tracking.clear(); self.phase='STOPPED'
+
+    def _observation_hold(self, packet, provider):
+        """Standalone can quarantine a failed request while observing fresh frames."""
+        return False
 
     def _auto_request_for_track(self,packet):
         """Latch one development MOCK edge for a valid in-zone Track, before stability."""
@@ -604,6 +634,18 @@ class ProductionRuntime(IntegratedRuntime):
             'track_id':self.request_track_id,'cycle_id':self.request_cycle_id,
             'frame_id':self.latest_packet['frame_id'] if fresh else None})
 
+    def _track_eligible(self, provider, tracker):
+        if self.tracker_config.plc_request_tracking:
+            return bool(len(provider.observations) == 1
+                and tracker._state == TrackState.TRACKING
+                and tracker._track_id not in self.inspected_tracks)
+        return bool(provider.observations and tracker._state == TrackState.INSPECTION_READY
+            and tracker._relation == WindowRelation.INSIDE
+            and tracker._track_id not in self.inspected_tracks)
+
+    def _inspection_start_ready(self, bound_eligible, motion_mode, motion_ready):
+        return bound_eligible and (motion_ready if motion_mode else self.latest_packet.get('stable'))
+
     def _trigger(self,now):
         if not self.operating or self.error or self.handshake.state!='REQUEST_LATCHED' or self.service.active: return
         expired=now-self.handshake.accepted_at>=self.request_wait_seconds
@@ -621,8 +663,7 @@ class ProductionRuntime(IntegratedRuntime):
             box=self.latest_packet['provider']['observations'][0]['bbox']
             motion_ready=(0<=packet_age<self.observation_stale_seconds and
                           0<box['x1']<box['x2']<1 and 0<box['y1']<box['y2']<1)
-        ready=bound_eligible and (motion_ready if motion_mode
-                                 else self.latest_packet.get('stable'))
+        ready=self._inspection_start_ready(bound_eligible, motion_mode, motion_ready)
         if not expired and not ready: return
         tracker=self.coordinator._tracker
         if tracker._track_id in self.inspected_tracks:
@@ -633,6 +674,7 @@ class ProductionRuntime(IntegratedRuntime):
             track_id=tracker._track_id if bound_eligible else None,plc_request_token=self.handshake.token,
             request_accepted_monotonic=self.handshake.accepted_at,
             publication_backend=self.gateway.backend,
+            plc_contract=getattr(self.gateway, 'contract_version', 'LEGACY_THREE_BOOL'),
             camera_epoch=self.epoch,worker_generation=self.service.generation,
             package_manifest_sha=self.service.package.manifest_hash,inspection_zone=self.zone,
             inspection_motion_mode=self.inspection_motion_mode,
@@ -642,6 +684,15 @@ class ProductionRuntime(IntegratedRuntime):
         if bound_eligible:
             box=packet['provider']['observations'][0]['bbox']
             binding['product_box']=[box[k] for k in ('x1','y1','x2','y2')]
+        if self.tracker_config.plc_request_tracking:
+            from src.runtime.inspection_start import FULL_FRAME
+            binding.update(inspection_start_policy=FULL_FRAME,
+                trigger_reason='PLC_REQUEST_SAME_TRACK_FRESH_FRAME',
+                trigger_frame_id=packet.get('frame_id'),
+                boundary_contact_possible=bool(binding['product_box'] and
+                    (min(binding['product_box'][:2]) <= 0 or max(binding['product_box'][2:]) >= 1)),
+                whole_product_visibility='NOT_PROVEN_BY_TRACKING',
+                motor_stop_feedback='NOT_AVAILABLE')
         self.bridge=InspectionBridge(self.service,self.coordinator)
         self.bridge.submit_production(binding)
         self.handshake.bind(self.bridge.inspection_id)
@@ -659,7 +710,10 @@ class ProductionRuntime(IntegratedRuntime):
         identifier=self.bridge.inspection_id
         row=self.service.journal.detail(identifier)
         self.published_ids.add(identifier)  # Never auto-retry uncertain publication.
-        if not self.error: self.handshake.publish(identifier,row['decision'],True,now)
+        # A camera fault must not suppress its already durable ERROR response.
+        # An unrelated PASS/FAIL arriving after a runtime fault remains blocked.
+        report_fault = isinstance(self.handshake, ExtendedRequestHandshake) and row['decision'] == 'ERROR'
+        if not self.error or report_fault: self.handshake.publish(identifier,row['decision'],True,now)
         else: self.handshake.fault(self.error,'BLOCKED')
         entry=dict(inspection_id=identifier,track_id=self.bridge.request['runtime_binding']['track_id'],
             plc_request_token=self.bridge.request['runtime_binding']['plc_request_token'],
@@ -671,6 +725,39 @@ class ProductionRuntime(IntegratedRuntime):
         self.history.appendleft(entry)
         self.phase='WAIT_AREA_CLEAR' if self.coordinator._tracker._state==TrackState.WAIT_AREA_CLEAR else 'INSPECTED'
         self._event(dict(event='PRODUCTION_INSPECTION_COMPLETED',**entry))
+        if getattr(self, 'shadow', None) is not None:
+            # Post-commit diagnostics have no path back to the published decision.
+            try:
+                self.shadow.submit(row)
+            except Exception:
+                self.logger.exception('Shadow submission failed; production result preserved')
+
+    def _plc_v2_ready(self, now):
+        """Fresh acquisition and a settled previous product are required for Ready."""
+        tracker = self.coordinator._tracker
+        return bool(self.operating and not self.error and not self.service.active
+                    and self.service.status()['ready'] and self.zone.get('confirmed')
+                    and self.latest_packet
+                    and 0 <= now - self.latest_packet['processed_monotonic'] < self.observation_stale_seconds
+                    and tracker._state not in (TrackState.WAIT_AREA_CLEAR, TrackState.LOST,
+                                               TrackState.INSPECTED, TrackState.CLEARING)
+                    and tracker._track_id not in self.inspected_tracks)
+
+    def _poll_plc(self, now):
+        extended = isinstance(self.handshake, ExtendedRequestHandshake)
+        if (not (extended or self.operating or self.handshake.token)
+                or self.handshake.state == 'RESYNC_REQUIRED' or now < self.next_plc_poll_at):
+            return
+        previous_token = self.handshake.token
+        if extended:
+            self.handshake.service_tick(now, ready=self._plc_v2_ready(now))
+        else:
+            self.handshake.poll(now)
+        self.next_plc_poll_at = now + (1 if self.gateway.backend != 'MOCK'
+            and self.handshake.state == 'SYNC_LOW' else .1 if extended else 0)
+        if (self.inspection_motion_mode == 'CONVEYOR_MOTION_PLC_BENCH'
+                and self.handshake.state == 'REQUEST_LATCHED' and self.handshake.token != previous_token):
+            self._snapshot_plc_request_track(now)
 
     def _run(self):
         while not self.stop.wait(.02):
@@ -682,18 +769,8 @@ class ProductionRuntime(IntegratedRuntime):
                         except queue.Empty: break
                         self._packet(packet)
                     now=time.monotonic()
-                    if ((self.operating or self.handshake.token)
-                            and self.handshake.state!='RESYNC_REQUIRED'
-                            and now>=self.next_plc_poll_at):
-                        previous_token=self.handshake.token
-                        self.handshake.poll(now)
-                        now=time.monotonic()
-                        self.next_plc_poll_at=(now+1 if self.gateway.backend!='MOCK'
-                            and self.handshake.state=='SYNC_LOW' else 0)
-                        if (self.inspection_motion_mode=='CONVEYOR_MOTION_PLC_BENCH'
-                                and self.handshake.state=='REQUEST_LATCHED'
-                                and self.handshake.token!=previous_token):
-                            self._snapshot_plc_request_track(now)
+                    self._poll_plc(now)
+                    now=time.monotonic()
                     self._poll_result(now)
                     self._auto_request_off_after_done()
                     self._trigger(now)
@@ -727,6 +804,7 @@ class ProductionRuntime(IntegratedRuntime):
                       reason=('CURRENT_VALID_AREA_OBSERVATION_REQUIRED' if not self.area_reference_required
                               else 'MAINTENANCE_AREA_REFERENCE_APPROVAL_REQUIRED'))
         value.update(mode='production',operating=self.operating,phase=self.phase,
+            misassembly_shadow=self.shadow.status() if self.shadow else {'state': 'INCLUDED_DISABLED', 'plc_output': False},
             auto_stop_requested=self.auto_stop_requested,inspection_zone=self.zone,
             area_clearance_enabled=bool(self.area_config_version),
             area_clearance_mode='DARK_SURFACE_SELF_OBSERVED' if not self.area_reference_required else 'STATIC_REFERENCE',
@@ -750,6 +828,12 @@ class ProductionRuntime(IntegratedRuntime):
 
     def close(self):
         try:
+            if isinstance(self.handshake, ExtendedRequestHandshake):
+                with self.lock:
+                    self.operating = False
+                    self.handshake.shutdown()
             super().close()
         finally:
             self.gateway.close()
+            if self.shadow:
+                self.shadow.close()

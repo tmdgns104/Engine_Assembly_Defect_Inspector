@@ -27,6 +27,19 @@ def api(port, endpoint):
         return json.load(response)
 
 
+def gateway_arguments(settings):
+    version = settings.get('plc_contract', 'LEGACY_THREE_BOOL')
+    if version not in ('LEGACY_THREE_BOOL', 'EXTENDED_V2'):
+        raise ValueError('PLC_CONTRACT_VERSION_INVALID')
+    if version == 'EXTENDED_V2' and (settings.get('plc_bench') is not True
+                                      or settings.get('mock_auto_request') is True):
+        raise ValueError('V2_REQUIRES_EXPLICIT_REAL_PLC_MODE')
+    arguments = ['--plc-bench'] if settings.get('plc_bench') is True else []
+    if settings.get('mock_auto_request') is True:
+        arguments.append('--mock-auto-request')
+    return arguments + ['--plc-contract', version]
+
+
 def process_identity(pid):
     process = Path('/proc') / str(pid)
     command = (process / 'cmdline').read_bytes().split(b'\0')
@@ -109,10 +122,9 @@ def main():
     command = [sys.executable, '-B', '-X', 'utf8', str(ROOT / 'launch_live.py'),
                '--package', settings['package'], '--station', settings['station'],
                '--data-root', str(data), '--port', str(port)]
-    if settings.get('plc_bench') is True:
-        command.append('--plc-bench')
-    if settings.get('mock_auto_request') is True:
-        command.append('--mock-auto-request')
+    command.extend(gateway_arguments(settings))
+    if settings.get('misassembly_shadow') is True:
+        command.append('--misassembly-shadow')
     if settings.get('inspection_motion_mode','STATIONARY')!='STATIONARY':
         command.extend(['--inspection-motion-mode',settings['inspection_motion_mode'],
                         '--conveyor-capture-zone',json.dumps(settings['conveyor_capture_zone_normalized'])])

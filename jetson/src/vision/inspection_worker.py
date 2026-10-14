@@ -182,6 +182,8 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 gate = engine.estimator.cfg['decision_policy']['product_confidence']
                 diagnostic.observe(frame.frame_id, dict(frame_id=frame.frame_id,
                     processed_monotonic=time.monotonic(), inspection=inspection,
+                    detector_frame_id=getattr(engine.detector,'diagnostic_frame_id',None),
+                    inference_ms=detected['inference_ms'],
                     mode='PRODUCTION_TRACKING' if production_tracking is not None and production_tracking.is_set() and not inspection else 'FULL_INSPECTION_PATH',
                     generation=generation, package_sha256=package.manifest_hash,
                     input_pixel_sha256=before, detections=products_for_record,
@@ -253,19 +255,25 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 job = commands.get_nowait()
             except queue.Empty:
                 continue
-            if job.get('type') == 'diagnostic_capture':
+            if job.get('type') in ('diagnostic_capture','field_raw_capture'):
                 try:
                     if job['action'] == 'stop':
                         diagnostic.stop()
                     else:
                         if diagnostic.thread and not diagnostic.wait(0):
                             raise ValueError('CAPTURE_ALREADY_ACTIVE_OR_SAVING')
-                        diagnostic = DiagnosticCapture()
+                        if job['type']=='field_raw_capture':
+                            from src.vision.field_raw_capture import FieldRawCapture
+                            diagnostic = FieldRawCapture()
+                        else:
+                            diagnostic = DiagnosticCapture()
                         diagnostic.start(job['folder'], job['request'], dict(
                             worker_generation=generation, camera_owner_pid=__import__('os').getpid(),
                             camera_pipeline=camera.pipeline_text, package_sha256=package.manifest_hash,
                             capture=package.capture, backend=backend, station=station,
-                            conditions=job.get('context',{})))
+                            conditions=job.get('context',{}),
+                            field_raw_approval=job.get('context',{}).get('field_raw_approval',False),
+                            publication_disabled=job.get('context',{}).get('publication_disabled',False)))
                     results.put({'type':'diagnostic_capture','generation':generation,'status':diagnostic.status()}, timeout=2)
                 except Exception as error:
                     results.put({'type':'diagnostic_capture','generation':generation,

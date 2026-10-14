@@ -1,0 +1,51 @@
+{
+  "upstream_commit": "d8820ef41ce30dda06d213438ba81c81de33ffe2",
+  "profile": "AI_IPC_EXPLICIT_ONE_SHOT_V1",
+  "identity": {
+    "vendor_id": 1,
+    "device_type": 12,
+    "product_code": 65001,
+    "major": 2,
+    "minor": 3,
+    "product_name": "OpENer PC"
+  },
+  "identity_scope": "Upstream development identity, not an allocated project identity or certification",
+  "plc_ip": "192.168.50.3",
+  "jetson_ip": "192.168.50.2",
+  "interface": "enP8p1s0",
+  "assembly_bytes": {
+    "100": 4,
+    "150": 8,
+    "151": 10
+  },
+  "connection_path": "20 04 24 97 2C 96 2C 64",
+  "plc_to_jetson_order": [
+    "Inspection_Request",
+    "EStop_OK",
+    "Mc_Run",
+    "Stop_PB"
+  ],
+  "jetson_to_plc_order": [
+    "Jetson_Result",
+    "Jetson_Done"
+  ],
+  "slot_encoding": "Field verified little-endian UINT16 BOOL slots; 0 or 1",
+  "rpi_ms": 50,
+  "timeout_multiplier_display": "RPI x 4",
+  "consumed_run_idle_header_bytes": 4,
+  "produced_run_idle_header_bytes": 0,
+  "publication_enabled": false,
+  "inspection_bridge": "NOT_IMPLEMENTED",
+  "produced_data": "RX_ONLY: Result=0 Done=0. Explicit one-shot SYNTHETIC mode: TEST_NG or TEST_PASS, never AI.",
+  "diagnostics": "50ms JSON snapshot and bounded event log; receive and transmit events; kernel-send is not PLC-consumption proof.",
+  "eds_sha256": "78c0a78cb4f3e43da8090d41cdddfa14aa86dac7212f229104c0e75f02071b01",
+  "modified_sample_sha256": "ef51f546c536ea140d2c9c9ca76c0998169b0c10e35b7e2ea4c4d54059df6287",
+  "default_mode": "COMM_RX_ONLY",
+  "publication_enabled_by_default": false,
+  "field_status": "STOP_FOR_FIELD_APPROVAL",
+  "frozen_parent_profile_sha256": "bff13d9992fdf7f73a549f201ae8503e4573ec0c15b3f5c91847a7c9f1dee83d",
+  "binary_sha256": "d31287313b8254d81a66042257f66d67d058b92850a3765dce9e9877b848ca7b",
+  "initial_authorization": "EXPLICIT_ONE_SHOT_V1",
+  "result_policy": "PASS_OK_OTHER_NG_V1",
+  "synthetic_result_emitter_enabled": false
+}

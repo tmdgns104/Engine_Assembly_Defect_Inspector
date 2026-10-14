@@ -31,6 +31,7 @@ class TensorRTDetector:
         self.last_diagnostics = None
         self.capture_diagnostics = False
         self.diagnostic_output = None
+        self.diagnostic_frame_id = None
         self.runtime_state = "EXECUTOR_READY"
         self.closed = False
         self.usable = True
@@ -42,6 +43,7 @@ class TensorRTDetector:
         self.detector_host_total_ms = None
         self.last_diagnostics = None
         self.diagnostic_output = None
+        self.diagnostic_frame_id = None
         if (not isinstance(frame, CameraFrame) or getattr(frame.image, "shape", None)
                 != (frame.height, frame.width, 3)):
             raise DetectorError("INPUT_CONTRACT_MISMATCH: frame dimensions")
@@ -66,6 +68,9 @@ class TensorRTDetector:
                                      candidate_trace=self.capture_diagnostics)
             if self.capture_diagnostics:
                 import hashlib
+                self.diagnostic_frame_id = frame.frame_id
+                diagnostics['input_tensor_dtype'] = str(tensor.dtype)
+                diagnostics['input_tensor_shape'] = list(tensor.shape)
                 diagnostics['input_tensor_sha256'] = hashlib.sha256(tensor.tobytes()).hexdigest()
                 # Retained only until the recorder copies it. Native output buffers
                 # may be reused by the next inference; never defer that copy.

@@ -44,6 +44,23 @@ def collect_release(project_root=PROJECT):
         files[target] = path
     for name in specification['product_files']:
         files['assets/products/' + name] = checked_file(project_root / 'jetson/products', name)
+    # Only these hash-frozen inference dependencies are retained. The surrounding
+    # training runs, replay images, reports and old full projects stay on the PC.
+    shadow_spec = project_root / 'jetson/misassembly_runtime_assets.json'
+    if shadow_spec.exists():
+        shadow = json.loads(shadow_spec.read_text(encoding='utf-8'))
+        frozen_root = project_root / shadow['frozen_source_root']
+        if not frozen_root.resolve().is_relative_to(project_root):
+            raise ValueError('SHADOW_SOURCE_OUTSIDE_PROJECT')
+        for item in shadow['files']:
+            path = checked_file(frozen_root, item['relative_path'])
+            if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
+                raise ValueError('FROZEN_SHADOW_DEPENDENCY_CHANGED: ' + item['relative_path'])
+            target = 'assets/misassembly_runtime/' + item['relative_path']
+            if target in files:
+                raise ValueError('DUPLICATE_SHADOW_DEPENDENCY')
+            files[target] = path
+        files['assets/misassembly_runtime/FROZEN_MANIFEST.json'] = shadow_spec
     files['config/station.example.json'] = checked_file(project_root, 'jetson/station.example.json')
     files['config/runtime.example.json'] = checked_file(project_root, 'jetson/runtime.example.json')
     hashes = {}
@@ -81,7 +98,7 @@ def build_package(output, project_root=PROJECT):
                     raise ValueError('SOURCE_CHANGED_DURING_PACKAGE: ' + name)
                 info = tarfile.TarInfo(name)
                 info.size = len(content)
-                info.mode = 0o644
+                info.mode = 0o755 if name == 'current/opener/OpENer' else 0o644
                 archive.addfile(info, io.BytesIO(content))
             link = tarfile.TarInfo('current/config')
             link.type = tarfile.SYMTYPE

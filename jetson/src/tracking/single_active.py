@@ -150,13 +150,13 @@ class SingleActiveTracker:
         box = frame.observations[0].bbox
         cross = box.center_y if self.config.axis == 'x' else box.center_x
         self._relation = relation
-        if relation is None:
+        if relation is None and not self.config.plc_request_tracking:
             if self._state == TrackState.IDLE:
                 self._reason = TrackingReason.WINDOW_CROSS_AXIS_OUTSIDE
                 return self._update()
             return self._lose(TrackingReason.WINDOW_CROSS_AXIS_OUTSIDE)
         if self._state == TrackState.IDLE:
-            if relation == WindowRelation.DOWNSTREAM:
+            if relation == WindowRelation.DOWNSTREAM and not self.config.plc_request_tracking:
                 self._reason = TrackingReason.DOWNSTREAM_WITHOUT_ACTIVE_TRACK
                 return self._update()
             self._generation += 1
@@ -190,6 +190,10 @@ class SingleActiveTracker:
         self._missed = 0
         self._clear_count = 0
 
+        if self.config.plc_request_tracking:
+            # Keep the real relation as a diagnostic; PLC admission owns readiness.
+            # No window event and no implicit retirement for crossing a rectangle.
+            return self._update()
         if self._state == TrackState.TRACKING:
             if relation == WindowRelation.DOWNSTREAM:
                 return self._lose(TrackingReason.MISSED_INSPECTION_WINDOW)
@@ -238,7 +242,8 @@ class SingleActiveTracker:
             raise TrackingError(TrackingReason.TRACK_ID_MISMATCH)
         if inspection_id in self._used_inspection_ids:
             raise TrackingError(TrackingReason.INSPECTION_ALREADY_ATTACHED)
-        if self._state not in (TrackState.INSPECTION_READY, TrackState.WAIT_AREA_CLEAR):
+        if (self._state not in (TrackState.INSPECTION_READY, TrackState.WAIT_AREA_CLEAR)
+                and not (self.config.plc_request_tracking and self._state == TrackState.TRACKING)):
             raise TrackingError(TrackingReason.INVALID_STATE_TRANSITION)
         self._used_inspection_ids.add(inspection_id)
         self._inspection_id = inspection_id
