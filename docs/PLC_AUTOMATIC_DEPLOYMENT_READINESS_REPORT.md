@@ -62,8 +62,8 @@ GitHub에 운영 DB·현장 사진·개인 설정·승인 원장을 추가하지
 
 | 산출물 | 값 |
 |---|---|
-| 현장용 코드·자산 Release | `engine-dev-63d26330adab5cca` |
-| PC `INTEGRATED_OFFLINE.tar.gz` SHA256 | `7a0073561fc56daf6bc1c9e9fcd0253560d0f3e08e65bc5cc7b83c364ad49d0b` |
+| 현장용 코드·자산 Release | `engine-dev-267cd78f13b7bde8` |
+| PC `INTEGRATED_FINAL.tar.gz` SHA256 | `f2c11f4f1e0e87d0a197522273a26ac6cacdc09d5bcdb2a3ec07ccb8d5b29ec0` |
 | ARM64 결과 archive SHA256 | `06c978a3fcd400fef9f5315b86afed8be5ec31dcce273fd2d1cbcc02d79620c9` |
 | 새 OpENer SHA256 | `127cedc473705479f6c135b513b6f9e8f86733b0eb89b50361a53f7ef1be98ac` |
 
@@ -204,3 +204,8 @@ RPI50ms·timeout·lease를 늘리지 않았다. IPC 시각 회귀 PASS를 Class1
 최종 보존 확인: current/config 해시·service PID41150/NRestarts0 불변, 카메라 Worker41191 정상,
 Mc_Run/Request/Result/Done=0. connection은28로 증가하여 Class1 미해결 상태를 유지한다.
 노트북 회수·해시 확인 후 이번 TASK021 소유의 Jetson 격리 디렉터리만 정리했다.
+
+최종 패키지는 Git blob 기준 LF manifest로 확정했다. ARM64 회귀 당시 패키지와 다른 내용은
+FROZEN_MANIFEST.json의 CRLF/LF뿐이며 JSON 의미·나머지171파일 SHA는 동일하다.
+최종 archive172파일을 ARM64 메모리에서 다시 읽어 모든 SHA를 확인했다
+(`FINAL_ARM64_PACKAGE_VERIFICATION.json`). 실행/모델 테스트를 중복 수행하지 않았다.

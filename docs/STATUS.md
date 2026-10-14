@@ -292,4 +292,4 @@ Evidence / Boundaries:
 
 ## TASK-021 — PLC 자동 반복검사 배포 준비 (2026-10-14)
 
-기준52ba2d4. 오래된 공개 allowlist 사진9개 제거, 유지보수 UI/Profile 누락 보완, 명시적 오프라인 필수 조립 자산 lock/패키지 검사. ARM64 Runtime287·배포31 PASS. 통합 패키지 engine-dev-63d26330adab5cca /172파일. 실제 운영 engine-integrated-4920568fe3750b64는 미변경. Journal 이전 제품 이탈 proof0건, PLC 온라인 동등성/timeout·STOP/실물출구/Class1 안정성 미검증으로 자동운전 활성화 BLOCKED. 보고서: [TASK021](PLC_AUTOMATIC_DEPLOYMENT_READINESS_REPORT.md). 현장 교체/PLC 쓰기/START/Result·Done NOT_RUN. STOP_FOR_FIELD_DEPLOYMENT_APPROVAL.
+기준52ba2d4. 오래된 공개 allowlist 사진9개 제거, 유지보수 UI/Profile 누락 보완, 명시적 오프라인 필수 조립 자산 lock/패키지 검사. ARM64 Runtime287·배포31 PASS. 통합 패키지 engine-dev-267cd78f13b7bde8 /172파일. 실제 운영 engine-integrated-4920568fe3750b64는 미변경. Journal 이전 제품 이탈 proof0건, PLC 온라인 동등성/timeout·STOP/실물출구/Class1 안정성 미검증으로 자동운전 활성화 BLOCKED. 보고서: [TASK021](PLC_AUTOMATIC_DEPLOYMENT_READINESS_REPORT.md). 현장 교체/PLC 쓰기/START/Result·Done NOT_RUN. STOP_FOR_FIELD_DEPLOYMENT_APPROVAL.
