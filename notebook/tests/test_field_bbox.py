@@ -58,7 +58,9 @@ class BboxTests(unittest.TestCase):
         self.assertIsNone(detector.diagnostic_frame_id)
 
     def test_100_outputs_equal_original_results(self):
-        source=Path('D:/OneDevice_Team_project/runs/engine_runtime_review_001/v001_20261013/Engine_Runtime_Review/runtime_source/current/src/vision/tensorrt_postprocess.py')
+        source=Path(__file__).parent/'fixtures/postprocess_before_diagnostics.py'
+        self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(),
+            '7916cd337d81ba43ba831413b3413b01eed8733f40a1f6ed61f3b8de19c68b73')
         spec=importlib.util.spec_from_file_location('original_postprocess',source)
         old=importlib.util.module_from_spec(spec);spec.loader.exec_module(old)
         rng=np.random.default_rng(140014)
