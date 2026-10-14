@@ -7,6 +7,7 @@ import time
 import uuid
 import json
 import logging
+import shutil
 from collections import deque
 
 from src.journal.sqlite import ConflictError, Journal
@@ -60,6 +61,12 @@ class InspectionService:
         self.preview, self.preview_received = None, 0
         self.preview_times=deque(maxlen=30)
         self.latest_timing=None
+        from apps.edge_service.result_storage import ResultStorage
+        from src.runtime.health_diagnostics import HealthDiagnostics
+        self.storage = ResultStorage(self.journal)
+        self.storage_pending = None
+        self.health_diagnostics = HealthDiagnostics()
+        self._status_cache = {}
         self.closed = threading.Event()
         self.close_complete=False
         self.process = None
@@ -147,11 +154,73 @@ class InspectionService:
         else:
             self.journal.cancel(self.active['inspection_id'], reason)
 
+    def _storage_completions(self):
+        try:
+            completed = self.storage.completed.get_nowait()
+        except queue.Empty:
+            return
+        context = completed['context']
+        if context is not self.storage_pending:
+            self._fault('STORAGE_CONTEXT_MISMATCH')
+            return
+        self.storage_pending = None
+        self.latest_timing = completed['timing']
+        matching = context['generation'] == self.generation and self.active is context['active']
+        if completed['error']:
+            self._fault('RESULT_STORAGE_ERROR:'+completed['error'])
+        elif not matching:
+            self._fault('STORAGE_COMPLETION_CONTEXT_CHANGED')
+        else:
+            self.active = None
+            if self.state not in ('RECOVERY', 'STOPPED'):
+                self.state = 'IDLE'
+
+    def health(self):
+        """Current owner/worker health, independent of Journal SQL and fsync.
+
+        This does not authorize a product or declare its result durable.
+        """
+        with self.lock:
+            now = time.monotonic()
+            alive = bool(self.process and self.process.is_alive())
+            camera = bool(alive and self.preview and 0 <= now-self.preview_received < 2)
+            worker_age = now-self.heartbeat.value
+            reason = self.error
+            if not alive: reason = reason or 'WORKER_EXITED'
+            elif not 0 <= worker_age <= 5: reason = reason or 'WORKER_HEARTBEAT_LOST'
+            elif not camera: reason = reason or 'CAMERA_NOT_READY'
+            if self.storage_pending:
+                context = self.storage_pending
+                if (context['generation'] != self.generation or self.active is not context['active']
+                        or context['camera_epoch'] != (self.preview or {}).get('freshness', {}).get('camera_epoch')):
+                    reason = reason or 'STORAGE_CONTEXT_CHANGED'
+                if now > context['active']['deadline']:
+                    reason = reason or 'STORAGE_DEADLINE_EXCEEDED'
+                if not self.storage.thread.is_alive(): reason = reason or 'STORAGE_WORKER_EXITED'
+            try:
+                if shutil.disk_usage(self.journal.root).free < self.journal.min_free_bytes:
+                    reason = reason or 'DISK_SPACE_LOW'
+            except OSError:
+                reason = reason or 'STORAGE_UNAVAILABLE'
+            identity = (self.state, alive, camera, self.generation,
+                        (self.preview or {}).get('freshness', {}).get('camera_epoch'), reason)
+            if identity != getattr(self, '_last_health_identity', None):
+                self._last_health_identity = identity
+                self.health_diagnostics.record('WORKER_CAMERA_STATE', state=self.state,
+                    alive=alive, camera_ready=camera, generation=self.generation,
+                    camera_epoch=identity[4], reason=reason)
+            return dict(state=self.state, error=reason, camera_ready=camera, worker_alive=alive,
+                worker_pid=self.process.pid if self.process else None, worker_heartbeat_age_s=worker_age,
+                ready=self.state == 'IDLE' and camera and bool(self.calibration) and not reason and not self.switching,
+                active_inspection_id=self.active['inspection_id'] if self.active else None,
+                storage_pending=self.storage_pending is not None, worker_generation=self.generation,
+                camera_epoch=(self.preview or {}).get('freshness', {}).get('camera_epoch'))
+
     def _fault(self, reason):
         logging.getLogger(__name__).error('검사 Service RECOVERY: %s',reason)
         self.state, self.error, self.preview = 'RECOVERY', reason, None
         self.cancellation.set()
-        if self.active:
+        if self.active and self.storage_pending is None:
             try:
                 if self.active.get('production_binding'):
                     self.journal.finish(self.active['inspection_id'],dict(decision='ERROR',reason=reason,reason_code=reason,
@@ -177,7 +246,10 @@ class InspectionService:
 
     def _monitor_loop(self):
         while not self.closed.wait(.03):
+            waited = time.monotonic()
             with self.lock:
+                self.health_diagnostics.record('SERVICE_LOCK_MONITOR', retain=time.monotonic()-waited>.02, wait_ms=(time.monotonic()-waited)*1000)
+                self._storage_completions()
                 try:
                     while True:
                         message = self.results.get_nowait()
@@ -227,21 +299,13 @@ class InspectionService:
                                             message['result'].update(decision='REVIEW',reason='CONVEYOR_TRACK_BINDING_UNCERTAIN',
                                                 reason_code='CONVEYOR_TRACK_BINDING_UNCERTAIN',disposition='REJECT',
                                                 slot_states=dict.fromkeys(SLOTS,'NOT_EVALUATED'),defects=[])
-                                storage_started=time.monotonic()
-                                self.journal.finish(message['inspection_id'], message['result'], message['images'])
-                                storage_ms=(time.monotonic()-storage_started)*1000
-                                # This separate immutable event measures through the completed result commit.
-                                elapsed=(time.monotonic()-self.active['accepted_monotonic'])*1000
-                                self.latest_timing={'inspection_id':message['inspection_id'],'request_to_durable_result_ms':elapsed,'storage_commit_ms':storage_ms}
-                                binding=self.active.get('production_binding') or {}
-                                if binding.get('inspection_motion_mode') in ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH'):
-                                    field=('mock_request_to_durable_result_ms' if binding['inspection_motion_mode']=='CONVEYOR_MOTION_DEV'
-                                           else 'plc_request_to_durable_result_ms')
-                                    self.latest_timing[field]=(time.monotonic()-binding['request_accepted_monotonic'])*1000
-                                with self.journal.lock,self.journal.db:
-                                    self.journal._event('INSPECTION_DURABLE_TIMING',{'inspection_id':message['inspection_id'],
-                                        'request_to_durable_result_ms':elapsed,'storage_commit_ms':storage_ms,'clock':'edge_monotonic',
-                                        'source_mode':'mock' if self.backend.get('backend')=='mock' else 'live'})
+                                if self.storage_pending is not None:
+                                    raise RuntimeError('DUPLICATE_STORAGE_HANDOFF')
+                                self.storage_pending = dict(active=self.active, generation=self.generation,
+                                    camera_epoch=(self.active.get('trigger') or {}).get('capture_epoch'),
+                                    inspection_id=message['inspection_id'], started=time.monotonic())
+                                self.storage.submit(self.storage_pending, message)
+                                continue  # active remains reserved through the durability boundary
                             self.active = None
                             self.state = 'IDLE'
                 except queue.Empty:
@@ -259,7 +323,7 @@ class InspectionService:
                                 self.preview_times.append((frame_id,self.preview_received))
                 except queue.Empty:
                     pass
-                if self.active and time.monotonic() > self.active['deadline']:
+                if self.active and self.storage_pending is None and time.monotonic() > self.active['deadline']:
                     # Cancel acknowledgement is not worker termination. Remain unavailable.
                     self._record_request_failure('DEADLINE_EXCEEDED')
                     self.cancellation.set()
@@ -288,6 +352,21 @@ class InspectionService:
                     self.mock.transition('FAULT','CONTROL_ERROR: '+str(error))
 
     def status(self):
+        with self.lock:
+            # A UI poll cannot strand the control owner behind a DB fsync.
+            if not self.journal.lock.acquire(blocking=False):
+                return dict(self._status_cache, **self.health(), journal_status='COMMITTING')
+            try:
+                value = self._status_with_journal()
+                value['health_diagnostics'] = self.health_diagnostics.snapshot()
+                value['journal_timing'] = self.journal.diagnostics.snapshot()
+                value['storage_pending'] = self.storage_pending is not None
+                self._status_cache = value
+                return value
+            finally:
+                self.journal.lock.release()
+
+    def _status_with_journal(self):
         with self.lock:
             storage_error = None
             try:
@@ -481,10 +560,11 @@ class InspectionService:
     def cancel(self, identifier):
         with self.lock:
             if self.active and self.active['inspection_id'] == identifier:
-                self.journal.cancel(identifier, 'USER_CANCELLED')
                 self.cancellation.set()
+                if self.storage_pending is None:
+                    self.journal.cancel(identifier, 'USER_CANCELLED')
                 self.state = 'CANCELLING'
-            return self.journal.detail(identifier)
+            return None if self.storage_pending else self.journal.detail(identifier)
 
     def confirm_calibration(self, identifier, confirmed):
         with self.lock:
@@ -570,13 +650,21 @@ class InspectionService:
         self.closed.set()
         self.monitor.join(5)
         if self.monitor.is_alive():resource_errors.append('MONITOR_STOP_UNCONFIRMED')
+        # Stop the camera even if storage hangs. Never close a DB still owned
+        # by the durability thread, or launch a replacement camera over it.
+        self.cancellation.set()
+        cleanup('worker', self._stop_worker)
+        cleanup('storage', self.storage.close)
+        if self.storage.thread.is_alive():
+            cleanup('diagnostic_capture', self.diagnostic_capture.close)
+            cleanup('manager', self.manager.shutdown)
+            raise RuntimeError('; '.join(resource_errors))
         with self.lock:
             if self.active:
                 try:
                     self.journal.cancel(self.active['inspection_id'], 'SERVICE_SHUTDOWN')
                 except Exception as error:
                     errors.append('SHUTDOWN_JOURNAL_CANCEL: ' + str(error))
-            cleanup('worker', self._stop_worker)
             cleanup('diagnostic_capture', self.diagnostic_capture.close)
             cleanup('journal', self.journal.close)
             cleanup('manager', self.manager.shutdown)

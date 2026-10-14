@@ -5,6 +5,7 @@ import shutil
 import sqlite3
 import threading
 import uuid
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -74,6 +75,9 @@ class Journal:
         self.root = Path(data_root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
+        self.finish_lock = threading.Lock()
+        from src.runtime.health_diagnostics import HealthDiagnostics
+        self.diagnostics = HealthDiagnostics()
         self.producer_id, self.producer_session = producer_id, uuid.uuid4().hex
         self.min_free_bytes, self.outbox_limit = min_free_bytes, outbox_limit
         self.db = sqlite3.connect(self.root / "journal.sqlite3", check_same_thread=False)
@@ -149,6 +153,16 @@ class Journal:
         return event
 
     def finish(self, inspection_id, result, images=()):
+        with self.finish_lock:
+            try:
+                return self._finish(inspection_id, result, images)
+            except Exception as error:
+                self.diagnostics.record('JOURNAL_FINISH_FAILED', inspection_id=inspection_id,
+                                        reason=type(error).__name__+':'+str(error))
+                raise
+
+    def _finish(self, inspection_id, result, images):
+        self.diagnostics.record("JOURNAL_FINISH_START", inspection_id=inspection_id)
         self.capacity()
         with self.lock:
             row = self.db.execute("SELECT * FROM inspections WHERE inspection_id=?", (inspection_id,)).fetchone()
@@ -158,30 +172,41 @@ class Journal:
                 with self.db:
                     self._event("LATE_RESULT_QUARANTINED", {"inspection_id": inspection_id, "reason": row["state"]})
                 return None
-            if result.get("decision") not in ("PASS", "FAIL", "REVIEW", "ERROR"):
-                raise ValueError("Invalid decision")
-            if result["decision"] != "ERROR" and not any(image["kind"] == "raw" for image in images):
-                raise ValueError("Non-error result requires original evidence")
-            assets = []
-            directory = self.root / "assets" / inspection_id
-            directory.mkdir(parents=True, exist_ok=True)
-            for image in images:
-                data = image["data"]
-                if not isinstance(data, bytes) or not 0 < len(data) <= 20_000_000:
-                    raise ValueError("Invalid asset data")
-                asset_id = uuid.uuid4().hex
-                suffix = ".png" if image["kind"] == "raw" else ".jpg"
-                path = directory / (asset_id + suffix)
-                atomic_write(path, data)
-                assets.append({"asset_id": asset_id, "inspection_id": inspection_id, "kind": image["kind"],
-                               "relative_path": path.relative_to(self.root).as_posix(), "sha256": sha256(data),
-                               "width": image["width"], "height": image["height"], "bytes": len(data),
-                               "capture_at": image.get("capture_at"), "view": image.get("view", "top")})
-                # The immutable result/event JSON links each encoded asset to its selected frame.
-                if image.get('frame_id') is not None:
-                    assets[-1]['frame_id'] = image['frame_id']
-            completed = dict(result, inspection_id=inspection_id, assets=assets, completed_at=now(),
-                             request=json.loads(row["request_json"]), package=json.loads(row["package_json"]), accepted_at=row['accepted_at'], storage_success=True)
+        if result.get("decision") not in ("PASS", "FAIL", "REVIEW", "ERROR"):
+            raise ValueError("Invalid decision")
+        if result["decision"] != "ERROR" and not any(image["kind"] == "raw" for image in images):
+            raise ValueError("Non-error result requires original evidence")
+        assets = []
+        directory = self.root / "assets" / inspection_id
+        directory.mkdir(parents=True, exist_ok=True)
+        for image in images:
+            data = image["data"]
+            if not isinstance(data, bytes) or not 0 < len(data) <= 20_000_000:
+                raise ValueError("Invalid asset data")
+            asset_id = uuid.uuid4().hex
+            suffix = ".png" if image["kind"] == "raw" else ".jpg"
+            path = directory / (asset_id + suffix)
+            atomic_write(path, data)
+            assets.append({"asset_id": asset_id, "inspection_id": inspection_id, "kind": image["kind"],
+                           "relative_path": path.relative_to(self.root).as_posix(), "sha256": sha256(data),
+                           "width": image["width"], "height": image["height"], "bytes": len(data),
+                           "capture_at": image.get("capture_at"), "view": image.get("view", "top")})
+            # The immutable result/event JSON links each encoded asset to its selected frame.
+            if image.get('frame_id') is not None:
+                assets[-1]['frame_id'] = image['frame_id']
+        completed = dict(result, inspection_id=inspection_id, assets=assets, completed_at=now(),
+                         request=json.loads(row["request_json"]), package=json.loads(row["package_json"]), accepted_at=row['accepted_at'], storage_success=True)
+        with self.lock:
+            current = self.db.execute("SELECT state FROM inspections WHERE inspection_id=?", (inspection_id,)).fetchone()
+            if not current or current[0] != 'ACCEPTED':
+                with self.db:
+                    # Preserve actual late evidence, never overwrite a cancelled row.
+                    self._event('LATE_RESULT_QUARANTINED', dict(inspection_id=inspection_id,
+                        reason='TERMINAL_DURING_STORAGE', original_result=completed))
+                self.diagnostics.record('JOURNAL_FINISH_END', inspection_id=inspection_id, committed=False)
+                return None
+            commit_started = time.monotonic()
+            self.diagnostics.record('JOURNAL_COMMIT_START', inspection_id=inspection_id)
             with self.db:
                 self.db.execute("UPDATE inspections SET state='COMPLETE',decision=?,result_json=?,completed_at=? WHERE inspection_id=? AND state='ACCEPTED'",
                                 (completed["decision"],canonical(completed),completed["completed_at"],inspection_id))
@@ -194,8 +219,37 @@ class Journal:
                 if completed['request'].get('control_mode') != 'mock':
                     self.db.execute("UPDATE cycles SET terminal='INSPECTION_ONLY' WHERE cell_id=? AND plc_session_id=? AND cycle_id=?",
                                     (row['cell_id'],row['plc_session_id'],row['cycle_id']))
+            self.diagnostics.record('JOURNAL_COMMIT_END', inspection_id=inspection_id,
+                                    duration_ms=(time.monotonic()-commit_started)*1000)
+        self.diagnostics.record('JOURNAL_FINISH_END', inspection_id=inspection_id, committed=True)
         # Reached only after successful DB commit. The caller may publish this result now.
         return completed
+
+    def commit_integrated(self, final):
+        """Persist a real final decision; the control owner publishes later."""
+        identifier = final['inspection_id']
+        self.capacity()
+        started = time.monotonic()
+        self.diagnostics.record('INTEGRATED_COMMIT_START', inspection_id=identifier)
+        try:
+            with self.lock, self.db:
+                if self.db.execute('SELECT 1 FROM service_state WHERE key=?',
+                                   ('aborted_cycle:'+identifier,)).fetchone():
+                    raise ValueError('ABORTED_INSPECTION_CANNOT_CREATE_FINAL')
+                row = self.detail(identifier)
+                if (not row or row['state'] not in ('COMPLETE', 'CANCELLED')
+                        or not row['result'].get('storage_success')
+                        or row['request']['runtime_binding']['plc_request_token'] != final['request_token']):
+                    raise ValueError('INTEGRATED_DURABILITY_CONTEXT_CHANGED')
+                self.db.execute('INSERT INTO service_state VALUES (?,?)',
+                    ('integrated_decision:'+identifier, canonical(final)))
+                self._event('INTEGRATED_FINAL_DURABLE', final)
+        except Exception as error:
+            self.diagnostics.record('INTEGRATED_COMMIT_FAILED', inspection_id=identifier,
+                reason=type(error).__name__+':'+str(error))
+            raise
+        self.diagnostics.record('INTEGRATED_COMMIT_END', inspection_id=identifier,
+            duration_ms=(time.monotonic()-started)*1000)
 
     def cancel(self, inspection_id, reason):
         with self.lock, self.db:

@@ -67,12 +67,15 @@ class StandaloneRuntime(ProductionRuntime):
         self.camera_retry_at = 0
         self.camera_recovery = None
         self.issue = None
+        self.aborted_inspection = None
+        self.final_pending = None
         self.cycle_issue = None
         self.line_wait = 'INITIALIZING'
         super().__init__(*args, **kwargs)
         self.shadow = assembly  # Reuse existing evidence routes, not post-commit shadow dispatch.
         self.service.journal.outbox_limit = None  # Optional notebook export is not a PLC dependency.
         self.service.journal.min_free_bytes = line_profile['min_free_bytes']
+        self._restore_aborted_inspection()
         if self._automatic_policy():
             self.automatic_admission = AutomaticAdmission(self.gateway.runtime_session)
         if self._initial_policy() or self._supervised_policy():
@@ -83,6 +86,29 @@ class StandaloneRuntime(ProductionRuntime):
 
     def start_auto(self):
         raise ValueError('PHYSICAL_START_OWNS_LINE_RUN; SOFTWARE_ACQUISITION_IS_AUTOMATIC')
+
+    def _restore_aborted_inspection(self):
+        """Restore a recorded blocked cycle for display; never restore a grant."""
+        journal = self.service.journal
+        with journal.lock:
+            # Journal append order remains meaningful across boots and producer
+            # sessions. Apply settlement filters before selecting the latest row.
+            row = journal.db.execute("""
+                SELECT e.payload_json, i.request_json
+                FROM events e JOIN inspections i
+                  ON i.inspection_id=json_extract(e.payload_json,'$.payload.inspection_id')
+                WHERE e.event_type='LINE_CANCELLED_RESULT_BLOCKED'
+                  AND json_extract(i.request_json,'$.runtime_binding.plc_contract')='OPENER_CYCLIC'
+                  AND NOT EXISTS(SELECT 1 FROM service_state s WHERE s.key IN
+                      ('integrated_decision:' || i.inspection_id, 'aborted_cycle:' || i.inspection_id))
+                ORDER BY e.rowid DESC LIMIT 1
+            """).fetchone()
+            if row:
+                event = json.loads(row[0])['payload']
+                binding = json.loads(row[1])['runtime_binding']
+                self.aborted_inspection = dict(inspection_id=event['inspection_id'], reason=event['reason'],
+                    request_token=binding.get('plc_request_token'), plc_publication='BLOCKED',
+                    restored_from_journal=True)
 
     def _fault(self, reason):
         if (getattr(self.gateway, 'contract_version', None) in ('LEGACY_THREE_BOOL', 'OPENER_CYCLIC')
@@ -384,6 +410,10 @@ class StandaloneRuntime(ProductionRuntime):
 
     def _cancel_pending(self, reason):
         if self.bridge.inspection_id and self.bridge.inspection_id not in self.published_ids:
+            self.bridge.phase = 'INSPECTION_ABORTED'
+            self.phase = 'INSPECTION_ABORTED'
+            self.aborted_inspection = dict(inspection_id=self.bridge.inspection_id, reason=reason,
+                request_token=self.handshake.token, plc_publication=self.handshake.publication)
             self.published_ids.add(self.bridge.inspection_id)
             self._event(dict(event='LINE_CANCELLED_RESULT_BLOCKED', inspection_id=self.bridge.inspection_id, reason=reason))
         if self.service.active:
@@ -446,7 +476,7 @@ class StandaloneRuntime(ProductionRuntime):
             else self.handshake.state))
 
     def _poll_cyclic_plc(self, now):
-        health = self.service.status()
+        health = self.service.health()
         # BUSY is a healthy inspector, not a reason to revoke an active request.
         ready = bool(self.operating and not self.error and self._profile_ready()
             and not health.get('error') and self.assembly.ready and health.get('camera_ready')
@@ -491,7 +521,10 @@ class StandaloneRuntime(ProductionRuntime):
                 and self.arrival and self.last_retirement['track_id'] == self.arrival['track']):
             self.cyclic_rearm_evidence = dict(self.last_retirement or {},
                 clearance_frame_id=self.latest_packet['frame_id'])
-        self.gateway.health_update(ready, clear, now)
+        self.gateway.ready_reason = (health.get('error') or self.error or
+            ('APPROVAL_REVOKED' if self.initial_approval and self.initial_approval.state == 'REVOKED'
+             else 'READY' if ready else 'PROFILE_MODEL_OR_OPERATING_NOT_READY'))
+        self.gateway.health_update(ready, clear, time.monotonic())
         previous = self.handshake.token
         self.handshake.poll(now)
         if self.handshake.cancelled:
@@ -545,6 +578,7 @@ class StandaloneRuntime(ProductionRuntime):
                     frame_id_at_request=(self.latest_packet or {}).get('frame_id'))
                 self._event(dict(event='PLC_REQUEST_TRACK_FROZEN', **self.arrival))
             self.cycle_issue = None
+            self.aborted_inspection = None
         self.line_wait = ('WAIT_FIELD_PROFILE' if not self._profile_ready() else
             'CYCLIC_PUBLICATION_DISABLED' if not self.gateway.writes_enabled else
             self.handshake.reason or self.handshake.state)
@@ -742,7 +776,29 @@ class StandaloneRuntime(ProductionRuntime):
                      policy='NO_INPUT_IS_NEVER_PASS', reason=reason)
         self._commit_and_publish(identifier, final, now)
 
+    def _validate_cyclic_final(self, binding, final, now):
+        if (binding.get('runtime_session_id') != self.session_id or
+                binding.get('worker_generation') != self.service.generation or
+                binding.get('camera_epoch') != self.epoch):
+            raise ValueError('CYCLIC_FINAL_CONTEXT_MISMATCH')
+        if binding.get('track_id') is not None:
+            cycle = self.coordinator.active_cycle
+            if (cycle is None or cycle.cycle_id != binding.get('cycle_id') or
+                    self.coordinator._tracker._track_id != binding['track_id']):
+                raise ValueError('CYCLIC_FINAL_PRODUCT_CHANGED')
+        if self._full_frame_policy() and final['decision'] in ('PASS', 'FAIL'):
+            from src.tracking.contracts import TrackState
+            tracker = self.coordinator._tracker
+            if (tracker._state in (TrackState.LOST, TrackState.WAIT_AREA_CLEAR)
+                    or self.cycle_issue or not tracked_frame_evidence(self.latest_packet,
+                        self.handshake.accepted_at, self.epoch, self.service.generation, now)):
+                raise ValueError('CYCLIC_FINAL_TRACK_EVIDENCE_INVALID')
+
     def _commit_and_publish(self, identifier, final, now):
+        if getattr(self, 'final_pending', None):
+            if self.final_pending['inspection_id'] != identifier:
+                raise ValueError('FINAL_COMMIT_OWNER_CONFLICT')
+            return
         row = self.service.journal.detail(identifier)
         binding = ((row or {}).get('request') or {}).get('runtime_binding', {})
         cancelled_error = bool(row and row['state'] == 'CANCELLED'
@@ -768,22 +824,7 @@ class StandaloneRuntime(ProductionRuntime):
                          product_separation=self.request_product_separation,
                          sensor_cycle_source='QUALIFIED_PLC_REQUEST_LATCH_NOT_RAW_SENSOR')
         if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
-            if (binding.get('runtime_session_id') != self.session_id or
-                    binding.get('worker_generation') != self.service.generation or
-                    binding.get('camera_epoch') != self.epoch):
-                raise ValueError('CYCLIC_FINAL_CONTEXT_MISMATCH')
-            if binding.get('track_id') is not None:
-                cycle = self.coordinator.active_cycle
-                if (cycle is None or cycle.cycle_id != binding.get('cycle_id') or
-                        self.coordinator._tracker._track_id != binding['track_id']):
-                    raise ValueError('CYCLIC_FINAL_PRODUCT_CHANGED')
-            if self._full_frame_policy() and final['decision'] in ('PASS', 'FAIL'):
-                from src.tracking.contracts import TrackState
-                tracker = self.coordinator._tracker
-                if (tracker._state in (TrackState.LOST, TrackState.WAIT_AREA_CLEAR)
-                        or self.cycle_issue or not tracked_frame_evidence(self.latest_packet,
-                            self.handshake.accepted_at, self.epoch, self.service.generation, now)):
-                    raise ValueError('CYCLIC_FINAL_TRACK_EVIDENCE_INVALID')
+            self._validate_cyclic_final(binding, final, now)
             from src.control.opener_cyclic import PLC_RESULT_POLICY
             final.update(plc_result_policy=PLC_RESULT_POLICY,
                 plc_decision='PASS' if final['decision']=='PASS' else 'FAIL',
@@ -798,12 +839,37 @@ class StandaloneRuntime(ProductionRuntime):
         if getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':
             final.update(plc_contract='LEGACY_THREE_BOOL',
                          ack_scope='WRITE_READBACK_ONLY', plc_consumption_confirmed=False)
-        journal = self.service.journal
-        with journal.lock, journal.db:
-            # INSERT only: a committed final decision is immutable.
-            journal.db.execute('INSERT INTO service_state VALUES (?, ?)',
-                               ('integrated_decision:'+identifier, json.dumps(final)))
-            journal._event('INTEGRATED_FINAL_DURABLE', final)
+        if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
+            self.final_pending = dict(inspection_id=identifier, binding=dict(binding),
+                request_token=self.handshake.token, generation=self.service.generation,
+                camera_epoch=self.epoch)
+            self.service.storage.submit_final(self.final_pending, final)
+            return
+        self.service.journal.commit_integrated(final)
+        self._publish_committed(identifier, final, binding)
+
+    def _poll_final_commit(self, now):
+        pending = getattr(self, 'final_pending', None)
+        if not pending:
+            return
+        try:
+            saved = self.service.storage.final_completed.get_nowait()
+        except queue.Empty:
+            return
+        self.final_pending = None
+        if saved['context'] is not pending or saved['error']:
+            raise ValueError('FINAL_STORAGE_FAILED:'+str(saved['error']))
+        identifier = pending['inspection_id']
+        if (self.handshake.cancelled or self.handshake.state != 'INSPECTING'
+                or pending['request_token'] != self.handshake.token
+                or identifier in self.published_ids or getattr(self, 'error', None)
+                or self.service.health().get('error')):
+            self._cancel_pending('FINAL_COMMIT_CONTEXT_ENDED')
+            return
+        self._validate_cyclic_final(pending['binding'], saved['final'], now)
+        self._publish_committed(identifier, saved['final'], pending['binding'])
+
+    def _publish_committed(self, identifier, final, binding):
         self.published_ids.add(identifier)
         self.handshake.publish(identifier, final['decision'], True, time.monotonic())
         entry = dict(final, vision_decision=final['decision'],
@@ -825,11 +891,15 @@ class StandaloneRuntime(ProductionRuntime):
             self.product_separation = None
 
     def _poll_result(self, now):
+        if getattr(self, 'final_pending', None):
+            return
         identifier = self.bridge.inspection_id
         if not identifier or identifier in self.published_ids: return
         if self.handshake.cancelled or self.handshake.state != 'INSPECTING':
             self._cancel_pending('LINE_CONTEXT_ENDED')
             return
+        if getattr(self.service, 'storage_pending', None) is not None:
+            return  # No SQL read can wait for fsync or expose a pre-commit result.
         issue = getattr(self, 'cycle_issue', None)
         row = self.service.journal.detail(identifier)
         if issue and issue['request_token'] == self.handshake.token:
@@ -871,7 +941,7 @@ class StandaloneRuntime(ProductionRuntime):
         self._commit_and_publish(identifier, final, now)
 
     def _acquisition(self, now):
-        status = self.service.status()
+        status = self.service.health()
         if status['ready'] and not self.operating and not self.error:
             self.operating = True  # Software frame acquisition only, never PLC Run.
             self.observation_started_at = now
@@ -898,20 +968,69 @@ class StandaloneRuntime(ProductionRuntime):
         except Exception:
             self.logger.exception('Camera recovery waits for next bounded attempt')
 
+    def _storage_wait_health(self, now):
+        """Only known in-flight storage may defer SQL, never control health.
+
+        C independently enforces current STOP/E-STOP, Request, connection and
+        deadlines. No admission, result or lease extension occurs here.
+        """
+        if getattr(self.gateway, 'contract_version', None) != 'OPENER_CYCLIC':
+            return
+        context = self.service.storage_pending or getattr(self, 'final_pending', None)
+        if context is None:
+            # A UI reader can briefly own Journal between storage phases.
+            # That is not a not-ready observation. Do not renew health from
+            # unproven context either: the normal cycle must renew the existing
+            # lease on its next turn, or the unchanged lease expires in C.
+            return
+        health = self.service.health()
+        snapshot = self.gateway.read_snapshot(now)
+        token = (f"{snapshot['boot']:016x}:{snapshot['connection']}:{snapshot['request_id']}"
+                 if snapshot else None)
+        bound_id = self.handshake.inspection_id if getattr(self, 'final_pending', None) else self.bridge.inspection_id
+        ready = bool(context and context['inspection_id'] == bound_id
+            and token == self.handshake.token and snapshot['phase'] == 'REQUEST_RECEIVED'
+            and snapshot['connected'] and snapshot['fresh'] and snapshot['run_idle'] and snapshot['bool_valid']
+            and snapshot['controls']['Mc_Run'] and snapshot['controls']['EStop_OK']
+            and snapshot['controls']['Stop_PB'] and snapshot['controls']['Inspection_Request']
+            and self.operating and not self.error and self._profile_ready() and self.assembly.ready
+            and not health['error'] and health['camera_ready'] and health['state'] in ('BUSY', 'IDLE')
+            and context['generation'] == self.service.generation
+            and self.service.storage.thread.is_alive()
+            and context['camera_epoch'] == health['camera_epoch']
+            # Raw storage retains the Worker deadline. Final persistence uses
+            # the existing C request timeout/REQUEST_RECEIVED phase, so an
+            # Assembly timeout may still produce its genuine ERROR result.
+            and (getattr(self, 'final_pending', None) is not None
+                 or now <= context.get('active', {}).get('deadline', 0))
+            and not self.handshake.cancelled
+            and (not self.initial_approval or (not self.initial_approval.failed
+                 and self.initial_approval.state != 'REVOKED')))
+        self.gateway.ready_reason = health['error'] or ('DURABLE_STORAGE_IN_PROGRESS' if ready
+                                                       else 'STORAGE_WAIT_CONTROL_CONTEXT_INVALID')
+        self.gateway.health_update(ready, False, time.monotonic())
+
     def _run(self):
         self.configured.wait()
         while not self.stop.wait(.02):
+            waited = time.monotonic()
             with self.lock, self.service.lock:
+                self.service.health_diagnostics.record('SERVICE_LOCK_RUNTIME', retain=time.monotonic()-waited>.02, wait_ms=(time.monotonic()-waited)*1000)
                 if self.closing: continue
+                # Commit/fsync owns Journal, not the cyclic health schedule.
+                if not self.service.journal.lock.acquire(blocking=False):
+                    self._storage_wait_health(time.monotonic())
+                    continue
                 try:
                     now = time.monotonic()
                     self._acquisition(now)
-                    self._poll_plc(now)  # Observe the selected contract before any late result.
+                    self._poll_plc(now)
                     while True:
                         try: packet = self.service.products.get_nowait()
                         except queue.Empty: break
                         self._packet(packet)
                     now = time.monotonic()
+                    self._poll_final_commit(now)
                     if self.operating and self.observation_started_at is not None:
                         since = self.latest_packet['processed_monotonic'] if self.latest_packet else self.observation_started_at
                         if now-since > self.observation_stale_seconds:
@@ -923,7 +1042,9 @@ class StandaloneRuntime(ProductionRuntime):
                     try: self._fault(type(error).__name__+':'+str(error))
                     except Exception:
                         self.error, self.operating = 'JOURNAL_UNAVAILABLE', False
-                        self.gateway.close()  # V3 watchdog only; legacy has no heartbeat/stop channel.
+                        self.gateway.close()
+                finally:
+                    self.service.journal.lock.release()
 
     def status(self):
         result = super().status()
@@ -960,6 +1081,9 @@ class StandaloneRuntime(ProductionRuntime):
             if self._automatic_policy():
                 result.update(initial_opener_arm='STOPPED_BASELINE_THEN_NEW_PHYSICAL_START',
                     per_product_manual_controls=False)
+        result['aborted_inspection'] = self._aborted_status()
+        result['final_commit_pending'] = self.final_pending is not None
+        result['ipc_health'] = self.gateway.diagnostics.snapshot() if hasattr(self.gateway, 'diagnostics') else None
         result['integrated_counts'] = dict.fromkeys(('PASS','FAIL','REVIEW','ERROR'), 0)
         result['integrated_counts'].update(dict(totals))
         if getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':
@@ -967,6 +1091,21 @@ class StandaloneRuntime(ProductionRuntime):
                           actual_motor_feedback='NOT_AVAILABLE_IN_EXISTING_CONTRACT',
                           physical_stop_observable=False, plc_consumption_confirmed=False)
         return result
+
+    def _aborted_status(self):
+        aborted = getattr(self, 'aborted_inspection', None)
+        if not aborted:
+            return None
+        identifier = aborted['inspection_id']
+        row = self.service.journal.detail(identifier)
+        with self.service.journal.lock:
+            final = self.service.journal.db.execute('SELECT value FROM service_state WHERE key=?',
+                ('integrated_decision:'+identifier,)).fetchone()
+        return dict(aborted, raw_decision=row.get('decision') if row else None,
+            raw_journal='COMPLETE' if row and row['state'] == 'COMPLETE' else 'NOT_COMPLETE',
+            assembly='SUBMITTED' if identifier in self.assembly_submitted else 'NOT_RUN',
+            integrated='COMPLETE' if final else 'INCOMPLETE',
+            state='INSPECTION_ABORTED_STOP_AND_RECOVERY_REQUIRED')
 
     def close(self):
         with self.lock:

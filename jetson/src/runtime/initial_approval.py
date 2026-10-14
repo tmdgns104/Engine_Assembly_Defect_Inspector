@@ -63,7 +63,9 @@ def count_unfinished_inspections(db):
             blockers += 1
         elif not has_final and not legacy_terminal_identity(
                 identifier, json.loads(raw_request), json.loads(raw_identity or 'null')):
-            blockers += 1
+            from src.runtime.aborted_recovery import valid_abort
+            if not valid_abort(db, identifier):
+                blockers += 1
     return blockers
 
 

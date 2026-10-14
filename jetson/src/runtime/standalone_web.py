@@ -88,7 +88,15 @@ def line_view(status, identity):
         detail = ('화면 전체가 비어 있을 필요는 없습니다. 이전 제품의 이탈·새 제품 식별을 확인합니다. '
                   '접수한 요청은 제한 시간 안에 ERROR·PLC NG로 마무리합니다. 모호함이 계속되면 현장 STOP 후 감독하에 복구하세요. '
                   +str(automatic['product_identity_reason']))
-    return dict(phase=phase, title=title, detail=detail, verdict=verdict,
+    aborted = status.get('aborted_inspection')
+    if aborted:
+        phase, title, verdict = 'ABORTED', '검사 중단 · 현장 STOP 및 복구 필요', 'INCOMPLETE'
+        detail = ('원시 AI 검사 '+str(aborted.get('raw_decision') or '미확인')+
+                  ' · 원시 Journal '+str(aborted.get('raw_journal'))+
+                  ' · 필수 조립 검사 '+str(aborted.get('assembly'))+
+                  ' · 통합 최종판정 '+str(aborted.get('integrated'))+
+                  ' · PLC '+str(aborted.get('plc_publication')))
+    return dict(phase=phase, title=title, detail=detail, verdict=verdict, aborted_inspection=aborted,
         issue=status.get('runtime_issue'), runtime_loop_alive=status.get('runtime_loop_alive', False),
         line_state=line, release=identity.get('release_id') or identity.get('app_release'),
         mode=identity.get('mode'), camera=dict(fresh=fresh, frame_id=packet.get('frame_id'),

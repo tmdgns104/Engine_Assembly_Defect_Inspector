@@ -70,7 +70,8 @@ class RuntimeFixture(unittest.TestCase):
             lock=threading.RLock(), production_tracking=threading.Event(),active=None,
             error=None,state='IDLE', session=1,
             package=NS(manifest_hash='sha',snapshot=lambda:{'manifest':{'product_id':'fixture','release_id':'fixture'}}),
-            cancel=Mock(), status=lambda:dict(ready=True,camera_ready=True,state='IDLE'))
+            cancel=Mock(), health=lambda:dict(ready=True,camera_ready=True,state='IDLE'),
+            status=lambda:dict(ready=True,camera_ready=True,state='IDLE'))
         def allocate():
             self.serial += 1
             return dict(cell_id='fixture',plc_session_id=1,request_id=self.serial,cycle_id=self.serial,
@@ -96,6 +97,9 @@ class RuntimeFixture(unittest.TestCase):
         self.r.logger=logging.getLogger('fixture')
         self.r.operating=True
         self.r.worker_generation='g'
+        from notebook.tests.runtime_fixtures import drain_final_commits
+        storage = drain_final_commits(self.r)
+        self.addCleanup(storage.close)
         self.service.production_tracking.set()
         self.now=time.monotonic()
     def observe(self, seq, offset, box=BOX, area_class=None, **kwargs):

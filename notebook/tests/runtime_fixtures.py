@@ -5,6 +5,27 @@ import time
 from src.recipe.package import canonical, sha256
 
 
+def drain_final_commits(runtime):
+    """Deterministic unit-test clock; native tests exercise the async loop itself."""
+    from apps.edge_service.result_storage import ResultStorage
+    storage = ResultStorage(runtime.service.journal)
+    runtime.service.storage = storage
+    if not hasattr(runtime.service, 'health'):
+        runtime.service.health = lambda: {'error': None}
+    commit = runtime._commit_and_publish
+    def committed(identifier, final, now):
+        commit(identifier, final, now)
+        if getattr(runtime, 'final_pending', None):
+            deadline = time.monotonic()+2
+            while storage.final_completed.empty() and time.monotonic()<deadline:
+                time.sleep(.002)
+            if storage.final_completed.empty():
+                raise TimeoutError('isolated final storage')
+            runtime._poll_final_commit(now)
+    runtime._commit_and_publish = committed
+    return storage
+
+
 def fixture_documents():
     recipe = {"schema_version": 1, "recipe_id": "assembly", "version": "1", "coordinate_space": "normalized_image",
               "alignment_mode": "fixed_profile", "visibility_mode": "human_per_request", "rule": "presence_count",

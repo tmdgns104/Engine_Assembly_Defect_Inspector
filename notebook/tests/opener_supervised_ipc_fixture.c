@@ -15,8 +15,8 @@ int main(int argc,char **argv){
   if(argc!=2 && argc!=3)return 2;
   CommConfig c={COMM_AI_RUNTIME,false,false,1,1,.2,10,0,true,false};
   if(argc==3) {
-    if(strcmp(argv[2],"automatic"))return 2;
-    c.supervised_repeat=false;c.automatic_repeat=true;
+    if(strcmp(argv[2],"automatic") && strcmp(argv[2],"initial"))return 2;
+    c.supervised_repeat=false;c.automatic_repeat=!strcmp(argv[2],"automatic");
   }
   double start=clock_now();CommInit(&s,&c,start,NULL,NULL);CommOpen(&s,start);
   if(EngineIpcInit(argv[1]))return 3;
@@ -31,6 +31,6 @@ int main(int argc,char **argv){
     struct timespec wait={0,5000000};nanosleep(&wait,NULL);
   }
 end:
-  printf("synthetic requests=%lu results=%lu done=%lu completed=%lu approvals=%u\n",s.request_id,s.result_count,s.done_count,s.completed_count,s.approval_count);
+  printf("synthetic requests=%lu results=%lu done=%lu completed=%lu approvals=%u result_sequence=%u done_sequence=%u\n",s.request_id,s.result_count,s.done_count,s.completed_count,s.approval_count,s.result_sequence,s.done_sequence);
   EngineIpcClose();return 0;
 }

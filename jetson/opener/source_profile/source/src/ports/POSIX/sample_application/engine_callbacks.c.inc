@@ -27,7 +27,8 @@ static void EngineJson(FILE *file, const CommState *s, const char *event, double
     "\"duplicate_packets\":%lu,\"production_callbacks\":%lu,\"result_count\":%lu,"
     "\"done_count\":%lu,\"completed_count\":%lu,\"last_tx_sequence\":%u,"
     "\"result_sequence\":%u,\"done_sequence\":%u,\"last_receive_monotonic_s\":%.6f,"
-    "\"raw150_hex\":\"",
+    "\"ai_ready\":%s,\"ai_last_health_monotonic_s\":%.6f,\"ai_health_age_s\":%.6f,"
+    "\"initial_revoked\":%s,\"raw150_hex\":\"",
     (long)getpid(), event, now,
     s->config.mode == COMM_RX_ONLY ? "COMM_RX_ONLY" : (s->config.mode==COMM_AI_RUNTIME ? "COMM_AI_RUNTIME":"COMM_SYNTHETIC_RESULT"),
     s->config.mode == COMM_RX_ONLY ? "NO_RESULT" : (s->config.mode==COMM_AI_RUNTIME ? "PYTHON_FINAL_RESULT_SEE_JOURNAL":"SYNTHETIC_TEST_RESULT"),
@@ -38,7 +39,9 @@ static void EngineJson(FILE *file, const CommState *s, const char *event, double
     s->used ? "true":"false", (s->config.mode != COMM_RX_ONLY && s->armed) ? "true":"false",
     s->session_id, s->request_id, s->receive_count, s->session_id, engine_timeouts, s->duplicate_count, s->send_count,
     s->result_count, s->done_count, s->completed_count, s->last_tx_sequence,
-    s->result_sequence, s->done_sequence, s->last_receive_at);
+    s->result_sequence, s->done_sequence, s->last_receive_at,
+    s->ai_ready ? "true":"false", s->ai_heartbeat_at, now-s->ai_heartbeat_at,
+    s->initial_revoked ? "true":"false");
   for (unsigned int i=0; i<8; ++i) fprintf(file, "%02x", s->raw150[i]);
   fprintf(file, "\",\"raw100_hex\":\"");
   for (unsigned int i=0; i<4; ++i) fprintf(file, "%02x", s->raw100[i]);

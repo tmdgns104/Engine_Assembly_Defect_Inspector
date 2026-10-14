@@ -51,7 +51,10 @@ class FinalBoundaryTests(unittest.TestCase):
         self.r.published_ids, self.r.history = set(), deque()
         self.r.assembly_submitted = {}
         self.r._event = Mock()
+        from notebook.tests.runtime_fixtures import drain_final_commits
+        self.storage = drain_final_commits(self.r)
     def tearDown(self):
+        self.storage.close()
         self.journal.close(); self.temp.cleanup()
     def test_deadline_no_raw_is_durable_error_then_plc_code_four(self):
         self.r._finish_without_frames('ERROR', 'NO_INSPECTION', 4)

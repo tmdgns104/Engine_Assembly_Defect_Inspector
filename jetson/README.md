@@ -2,7 +2,7 @@
 
 **현재 통합 프로그램은 [INTEGRATED_RUNTIME.md](INTEGRATED_RUNTIME.md)부터 읽으세요.** 이 폴더 하나가 개발 원본이며, TASK별 후보는 노트북의 보존 자료입니다. 기존 운영 장치에는 승인된 전체 Release를 배포합니다. 처음 설치하는 장치의 환경 준비는 [INSTALL.md](INSTALL.md), 모델 파일 점검은 `python install.py --check-only`를 참고하세요. 새 설치 점검과 현장 통신 승인은 별개입니다.
 
-노트북에서 편집·검증하고 전체 allowlist 묶음을 `/home/jetson/oned_device_bench/current`에 배포합니다. `engine-inspector.service` 하나가 Python Runtime·카메라 Worker·필수 조립 모듈·OpENer를 감독합니다. 2026-10-14 적용 Release는 `engine-integrated-90a914423826735a`입니다. [실제 한 제품 시험](../notebook/deployment/JOURNAL_COMPATIBILITY_VERIFICATION.md)은 ERROR를 PLC NG로 전달한 사례이며, 정상 판별과 연속 자동운전은 완료되지 않았습니다.
+노트북에서 편집·검증하고 전체 allowlist 묶음을 `/home/jetson/oned_device_bench/current`에 배포합니다. `engine-inspector.service` 하나가 Python Runtime·카메라 Worker·필수 조립 모듈·OpENer를 감독합니다. 현재 확인한 운영 Release는 `engine-integrated-d247e1e9579ab6e7`입니다. Git의 [TASK-019 저장/health 수정](../docs/PYTHON_NOT_READY_FIX_REPORT.md)은 ARM64 격리 검증을 마쳤지만 아직 운영에 적용하지 않았습니다. 저장 작업자는 원본과 최종판정의 durable commit을 담당하고, Runtime은 건강 상태와 같은 요청의 완료를 검증한 뒤에만 발행합니다. [이전 실제 한 제품 시험](../notebook/deployment/JOURNAL_COMPATIBILITY_VERIFICATION.md)은 ERROR를 PLC NG로 전달한 사례이며, 정상 판별과 연속 자동운전은 완료되지 않았습니다. `release.json`은 과거 배포 기준 기록이며 최신 개발 소스의 배포 완료 표식이 아닙니다.
 
 ## 위에서 아래로 읽는 순서
 

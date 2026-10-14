@@ -160,7 +160,10 @@ static void AiReceive(CommState *s, double now) {
    * FIRST_PRODUCT_ONLY also refuses repeat permission when CLEAR is true. */
   if (!s->initial_issued || s->initial_revoked) return;
   if (!s->ai_ready || !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5)) {
-    if (s->armed || ActiveRequest(s)) CommFault(s,"PYTHON_NOT_READY",now);
+    if (s->armed || ActiveRequest(s)) {
+      Event(s, !s->ai_ready ? "HEALTH_READY_FALSE_RX" : "HEALTH_LEASE_EXPIRED_RX", now);
+      CommFault(s,"PYTHON_NOT_READY",now);
+    }
     return;
   }
   if (s->phase==READY_NEXT) s->reason=s->config.automatic_repeat ?
@@ -170,7 +173,10 @@ static void AiReceive(CommState *s, double now) {
 
 void CommAiHealth(CommState *s, bool ready, bool clear, double now) {
   s->ai_ready=ready; s->ai_clear=clear; s->ai_heartbeat_at=now;
-  if (!ready && (s->armed || ActiveRequest(s))) CommFault(s,"PYTHON_NOT_READY",now);
+  if (!ready && (s->armed || ActiveRequest(s))) {
+    Event(s,"HEALTH_READY_FALSE_IPC",now);
+    CommFault(s,"PYTHON_NOT_READY",now);
+  }
 }
 
 bool CommAiResult(CommState *s, unsigned long session, unsigned long request,

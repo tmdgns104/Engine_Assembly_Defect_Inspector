@@ -114,6 +114,8 @@ class RuntimeContinuityTests(unittest.TestCase):
         r.configured=threading.Event();r.configured.set()
         r.stop=threading.Event();r.lock=threading.RLock();r.closing=False
         r.service.lock=threading.RLock();r.service.products=queue.Queue()
+        r.service.health_diagnostics=Mock()
+        r.service.journal=Mock(lock=threading.RLock())
         r.service.products.put({'fixture':'one failing observation'})
         r._packet=lambda packet:r._fault('TRACK_ASSOCIATION_OR_GAP_LOST')
         r._acquisition=Mock();r._poll_result=Mock();r._trigger=Mock()

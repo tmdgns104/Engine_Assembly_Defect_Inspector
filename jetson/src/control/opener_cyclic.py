@@ -11,6 +11,7 @@ import struct
 import threading
 import time
 import uuid
+from src.runtime.health_diagnostics import HealthDiagnostics
 
 CONTRACT = 'OPENER_CYCLIC'
 PHASES = ('WAIT_CONNECTION','SYNC_LOW','IDLE','REQUEST_RECEIVED','TEST_RESULT_READY',
@@ -57,6 +58,8 @@ class OpenerGateway:
         self.snapshot=None; self.error='WAIT_OPENER_IPC'; self.pending=None
         self.health=(False,False,0); self.sent=set(); self.initial_pending=None
         self.initial_error=None
+        self.diagnostics = HealthDiagnostics()
+        self.ready_reason = 'NOT_RENEWED'
         self.thread=threading.Thread(target=self._run,name='opener-ipc',daemon=True)
         self.thread.start()
 
@@ -67,7 +70,14 @@ class OpenerGateway:
             self.initial_pending=(snapshot['boot'],snapshot['connection'],approval_id,time.monotonic())
 
     def health_update(self, ready, clear, now):
-        with self.lock: self.health=(bool(ready),bool(clear),now)
+        with self.lock:
+            previous = self.health[2]
+            changed = self.health[0] != bool(ready)
+            self.health=(bool(ready),bool(clear),now)
+            if hasattr(self, 'diagnostics'):
+                self.diagnostics.record('HEALTH_UPDATE', retain=changed or now-previous>.2,
+                    ready=bool(ready), reason=self.ready_reason,
+                    interval_ms=(now-previous)*1000 if previous else None, last_valid_update=now)
 
     def supervised_arm(self, snapshot, approval_id):
         with self.lock:
@@ -143,6 +153,15 @@ class OpenerGateway:
                     ready,clear,renewed=self.health; pending=self.pending; initial=self.initial_pending
                 now=time.monotonic()
                 healthy=ready and 0<=now-renewed<=.4 and self.writes_enabled
+                if hasattr(self, 'diagnostics'):
+                    reason = ('PUBLICATION_DISABLED' if not self.writes_enabled else
+                              'READY_FALSE:'+self.ready_reason if not ready else
+                              'HEALTH_LEASE_EXPIRED' if not 0<=now-renewed<=.4 else 'READY')
+                    changed = reason != getattr(self, '_last_health_reason', None)
+                    self._last_health_reason = reason
+                    self.diagnostics.record('IPC_HEALTH_SENT', retain=changed, ready=bool(healthy), reason=reason,
+                        last_valid_update=renewed, health_age_s=now-renewed,
+                        snapshot_age_s=now-snapshot['generated'], adapter_reason=snapshot['reason'])
                 client.sendall(command(snapshot,self.runtime_session,1,flags=int(healthy)|(int(healthy and clear)<<1)))
                 if initial:
                     boot,connection,approval_id,queued=initial[:4]
