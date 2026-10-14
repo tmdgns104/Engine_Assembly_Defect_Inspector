@@ -213,7 +213,7 @@ class RuntimeFixture(unittest.TestCase):
         self.assertIsNotNone(self.r.coordinator.active_cycle)
         self.assertIsNone(self.r.last_retirement)
 
-    def complete(self, decision='PASS'):
+    def complete(self, decision='PASS', offset=.4):
         import cv2
         import numpy as np
         identifier=self.r.bridge.inspection_id
@@ -224,7 +224,7 @@ class RuntimeFixture(unittest.TestCase):
             production_identity=dict(binding,inspection_id=identifier)),
             [dict(kind='raw',data=raw,width=8,height=8)])
         self.r.bridge.poll()
-        self.r._commit_and_publish(identifier,{'decision':decision},self.now+.4)
+        self.r._commit_and_publish(identifier,{'decision':decision},self.now+offset)
         return identifier
 
     def test_four_outcomes_keep_journal_then_gateway_contract(self):

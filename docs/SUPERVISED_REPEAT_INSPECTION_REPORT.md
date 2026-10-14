@@ -1,5 +1,11 @@
 # TASK-018 감독형 반복 검사 구현
 
+> 2026-10-14 후속 사용자 지시로 정상 운전은 PLC 자동 반복 정책으로 변경했다.
+> 현재 구현·격리 검증·남은 현장 조건은 [PLC 자동 반복 보고서](PLC_AUTOMATIC_REPEAT_REPORT.md)를 따른다.
+> 아래는 감독형 후보를 만들 당시의 기록이다. 해당 감독형 Release는 이후 별도 승인으로
+> 실제 설치되었으며 현재 운영본은 `engine-supervised-c6f5b94e8adb4e2e`다.
+> 새 자동 반복 변경은 아직 운영에 배포하지 않았다. 정상 UI와 유지보수 인증을 분리했다.
+
 상태: **ISOLATED_PASS / STOP_FOR_DEPLOY_APPROVAL** (2026-10-14).
 
 공식 `jetson/`에 감독형 반복 승인을 구현했다. 실제 Jetson 운영본은 아직

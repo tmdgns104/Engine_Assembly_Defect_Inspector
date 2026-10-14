@@ -8,11 +8,16 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 static CommState s;
 static double clock_now(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return t.tv_sec+t.tv_nsec/1e9;}
 int main(int argc,char **argv){
-  if(argc!=2)return 2;
-  CommConfig c={COMM_AI_RUNTIME,false,false,1,1,.2,10,0,true};
+  if(argc!=2 && argc!=3)return 2;
+  CommConfig c={COMM_AI_RUNTIME,false,false,1,1,.2,10,0,true,false};
+  if(argc==3) {
+    if(strcmp(argv[2],"automatic"))return 2;
+    c.supervised_repeat=false;c.automatic_repeat=true;
+  }
   double start=clock_now();CommInit(&s,&c,start,NULL,NULL);CommOpen(&s,start);
   if(EngineIpcInit(argv[1]))return 3;
   fcntl(0,F_SETFL,O_NONBLOCK);unsigned request=0,run=0,seq=0;double tx=0;
@@ -22,7 +27,7 @@ int main(int argc,char **argv){
     CommReceive(&s,b,1,false,now);EngineIpcPoll(&s,now);CommTick(&s,now);
     if(now-tx>=.05){CommPrepareOutput(&s,now);CommTxComplete(&s,s.raw100,true,++seq,now);tx=now;}
     if(s.phase==DONE_SENT||s.phase==WAIT_REQUEST_OFF)request=0;
-    if(s.phase==READY_NEXT)run=0;
+    if(s.phase==READY_NEXT && !c.automatic_repeat)run=0;
     struct timespec wait={0,5000000};nanosleep(&wait,NULL);
   }
 end:

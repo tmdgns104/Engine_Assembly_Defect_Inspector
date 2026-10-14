@@ -20,6 +20,7 @@ typedef struct {
   double request_timeout_s;
   double session_timeout_s;
   bool supervised_repeat; /* Explicit local policy, never selected by PLC data. */
+  bool automatic_repeat; /* Qualified machine admission; separate from web grants. */
 } CommConfig;
 
 typedef struct CommState CommState;
@@ -64,5 +65,6 @@ bool CommAiResult(CommState *, unsigned long, unsigned long, unsigned int, bool,
 
 bool CommInitialArm(CommState *, const char *, double);
 bool CommSupervisedArm(CommState *, const char *, double);
+bool CommAutomaticArm(CommState *, const char *, double);
 
 #endif

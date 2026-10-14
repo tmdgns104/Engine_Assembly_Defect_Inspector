@@ -89,7 +89,7 @@ bool CommInitialArm(CommState *s, const char *id, double now) {
   if (!id || strlen(id)!=32) return false;
   for (unsigned int i=0;i<32;i++)
     if (!((id[i]>='0' && id[i]<='9') || (id[i]>='a' && id[i]<='f'))) return false;
-  if (s->config.mode!=COMM_AI_RUNTIME || s->config.supervised_repeat || s->initial_issued ||
+  if (s->config.mode!=COMM_AI_RUNTIME || s->config.supervised_repeat || s->config.automatic_repeat || s->initial_issued ||
       !CommControlsValid(s,now) || !s->ai_ready ||
       !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5) ||
       s->words[0] || s->words[2] ||
@@ -109,7 +109,7 @@ bool CommSupervisedArm(CommState *s, const char *id, double now) {
   if (!id || strlen(id)!=32) return false;
   for (unsigned int i=0;i<32;i++)
     if (!((id[i]>='0' && id[i]<='9') || (id[i]>='a' && id[i]<='f'))) return false;
-  if (!s->config.supervised_repeat || s->config.mode!=COMM_AI_RUNTIME ||
+  if (!s->config.supervised_repeat || s->config.automatic_repeat || s->config.mode!=COMM_AI_RUNTIME ||
       s->armed || s->approval_count>=4096 || !CommControlsValid(s,now) ||
       !s->ai_ready || !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5) ||
       s->words[0] || s->words[2] ||
@@ -130,6 +130,31 @@ bool CommSupervisedArm(CommState *s, const char *id, double now) {
   return true;
 }
 
+bool CommAutomaticArm(CommState *s, const char *id, double now) {
+  if (!id || strlen(id)!=32) return false;
+  for (unsigned int i=0;i<32;i++)
+    if (!((id[i]>='0' && id[i]<='9') || (id[i]>='a' && id[i]<='f'))) return false;
+  if (!s->config.automatic_repeat || s->config.supervised_repeat || s->config.mode!=COMM_AI_RUNTIME ||
+      s->armed || !CommControlsValid(s,now) || !s->ai_ready ||
+      !(now>=s->ai_heartbeat_at && now-s->ai_heartbeat_at<=.5) || s->words[0] ||
+      s->words[1]!=s->config.estop_ok_value || s->words[3]!=s->config.stop_released_value ||
+      memcmp(s->raw100,"\0\0\0\0",4) ||
+      s->request_id!=s->completed_count || s->result_count!=s->completed_count ||
+      s->done_count!=s->completed_count || !strcmp(s->approval_id,id)) return false;
+  bool continuing=s->phase==READY_NEXT && s->initial_issued && !s->initial_revoked;
+  if (!continuing && (s->words[2] || (s->phase!=DISARMED && s->phase!=SYNC_LOW && s->phase!=READY_NEXT))) {
+    return false;
+  }
+  /* Old IPC packets are also bound to boot/connection/current request ID.
+   * No 4096-entry human-grant budget or history is reset for automatic cycles. */
+  memcpy(s->approval_id,id,33);
+  s->initial_issued=true; s->initial_consumed=false; s->initial_revoked=false;
+  s->armed=true; s->used=false; s->saw_low=false; s->ai_clear=false;
+  s->reason=continuing ? "AUTO_TRANSACTION_READY_WAIT_REQUEST_LOW" : "AUTO_WAIT_NEW_PHYSICAL_START";
+  Phase(s,SYNC_LOW,"AUTOMATIC_PRODUCT_ADMITTED",now);
+  return true;
+}
+
 static void AiReceive(CommState *s, double now) {
   /* Readiness is not authorization; real CLEAR never creates first permission.
    * FIRST_PRODUCT_ONLY also refuses repeat permission when CLEAR is true. */
@@ -138,7 +163,8 @@ static void AiReceive(CommState *s, double now) {
     if (s->armed || ActiveRequest(s)) CommFault(s,"PYTHON_NOT_READY",now);
     return;
   }
-  if (s->phase==READY_NEXT) s->reason=s->config.supervised_repeat ?
+  if (s->phase==READY_NEXT) s->reason=s->config.automatic_repeat ?
+    "AUTO_WAIT_DURABLE_TRANSACTION_SETTLEMENT" : s->config.supervised_repeat ?
     "WAIT_SUPERVISOR_PRODUCT_CLEAR_AND_NEW_GRANT" : "FIRST_CYCLE_COMPLETE_NO_AUTOMATIC_REARM";
 }
 

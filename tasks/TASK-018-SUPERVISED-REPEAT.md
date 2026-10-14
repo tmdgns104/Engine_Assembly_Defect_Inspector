@@ -1,4 +1,28 @@
 # TASK-018 — Supervised repeat inspection
+
+## Current revision: PLC automatic repeat (2026-10-14)
+
+User superseded normal per-product web approvals. Implementation and isolated
+verification COMPLETE; STOP_FOR_FIELD_VALIDATION_AND_DEPLOY_APPROVAL.
+Current report: `docs/PLC_AUTOMATIC_REPEAT_REPORT.md`.
+Normal /line and /auto are monitors; authenticated supervised preparation lives
+only under maintenance. PLC_AUTOMATIC_REPEAT separates durable transport
+admission from product identity admission; no global Area CLEAR requirement.
+Qualified outbound trajectory/exit-strip evidence permits a visible upstream
+successor. Transient loss/reversal/ambiguous identity cannot become clearance.
+An accepted ambiguous request yields a new durable ERROR/PLC NG Done at its
+deadline. Unaccepted HIGH has a bounded fault and physical STOP escalation.
+Normal settled STOP recovery revalidates its exact Journal record.
+Native Python259 + C initial22/supervised/automatic sanitizer + real AF_UNIX PASS.
+Operating release remains engine-supervised-c6f5b94e8adb4e2e, not this development
+revision. No service restart, PLC/model/EDS/config change or field result write.
+Sensor-latch online equivalence, actual product exit/visibility, PLC timeout/STOP
+recovery and reconnect reconciliation remain NOT_VERIFIED. No unattended enable.
+Review corrected 3 reproduced state/identity defects. Evidence stays in existing
+supervised_repeat_018/automatic_revision. No new full Candidate or successor Task.
+
+## Historical supervised-only implementation
+
 Status: ISOLATED_PASS / STOP_FOR_DEPLOY_APPROVAL. Actual field trials NOT_RUN.
 Baseline: fa77a206e35923e6287924e014323bf9c10b8420.
 Operating release remains engine-integrated-90a914423826735a.

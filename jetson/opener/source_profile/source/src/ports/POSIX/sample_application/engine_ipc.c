@@ -84,6 +84,10 @@ void EngineIpcPoll(CommState *s,double now) {
       char approval[33]; memcpy(approval,b+128,32); approval[32]=0;
       if(!CommSupervisedArm(s,approval,now)) ++rejected;
     }
+    else if(command==6 && flags==0 && identifier(b+128) && u32(b+20)==s->request_id) {
+      char admission[33]; memcpy(admission,b+128,32); admission[32]=0;
+      if(!CommAutomaticArm(s,admission,now)) ++rejected;
+    }
     else if(command==2 && flags==7 && identifier(b+64)
             && s->initial_consumed && !s->initial_revoked && !memcmp(b+128,s->approval_id,32) && u32(b+20)==s->request_id) {
       if(CommAiResult(s,u32(b+16),u32(b+20),u32(b+96),true,now)) result_ack=s->request_id;

@@ -123,8 +123,8 @@ def main():
                 raise ValueError('RELEASE_LOCAL_OPENER_BINARY_REQUIRED')
             adapter = OpenerProcess(binary, config['opener_binary_sha256'], config['opener_ipc_path'],
                 approved=config.get('cyclic_transport_activation_approved', False),
-                admission=('SUPERVISED_REPEAT_TEST' if profile.get('cycle_admission') ==
-                           'SUPERVISED_REPEAT_TEST' else 'FIRST_PRODUCT_ONLY'))
+                admission=(profile['cycle_admission'] if profile.get('cycle_admission') in
+                    ('SUPERVISED_REPEAT_TEST', 'PLC_AUTOMATIC_REPEAT') else 'FIRST_PRODUCT_ONLY'))
         from src.control.opener_cyclic import OpenerGateway
         gateway = (OpenerGateway(config['opener_ipc_path'], writes_enabled=config.get('cyclic_publication_enabled', False))
                    if contract == 'OPENER_CYCLIC' else LegacyStandaloneGateway(config['plc_ip'], config['plc_local_ip'],

@@ -1,0 +1,17 @@
+<section class="card" id="supervised-panel" hidden aria-label="감독형 반복 시험 준비">
+<h2>감독형 반복 검사 <span id="trial-number" class="pill"></span></h2>
+<p id="prepare-status" role="status"></p><p id="prepare-feedback" role="status"></p>
+<p class="REVIEW">REVIEW·ERROR도 PLC에는 NG와 Done으로 전달되므로 벨트가 재가동할 수 있습니다.</p>
+<p>검사 후 현장 STOP으로 정지 → 제품 정리 → 새 제품 한 개 배치 → 아래 확인 → 현장 START 순서입니다.</p>
+<details id="pairing-panel"><summary>운영자 연결 · 실행마다 한 번</summary><p><label>운영자 연결 코드 <input id="operator-code" type="password" autocomplete="off" size="32"></label>
+<button id="pair-operator" type="button">이 탭에 연결</button></p></details>
+<div id="prepare-checks">
+<label><input type="checkbox" value="PHYSICAL_STOP"> 벨트가 실제로 정지했고 유지 중입니다.</label>
+<label><input type="checkbox" value="SUPERVISED"> 현장 감독·작업 영역·STOP/E-STOP 준비를 확인했습니다.</label>
+<label><input type="checkbox" value="PREVIOUS_PRODUCT_CLEARED"> 이전 제품이 완전히 이탈·회수됐고 잔존물을 정리했습니다.</label>
+<label><input type="checkbox" value="ONE_NEW_PRODUCT_HANDS_OFF"> 다음 제품 한 개만 투입 위치에 놓았고 손을 뗐습니다.</label>
+<label><input type="checkbox" value="REAL_AI_NG_CAN_RESTART"> 실제 AI 결과를 전달하며 NG도 재가동할 수 있음을 확인했습니다.</label>
+</div>
+<p><button id="prepare-next" type="button" disabled>이번 제품 검사 준비 승인</button></p>
+<p class="muted">이 확인은 작업자의 제품 정리 증거입니다. AI가 빈 영역을 확인했다는 뜻이 아닙니다. 화면에서는 모터를 시작하지 않습니다.</p>
+</section>

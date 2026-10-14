@@ -10,7 +10,7 @@ static void rx(unsigned request,unsigned run,unsigned estop,unsigned stop) {
   t+=.05;CommAiHealth(&s,true,false,t);CommReceive(&s,b,1,false,t);
 }
 static void fresh(void) {
-  CommConfig c={COMM_AI_RUNTIME,false,false,1,1,.2,10,0,true};
+  CommConfig c={COMM_AI_RUNTIME,false,false,1,1,.2,10,0,true,false};
   CommInit(&s,&c,t,NULL,NULL);CommOpen(&s,t);rx(0,0,1,1);
 }
 static void grant(unsigned n) {

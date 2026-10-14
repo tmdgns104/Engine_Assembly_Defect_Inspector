@@ -57,13 +57,37 @@ def line_view(status, identity):
     supervised = approval if approval.get('policy') == 'SUPERVISED_REPEAT_TEST' else None
     if supervised and phase not in ('ERROR', 'WAIT_CAMERA', 'WAIT_PLC', 'INSPECTING', 'WAIT_PRODUCT'):
         if (supervised.get('challenge') or {}).get('eligible'):
-            phase, title, detail = 'PREPARE', '다음 검사 · 사용자 확인 대기', '벨트 실제 정지와 이전 제품 정리 후 아래 확인란을 선택하세요.'
+            phase, title, detail = 'PREPARE', '감독형 시험 모드 · 준비 대기', '현재는 감독형 유지보수 시험 정책입니다. PLC 자동 반복 정책이 활성화된 상태가 아닙니다.'
         elif supervised.get('state') == 'RESERVED':
             phase, title, detail = 'WAIT_START', '승인 접수 · 시작 준비 확인 중', '새 승인이 OpENer에 반영되는지 확인 중입니다. 아직 START를 누르지 마세요.'
             snap = plc.get('snapshot') or {}
             if snap.get('approval_id') == supervised.get('approval_id') and snap.get('phase') in ('SYNC_LOW', 'IDLE'):
                 title, detail = '검사 준비됨 · 현장 START 대기', '손을 뗀 상태에서 실제 PLC START를 한 번 누르세요.'
     values = plc.get('last_values') or {}
+    automatic = status.get('automatic_admission')
+    if automatic and automatic.get('failed'):
+        phase, title = 'ERROR', '자동검사 보류 · 현장 STOP 필요'
+        detail = ('자동 복구·결과 재송신을 차단했습니다. 현장 STOP으로 운전을 해제하고 '
+                  'Request/Result/Done 및 미완료 기록을 확인한 뒤 감독하 유지보수 복구가 필요합니다. '
+                  +str(automatic.get('reason') or 'AUTOMATIC_ADMISSION_FAILED'))
+    if automatic and phase not in ('ERROR', 'WAIT_CAMERA', 'WAIT_PLC', 'INSPECTING', 'WAIT_PRODUCT'):
+        reason = automatic.get('reason')
+        phase, title, detail = 'HOLD', '자동검사 · 다음 제품 접수 보류', {
+            'WAIT_AUTO_QUALIFICATION_OR_HEALTH': '현장 자동운전 설정 검증 또는 카메라·검사 준비가 필요합니다.',
+            'WAIT_STOPPED_BASELINE_AND_NEW_START': 'PLC 정지 상태 확인 후 현장 START를 새로 눌러야 합니다.',
+            'WAIT_REQUEST_AND_RESULT_DONE_RESET': '이전 PLC Request 또는 Result/Done 해제를 기다립니다.',
+            'PREVIOUS_RESULT_IDENTITY_MISMATCH': '연결 또는 요청 식별자가 이전 완료 기록과 다릅니다. 현장 STOP 후 감독하에 기록을 대조해야 합니다.',
+            'PREVIOUS_RESULT_NOT_DURABLE_OR_IDENTIFIED': '이전 검사 저장·요청 식별을 확인할 수 없습니다. 현장 STOP 후 Journal을 점검하세요.',
+        }.get(reason, reason or '상태 확인 중')
+        if reason == 'WAIT_NEW_PHYSICAL_START':
+            phase, title, detail = 'WAIT_START', '검사 준비됨 · 현장 START 대기', '웹 조작 없이 PLC의 실제 START 버튼으로 운전을 시작합니다.'
+        elif reason == 'WAIT_PLC_REQUEST':
+            phase, title, detail = 'WAIT_REQUEST', '검사 대기중', '센서·PLC의 새 검사 요청을 자동으로 기다립니다. 브라우저는 닫아도 됩니다.'
+    if automatic and automatic.get('product_identity_reason') and phase not in ('ERROR', 'WAIT_CAMERA', 'WAIT_PLC', 'INSPECTING'):
+        phase, title = 'HOLD', '제품 구분 근거 확인 중'
+        detail = ('화면 전체가 비어 있을 필요는 없습니다. 이전 제품의 이탈·새 제품 식별을 확인합니다. '
+                  '접수한 요청은 제한 시간 안에 ERROR·PLC NG로 마무리합니다. 모호함이 계속되면 현장 STOP 후 감독하에 복구하세요. '
+                  +str(automatic['product_identity_reason']))
     return dict(phase=phase, title=title, detail=detail, verdict=verdict,
         issue=status.get('runtime_issue'), runtime_loop_alive=status.get('runtime_loop_alive', False),
         line_state=line, release=identity.get('release_id') or identity.get('app_release'),
@@ -78,6 +102,9 @@ def line_view(status, identity):
             consumption_confirmed=not legacy and plc.get('plc_consumption_confirmed') is True,
             duplicate_requests_ignored=plc.get('duplicate_requests_ignored', 0)),
         last_result=latest, counts=status.get('integrated_counts') or {}, supervised=supervised,
+        automatic=automatic, recent_results=[{k:row.get(k) for k in
+            ('inspection_id','decision','reason','completed_at','plc_result_value','publication_status')}
+            for row in list(status.get('history', []))[:30]],
         motor_feedback='UNVERIFIED', final_policy='기존 검사 + 네 부품 조립 검사 모두 필수')
 
 
@@ -112,7 +139,7 @@ def configure_line_web(app, runtime, identity):
                 except (ValueError, TypeError, KeyError):
                     return JSONResponse({'error':'PREPARATION_REJECTED_REFRESH_AND_RECONFIRM'}, status_code=409)
             return JSONResponse({'error': 'PHYSICAL_BUTTONS_ONLY_IN_STANDALONE_MODE'}, status_code=403)
-        if request.url.path == '/auto' and access:
+        if request.url.path == '/auto':
             return RedirectResponse('/line')
         return await call_next(request)
 
@@ -133,11 +160,31 @@ def configure_line_web(app, runtime, identity):
 
     # Existing camera/evidence pages stay available. The line page states what
     # is final vs. a component and never calls a mutation API on page load.
-    @app.get('/line', response_class=HTMLResponse)
-    def line():
+    def page(maintenance=False):
         legacy = identity.get('plc_contract') == 'LEGACY_THREE_BOOL'
         note = ('기존 PLC 요청·결과·완료 3개 신호를 사용합니다. 푸셔·컨베이어 로직은 PLC 원본 그대로입니다. '
                 'Jetson은 모터·푸셔를 명령하지 않습니다. 쓰기 응답 확인은 PLC의 결과 소비 확인과 다릅니다.'
                 if legacy else '출력 명령과 실제 모터 피드백은 다릅니다. 푸셔는 제외되어 있습니다.')
         template = Path(__file__).resolve().parents[2] / 'apps/edge_service/line_hmi.html'
-        return template.read_text(encoding='utf-8').replace('__CONTROL_NOTE__', note)
+        html = template.read_text(encoding='utf-8').replace('__CONTROL_NOTE__', note)
+        parts = dict(MAINTENANCE_PANEL='', MAINTENANCE_SCRIPT='', MAINTENANCE_LINK='',
+                     MAINTENANCE_RESET='', MAINTENANCE_RENDER='')
+        if maintenance:
+            parts.update(MAINTENANCE_PANEL=template.with_name('supervised_panel.html').read_text(encoding='utf-8'),
+                MAINTENANCE_SCRIPT=template.with_name('supervised_panel.js').read_text(encoding='utf-8'),
+                MAINTENANCE_LINK='<a id="prepare-link" href="#supervised-panel" hidden>감독형 유지보수 시험 준비</a>',
+                MAINTENANCE_RESET='prepareChallenge=null;checks().forEach(c=>c.checked=false);prepareEnabled();',
+                MAINTENANCE_RENDER='renderSupervised(v.supervised,live&&v.plc.connected&&v.runtime_loop_alive);')
+        for key, value in parts.items():
+            html = html.replace('__'+key+'__', value)
+        return html
+
+    @app.get('/line', response_class=HTMLResponse)
+    def line():
+        return page()
+
+    @app.get('/maintenance/supervised', response_class=HTMLResponse)
+    def supervised_maintenance():
+        if not access:
+            return JSONResponse({'error':'SUPERVISED_MAINTENANCE_DISABLED'}, status_code=403)
+        return page(maintenance=True)

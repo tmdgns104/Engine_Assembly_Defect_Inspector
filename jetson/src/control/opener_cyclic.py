@@ -75,6 +75,12 @@ class OpenerGateway:
                 raise ValueError('SUPERVISED_PERMISSION_NOT_ENABLED_OR_PENDING')
             self.initial_pending=(snapshot['boot'],snapshot['connection'],approval_id,time.monotonic(),5)
 
+    def automatic_arm(self, snapshot, admission_id):
+        with self.lock:
+            if not self.writes_enabled or self.initial_pending or self.pending:
+                raise ValueError('AUTOMATIC_ADMISSION_NOT_ENABLED_OR_PENDING')
+            self.initial_pending=(snapshot['boot'],snapshot['connection'],admission_id,time.monotonic(),6)
+
     def read_snapshot(self, now):
         with self.lock:
             # The IO thread can publish after the caller sampled its loop time.
@@ -238,6 +244,12 @@ class CyclicHandshake:
         self.cancelled=False; self.closed=False
         self.state='SYNC_LOW'; self.reason='WAIT_NEW_SUPERVISED_START'
         self.publication='NOT_STARTED'
+
+    def retire_automatic(self):
+        # Transaction settlement only; Runtime retains physical product identity
+        # independently. seen_token is deliberately never cleared.
+        self.retire_supervised()
+        self.reason='WAIT_PLC_AUTOMATIC_ADMISSION'
 
     def resync(self):
         # Existing maintenance recovery API: only an observed stopped PLC may

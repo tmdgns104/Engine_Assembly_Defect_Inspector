@@ -12,7 +12,7 @@ static void rx(int request,int estop,int run,int stop) {
   t+=.05; CommAiHealth(&s,true,false,t); CommReceive(&s,b,1,false,t);
 }
 static void fresh(void) {
-  CommConfig c={COMM_AI_RUNTIME,false,false,1,1,.2,10,0,false};
+  CommConfig c={COMM_AI_RUNTIME,false,false,1,1,.2,10,0,false,false};
   t=1; CommInit(&s,&c,t,NULL,NULL); CommOpen(&s,t);
   rx(0,1,0,1);
 }

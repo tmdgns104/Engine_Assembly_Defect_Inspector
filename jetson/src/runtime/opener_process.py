@@ -17,7 +17,7 @@ class OpenerProcess:
     def __init__(self, binary, expected_sha, ipc_path, *, approved=False, interface='enP8p1s0',
                  admission='FIRST_PRODUCT_ONLY'):
         if approved is not True: raise ValueError('FIELD_TRANSPORT_ACTIVATION_NOT_APPROVED')
-        if admission not in ('FIRST_PRODUCT_ONLY', 'SUPERVISED_REPEAT_TEST'):
+        if admission not in ('FIRST_PRODUCT_ONLY', 'SUPERVISED_REPEAT_TEST', 'PLC_AUTOMATIC_REPEAT'):
             raise ValueError('UNKNOWN_OPENER_ADMISSION_POLICY')
         self.admission=admission
         self.binary=Path(binary).resolve(); self.ipc=Path(ipc_path)
