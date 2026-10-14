@@ -12,6 +12,9 @@ import tempfile
 import time
 import unittest
 import uuid
+import ctypes
+import multiprocessing as mp
+from functools import partial
 from pathlib import Path
 from types import SimpleNamespace as NS
 from unittest.mock import patch
@@ -26,7 +29,30 @@ from src.runtime.vision_coordinator import VisionRuntimeCoordinator
 from src.runtime.auto_adapters import WorkerObservationSource, LocalResultOutput
 from src.runtime.cell_supervisor import FaultPolicy
 from src.runtime.logging_support import RuntimeLog
-from src.vision.assembly_inspection import AssemblyInspector
+from src.vision.assembly_process import ProcessAssemblyInspector
+
+
+class ProcessModel(AssemblyModels):
+    """Test-only shared decisions; native call holds only the child's GIL."""
+    choices=('PASS_CANDIDATE','REVIEW','FAIL_CANDIDATE')
+    def __init__(self, decision, resets):
+        self.shared_decision,self.shared_resets=decision,resets
+        self.processor=NS(guard=NS(reset=self.reset))
+    @property
+    def decision(self):return self.choices[self.shared_decision.value]
+    @decision.setter
+    def decision(self,value):self.shared_decision.value=self.choices.index(value)
+    @property
+    def resets(self):return self.shared_resets.value
+    def reset(self):self.shared_resets.value+=1
+    def process(self,image,context):
+        ctypes.PyDLL(None).usleep(550_000)
+        return super().process(image,context)
+
+
+def load_process_model(decision,resets):
+    from live_observation import ThreeFrameObservation
+    return ProcessModel(decision,resets),NS,ThreeFrameObservation
 
 @unittest.skipUnless(os.environ.get('SUPERVISED_IPC_FIXTURE'),'native AF_UNIX fixture required')
 class PlcOwnedNative(unittest.TestCase):
@@ -51,8 +77,11 @@ class PlcOwnedNative(unittest.TestCase):
                 quality=dict(min_mean_brightness=1,max_mean_brightness=254,min_blur_variance=0),
                 fresh_frame=dict(boundary_epsilon_ms=0,max_trigger_to_frame_ms=3000,inspection_window_ms=9000))
             service=InspectionService(root/'package',station,root/'data',worker_target=passage_worker,production=True)
-            model=AssemblyModels('PASS_CANDIDATE')
-            assembly=AssemblyInspector(root/'data',root/'assembly',loader=lambda:(model,NS,ThreeFrameObservation))
+            context=mp.get_context('spawn')
+            decision_value,resets=context.Value('i',0),context.Value('i',0)
+            model=ProcessModel(decision_value,resets)
+            assembly=ProcessAssemblyInspector(root/'data',root/'assembly',
+                loader=partial(load_process_model,decision_value,resets))
             process=subprocess.Popen([os.environ['SUPERVISED_IPC_FIXTURE'],str(root/'ipc'),'automatic'],
                 stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
             runtime=gateway=None
@@ -129,6 +158,7 @@ class PlcOwnedNative(unittest.TestCase):
                 self.assertEqual(len({r['inspection_id'] for r in report}),3)
                 self.assertEqual(len({r['request_token'] for r in report}),3)
                 self.assertEqual(model.resets,3)
+                self.assertLess(gateway.diagnostics.snapshot()['latest']['HEALTH_UPDATE']['max_interval_ms'],400)
                 self.assertFalse((root/'data/first-product-approval').exists())
             finally:
                 if os.environ.get('PLC_OWNED_REPORT'):

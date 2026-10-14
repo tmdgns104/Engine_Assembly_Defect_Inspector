@@ -35,3 +35,15 @@ PLC/EDS/4·8·10B/RPI/모델/판정 임계값은 변경하지 않았다.
 독립 PLC 응답 timeout과 온라인 전체 로직 동등성은 미검증이다. 저장/통신 장애에서는 늦은 결과를 차단하며 현장 STOP·진단이 필요하다. 이것을 정상 제품마다 소프트웨어 권한을 발급하는 조건으로 사용하지 않는다. 실제 ProductPassage·3제품 자동 반복·Class1 장기 안정성은 현장 증거가 확보되기 전 PASS로 표시하지 않는다.
 
 원본 증거는 노트북 `runs/.../tag_data_link_008/deployment_readiness_021/fixed_plc_followup/`에 보존한다. 운영 DB·사진·개인 설정·인증정보는 이 저장소에 포함하지 않는다.
+
+## 첫 현장 실패와 조립 프로세스 분리
+
+실제 원시 3프레임 저장은 383.552ms에 완료됐다. 조립 검사 중 Runtime health 갱신이 484.036ms 지연돼 기존 400ms lease가 만료됐다. C는 PYTHON_NOT_READY로 결과 발행을 취소했다. 이후 나타난 JOURNAL_UNFINISHED_INSPECTION은 취소의 결과이므로 미완료 차단을 제거하지 않았다. 이 요청에는 Class1 timeout이 없었다. 조립 결과는 뒤늦게 REVIEW로 저장됐으며 통합 최종판정과 Result/Done은 생성되지 않았다.
+
+카메라를 하나만 소유하는 실제 Runtime과 보존된 3프레임 조립 검사를 함께 실행한 격리 재현에서 frozen feature matching의 knnMatch 동안 interpreter 전체 지연을 관측했다. `assembly_process.py`는 같은 동결 조립 코드를 별도 spawn 프로세스에서 실행한다. 부모는 완료 ID와 fsync 이후 DURABLE 응답을 확인한 뒤 결과를 읽는다. 자식은 카메라와 PLC를 열지 않으며 종료·실패·ID 불일치 시 readiness를 내린다. 모델, 임계값, 판정 정책, 400ms lease는 유지한다.
+
+실제 카메라/저장 원본을 사용한 동일 조건 재처리의 health 최대 간격은 변경 전 306.927ms, 변경 후 134.582ms였다. 단일 재현 측정이며 전체 Class1 안정성이나 현장 성공의 증거는 아니다. ARM64 집중 회귀 84개가 통과했고 비공개 PNG fixture 1개는 해당 테스트 경로에서 제외됐다. 실제 저장 원본은 별도의 재처리에 사용했다. 별도 프로세스의 native GIL을 프레임마다 550ms 점유시킨 3제품 C/IPC 종단 테스트도 요청/결과/Done 각 3회, 승인 0회로 통과했다.
+
+`aborted_recovery.py`는 PLC_AUTOMATIC_REPEAT의 실제 요청·취소 이벤트, 무출력, 다른 adapter boot, 현재 STOP·유휴 소유자를 검증하는 경로를 추가한다. 존재하지 않는 승인 기록을 만들지 않는다. 원래 inspection/사진/조립 결과와 승인 원장은 그대로 보존한다. 복구는 독립 ABORTED 영수증만 추가하며 결과 재전송이나 새 검사 권한을 생성하지 않는다.
+
+서비스 종료 상태의 직전 current/설정/unit/원장/실패 증거 158파일을 노트북에서 해시·SQLite 무결성으로 검증했다. 백업 SHA-256: `b6f8bf95a9e58988679d3751dcb51949eed985fbb6a925d4f7cb40dea7f4f10d`. 복원 시 코드·설정만 복원하고 현재 Journal/사진/복구 이력은 되돌리지 않는다. 수정본의 실제 PLC 재시험은 진행 전이며 결과는 별도로 기록한다.

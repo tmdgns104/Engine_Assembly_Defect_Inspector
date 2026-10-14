@@ -111,6 +111,7 @@
     "src/vision/__init__.py",
     "src/vision/assembly_evidence.py",
     "src/vision/assembly_inspection.py",
+    "src/vision/assembly_process.py",
     "src/vision/auto_inspection.py",
     "src/vision/cuda_runtime_ctypes.py",
     "src/vision/detector_factory.py",

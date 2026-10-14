@@ -32,6 +32,7 @@ def validate_evidence(row, proof, now):
     boot, connection, number = token.split(':')
     identity = (int(boot, 16), int(connection), int(number))
     failed, current, approval, owners = (proof[k] for k in ('failed', 'current', 'approval', 'owners'))
+    plc_owned = proof.get('request_authority') == 'PLC_AUTOMATIC_REPEAT'
     if (type(failed.get('pid')) is not int or failed['pid'] <= 0
             or not {'active_inspection_id', 'assembly_active'}.issubset(owners)):
         raise ValueError('EXPLICIT_OWNER_AND_PROCESS_EVIDENCE_REQUIRED')
@@ -52,12 +53,23 @@ def validate_evidence(row, proof, now):
             or proof.get('result_sha256') != digest(row['result_json'])
             or tuple(failed.get(k) for k in ('boot','connection','request_id')) != identity
             or failed.get('phase') != 'DISARMED' or failed.get('armed') is not False
-            or failed.get('initial_revoked') is not True
+            or (not plc_owned and failed.get('initial_revoked') is not True)
             or any(failed.get(k) != 0 for k in ('result_count','done_count','completed_count'))
             or failed.get('raw100') != '00000000'
             or len(failed.get('trace_sha256', '')) != 64):
         raise ValueError('NO_RESULT_AND_IRREVOCABLE_ABORT_EVIDENCE_REQUIRED')
-    if (approval.get('state') != 'REVOKED' or approval.get('token') != token
+    if plc_owned:
+        accepted_snapshot = failed.get('request_snapshot', {})
+        cycle = failed.get('cycle_policy', {})
+        if (approval is not None or failed.get('approval_id') != ''
+                or failed.get('initial_revoked') is not False or failed.get('initial_approval') is not None
+                or cycle.get('policy') != 'PLC_AUTOMATIC_REPEAT' or cycle.get('software_permission_required') is not False
+                or tuple(accepted_snapshot.get(k) for k in ('boot','connection','request_id')) != identity
+                or accepted_snapshot.get('phase') != 'REQUEST_RECEIVED' or accepted_snapshot.get('approval_id') != ''
+                or aborted.get('publication_enabled') is not False
+                or current.get('boot') == identity[0]):
+            raise ValueError('PLC_OWNED_ABORT_AND_NEW_ADAPTER_BOOT_REQUIRED')
+    elif (not isinstance(approval, dict) or approval.get('state') != 'REVOKED' or approval.get('token') != token
             or not approval.get('id') or approval.get('id') != failed.get('approval_id')
             or approval.get('runtime') != failed.get('runtime_session')):
         raise ValueError('REVOKED_SPENT_APPROVAL_REQUIRED')
@@ -101,6 +113,8 @@ def record_abort(journal, identifier, proof, *, now=None):
             ('integrated_decision:'+identifier, 'aborted_cycle:'+identifier)).fetchone():
             raise ValueError('FINAL_OR_ABORT_ALREADY_RECORDED')
         validate_evidence(row, proof, now)
+        if proof.get('request_authority') == 'PLC_AUTOMATIC_REPEAT':
+            _require_cancel_event(journal.db, identifier)
         receipt = dict(policy=POLICY, state='ABORTED', inspection_id=identifier,
             result_sha256=digest(row['result_json']), request_sha256=digest(row['request_json']),
             completed_at=row['completed_at'], proof=proof, observed_at=now,
@@ -124,6 +138,8 @@ def valid_abort(db, identifier):
         names = [c[0] for c in db.execute('SELECT * FROM inspections LIMIT 0').description]
         row = dict(zip(names, row))
         validate_evidence(row, receipt['proof'], receipt['observed_at'])
+        if receipt['proof'].get('request_authority') == 'PLC_AUTOMATIC_REPEAT':
+            _require_cancel_event(db, identifier)
         if (receipt['policy'] != POLICY or receipt['state'] != 'ABORTED'
                 or receipt['inspection_id'] != identifier or receipt['grants_created'] != 0
                 or receipt['result_replay_allowed'] is not False
@@ -135,3 +151,13 @@ def valid_abort(db, identifier):
         return bool(event and digest(event[0]) == event[1] and json.loads(event[0])['payload'] == receipt)
     except (ValueError, KeyError, TypeError):
         return False
+
+
+def _require_cancel_event(db, identifier):
+    """PLC-owned requests have no grant to revoke; require their durable cancel."""
+    rows = db.execute("SELECT payload_json,payload_sha256 FROM events WHERE "
+        "event_type='LINE_CANCELLED_RESULT_BLOCKED' AND "
+        "json_extract(payload_json,'$.payload.inspection_id')=?", (identifier,)).fetchall()
+    if not any(digest(raw) == expected and json.loads(raw)['payload'].get('reason')
+               for raw, expected in rows):
+        raise ValueError('DURABLE_CANCEL_EVENT_REQUIRED')

@@ -102,6 +102,40 @@ class AbortRecoveryTests(unittest.TestCase):
         self.j.min_free_bytes=10**20
         with self.assertRaises(OSError):self.j.capacity()
 
+    def plc_owned_proof(self):
+        proof=copy.deepcopy(self.proof)
+        proof['request_authority']='PLC_AUTOMATIC_REPEAT'
+        proof['approval']=None
+        proof['failed'].update(initial_revoked=False,approval_id='',
+            request_snapshot=dict(boot=1,connection=1,request_id=1,approval_id='',phase='REQUEST_RECEIVED'),
+            cycle_policy=dict(policy='PLC_AUTOMATIC_REPEAT',software_permission_required=False),
+            initial_approval=None)
+        proof['failed']['events'][-1]['publication_enabled']=False
+        proof['failed']['trace_sha256']=digest(canonical(proof['failed']['events']))
+        proof['current'].update(boot=2,connection=1,request_id=0,approval_id='')
+        self.journal_cancel()
+        return proof
+
+    def journal_cancel(self):
+        runtime=display_runtime(self.j)
+        runtime._event(dict(event='LINE_CANCELLED_RESULT_BLOCKED',inspection_id=self.identifier,
+                            request_token='0000000000000001:1:1',reason='PYTHON_NOT_READY'))
+
+    def test_plc_owned_abort_needs_no_fabricated_revoked_approval(self):
+        proof=self.plc_owned_proof()
+        before=tuple(self.j.db.execute('SELECT * FROM inspections').fetchone())
+        record_abort(self.j,self.identifier,proof,now=10)
+        self.assertTrue(valid_abort(self.j.db,self.identifier))
+        self.assertEqual(count_unfinished_inspections(self.j.db),0)
+        self.assertEqual(before,tuple(self.j.db.execute('SELECT * FROM inspections').fetchone()))
+
+    def test_plc_owned_recovery_rejects_missing_policy_residue_old_boot_or_grant(self):
+        original=self.plc_owned_proof()
+        for group,key,value in [('failed','cycle_policy',{}),('failed','initial_revoked',True),
+                ('failed','approval_id','a'*32),('current','boot',1),('current','request_id',1)]:
+            proof=copy.deepcopy(original);proof[group][key]=value
+            with self.subTest(key=key),self.assertRaises(ValueError):record_abort(self.j,self.identifier,proof,now=10)
+
     def test_aborted_ui_shows_raw_not_historical_final(self):
         from src.runtime.standalone_web import line_view
         aborted=dict(inspection_id=self.identifier,raw_decision='REVIEW',raw_journal='COMPLETE',

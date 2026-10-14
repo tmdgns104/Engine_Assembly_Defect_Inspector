@@ -111,7 +111,7 @@ def main():
         check_port_available(config['listen_host'], config['port'])
         from src.control.standalone_plc import LineGateway
         from src.control.omron_cip import LegacyStandaloneGateway
-        from src.vision.assembly_inspection import AssemblyInspector
+        from src.vision.assembly_process import ProcessAssemblyInspector
         from src.runtime.bootstrap import build_runtime
         from apps.edge_service.integration_api import create_integrated_app
         from src.runtime.standalone_web import configure_line_web
@@ -130,7 +130,7 @@ def main():
                    if contract == 'OPENER_CYCLIC' else LegacyStandaloneGateway(config['plc_ip'], config['plc_local_ip'],
                    writes_enabled=config.get('legacy_publication_enabled', False))
                    if contract == 'LEGACY_THREE_BOOL' else LineGateway(config['plc_ip'], config['plc_local_ip']))
-        assembly = AssemblyInspector(config['data_root'], config['data_root']/'assembly', assets_root=assets)
+        assembly = ProcessAssemblyInspector(config['data_root'], config['data_root']/'assembly', assets_root=assets)
         runtime = build_runtime(config['package'], station, config['data_root'], mode='production',
             production_gateway=gateway, inspection_motion_mode='STATIONARY',
             standalone_profile=profile, assembly=assembly)
