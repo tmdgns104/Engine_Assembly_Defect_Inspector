@@ -26,3 +26,7 @@ PLC 래더·태그·타이머·I/O·EDS·Assembly·RPI는 변경하지 않으며
 
 최소 보완: 필수 조립 검사만 독립 Python 프로세스로 실행한다. 카메라/PLC 소유자는 늘리지 않고 모델·정책·lease는 그대로다. PLC 주도 요청의 중단 복구는 존재하지 않는 과거 승인 ID 대신 실제 요청·취소 이벤트·새 adapter boot를 검증한다.
 ARM64 집중 84개 회귀 PASS(비공개 PNG fixture 1개 skip), 별도 프로세스 3제품 C/IPC 종단 검사 PASS(각 frame에 550ms native GIL 점유, 승인 0회). 실제 카메라와 저장 영상 재처리에서 health 최대 간격 135ms. 실제 PLC 재시험은 아직 수행하지 않았다. 상세: docs/FIXED_PLC_RUNTIME_REPORT.md.
+
+후속 실제 2회차: 요청 접수 전 health 669.586ms 지연으로 DISARMED. 새 검사/Result/Done 없음. 사용자 STOP 확인 후 서비스 정상 종료, 최신 코드/설정/Journal/승인 원장 159파일 노트북 백업 검증. 운영 시험용 재현/회귀 코드는 current에 추가하지 않는다. 세 관측용 추적 이벤트만 동기 SQLite 기록에서 기존 bounded memory trace로 옮기는 최소 수정 중이다. 실제 요청/최종판정/이탈 확정/중단 기록과 보호 조건은 유지한다. 670ms 전체 원인은 아직 단일 원인으로 확정하지 않는다. 수정 검증 후 남은 승인 범위의 실제 재시험을 진행한다.
+
+추적 진단 I/O 분리 수정의 ARM64 64개 집중 검사 및 전체 통합 패키지 검증 완료(실패 0, fixture 1 skip). 실제 정지 카메라 진단 health 최대 207ms. 검증된 한 파일 수정 적용 후 남은 실제 시험을 수행한다. 회귀/재현 코드는 current에 배포하지 않는다.

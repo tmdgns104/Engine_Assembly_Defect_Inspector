@@ -96,6 +96,24 @@ class StandaloneRuntime(ProductionRuntime):
     def start_auto(self):
         raise ValueError('PHYSICAL_START_OWNS_LINE_RUN; SOFTWARE_ACQUISITION_IS_AUTOMATIC')
 
+    def _event(self, value):
+        # These are observation diagnostics, not request/result/exit authority.
+        # Synchronous SQLite commits here can checkpoint the WAL while the PLC
+        # health owner is handling its first product. Keep the bounded trace in
+        # memory; actual requests, results, separation and aborts remain durable.
+        if self._automatic_policy() and value.get('event') in (
+                'VISION_PASSAGE_STARTED', 'PRODUCTION_TRACK_STATE',
+                'PRODUCTION_DEPARTURE_EDGE_ASSESSED'):
+            if self._diagnostic_events is not None:
+                self._diagnostic_events.append(dict(value))
+            payload = dict(value)
+            name = payload.pop('event')
+            self.service.health_diagnostics.record(name,
+                runtime_session_id=self.session_id,
+                worker_generation=self.service.generation, **payload)
+            return
+        return super()._event(value)
+
     def _restore_aborted_inspection(self):
         """Restore a recorded blocked cycle for display; never restore a grant."""
         journal = self.service.journal

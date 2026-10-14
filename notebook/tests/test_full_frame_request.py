@@ -17,6 +17,7 @@ from src.runtime.production_profile import tracker_config, calibration_sha
 from src.runtime.vision_coordinator import VisionRuntimeCoordinator
 from src.runtime.auto_adapters import WorkerObservationSource, LocalResultOutput
 from src.runtime.cell_supervisor import FaultPolicy
+from src.runtime.health_diagnostics import HealthDiagnostics
 from src.tracking.contracts import TrackState
 from src.vision.production_binding import verify_observations
 
@@ -67,6 +68,7 @@ class RuntimeFixture(unittest.TestCase):
         self.submitted = []
         calibration = {'fixture':'not-field'}
         self.service = NS(journal=self.j, generation='g', calibration=calibration,
+            health_diagnostics=HealthDiagnostics(),
             lock=threading.RLock(), production_tracking=threading.Event(),active=None,
             error=None,state='IDLE', session=1,
             package=NS(manifest_hash='sha',snapshot=lambda:{'manifest':{'product_id':'fixture','release_id':'fixture'}}),
