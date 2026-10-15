@@ -52,6 +52,16 @@ Jetson 기존 Python3.10.12/OpenCV5.0.0, CPU 1스레드·낮은 우선순위로 
 
 사용자 보고의 우발적 전원 분리 후에는 별도 재기동 문제를 처리했다. 사용자가 전원 복구·실제 STOP을 확인했고 `STALE_OR_COMPETING_IPC_SOCKET_REQUIRES_REVIEW`를 읽었다. 기존 절차로 서비스 정상 정지→독점 owner lock→커널/fuser/포트에서 소유자 없음·socket inode/UID 검증 후 해당 잔여 socket 하나만 제거→동일 서비스 기동했다. current·모델·설정·Journal을 교체/초기화하지 않았다. 이후 Release 동일, **185 SHA 일치**, MainPID3667/active/NRestarts0, 카메라·Assembly ready/유휴, PLC fresh/SYNC_LOW, Request/Mc_Run LOW, Result/Done0, 새 접수0을 확인했다. 기동 중 재부팅 소켓 자동 복구 기능을 새로 개발한 것은 아니다.
 
+### 복구 후 사용자가 직접 진행한 별도 시험
+
+위 Result/Done0은 복구 직후 관측이다. 최종 확인에서 같은 C 연결의 누적 Result/Done이 각각2로 증가했고, 사용자는 재부팅 후 직접 START로 시험했으며 현재 실제 STOP을 유지한다고 확인했다. Codex가 새 권한·START·결과 명령을 보낸 시험이 아니며, B/C/LK는 운영에 적용되지 않았다.
+
+- 첫 사이클: 촬영0장, `PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN`, `NO_ACTUAL_INSPECTION`의 ERROR. 약30.01초 후 기존 정책의 NG·Done 경로가 기록됐다. 실제 AI 검사로 세지 않는다.
+- 두 번째 사이클: 새로운 원본3장과 Journal COMPLETE, 기존 부품 검사 **PASS**. 조립 세 프레임은 모두 `SEED_INSUFFICIENT_SPATIAL_BODY_SUPPORT`이며, 지지점이 한 영역에 집중되어 네 부품 분류는 실행하지 않았다. 필수 조립 **REVIEW**, 통합 **REVIEW**, PLC에는 기존 정책대로 NG·Done. 전체 최종판정12.897초, 조립10.819초이며 변경 전 운영 경로의 별도 관측이다.
+- 두 건 모두 `PLC_CYCLIC_COMPLETION_OBSERVED`와 요청 해제가 기록됐지만, `plc_consumption_confirmed=false`이므로 PLC 내부 판정 소비나 각 사이클의 실제 벨트 동작까지 새로 입증하지 않는다. 최종 Request/Mc_Run/Result/Done LOW, 카메라 신선, 검사 유휴, Journal quick_check=ok. 원본·이력은 읽기만 했다.
+
+비공개 증거: `matcher_comparison/OPERATOR_POST_RECOVERY_TRIALS.json`, `OPERATOR_POST_RECOVERY_SUMMARY.json`, `FINAL_STATE.json`. 최근 기본 검사 PASS를 전체 조립 PASS로 표시하지 않는다. 이전 비교 묶음의 1·2번 실패/3번 VALID와 이번 새 세 프레임 모두 실패를 구분한다.
+
 ### 산출물·검증·남은 범위
 
 코드는 `notebook/diagnostics/body_matching/`의 `geometry`, `shape_matcher`, `loftr_matcher`, `relative_lk`, `compare`와 README다. `notebook/tests/test_body_match_geometry.py`의 5개 검증이 통과했다(quarter-turn 픽셀 동일성/역행렬, 구멍 배경 제외, projective 분모, 두 고정부 상대 이동, 무정보 영상 거부). 실제 B/C 실행과 각 실험의 입력·profile·source SHA를 별도 보존했다. 최초 B의 scipy 누락과 A 보충 실행의 문법 오류는 수정 후 실행 결과와 분리했고 최종 알고리즘 실패로 집계하지 않았다. 전체 Runtime 회귀는 운영 코드가 변경되지 않아 반복하지 않았다.
