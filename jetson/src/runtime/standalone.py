@@ -190,7 +190,8 @@ class StandaloneRuntime(ProductionRuntime):
         tracker = self.coordinator._tracker
         if (not self._automatic_policy() or not self.operating or self.error
                 or tracker._state != TrackState.WAIT_AREA_CLEAR
-                or tracker._reason != TrackingReason.MISSED_OBSERVATION_LIMIT
+                or tracker._reason not in (TrackingReason.MISSED_OBSERVATION_LIMIT,
+                                           TrackingReason.TRACK_ASSOCIATION_INVALID)
                 or self.handshake.token or self.service.active or self.bridge.inspection_id
                 or self.final_pending or tracker._inspection_id or self.inspected_tracks
                 or self.product_passage or self.prior_product_identity_block
@@ -207,6 +208,9 @@ class StandaloneRuntime(ProductionRuntime):
                 or snapshot['controls']['Inspection_Request'] or snapshot['raw100'] != '00000000'):
             return False
         previous = self.session_id
+        # Repositioning an uninspected model can invalidate preview association.
+        # Retire that unused identity, then require subsequent fresh observations;
+        # this neither proves departure nor replaces a PLC-bound product.
         self._reset_unbound_observation(packet['monotonic_s'])
         self.service.health_diagnostics.record('UNBOUND_PREVIEW_REACQUIRED',
             previous_tracking_session=previous, runtime_session_id=self.session_id,
