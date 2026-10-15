@@ -23,3 +23,29 @@
 요청 당시 프레임별 추적 기록은 남아 있지 않아 위 결함을 그 실패의
 유일한 원인이라고 단정하지 않는다. 조립 입력 복구와 현장 PASS/FAIL은
 별도 미완료 사항이다. 실제 적용과 재시험 결과는 이후 현장 기록에 남긴다.
+
+## 실제 적용 및 한 제품 재시험
+
+- 소스 `e20ebbdcd825a19b28922bb1fef2bac53d46e57c`, 실제 Release
+  `engine-integrated-a8d842b879cd14ea`. 실행 파일 185개 해시 일치.
+  전체 offline 패키지에서 Runtime 한 파일과 Release 정보만 갱신했다.
+  C·설정·모델·PLC 불변. 직전 운영본 170파일 및 SQLite를 노트북에 보존·검증했다.
+- PC 관련 87개, 실제 ARM64 집중 47개 회귀 통과. 첫 ARM64 실행은
+  검증 폴더에 공용 fixture가 빠져 실패했다. 누락을 보완한 뒤 다시 통과했으며,
+  실패 중 운영 파일은 적용하지 않았다. 시험 도구는 운영 current에 넣지 않았다.
+- 사용자 START 한 번으로 새 실제 원본 3장을 촬영·저장했고 기본 부품 검사는
+  `PASS / ALL_REQUIRED_PARTS_PRESENT_3_FRAMES`였다.
+- 조립 검사 1·2번 프레임은 `SEED_INSUFFICIENT_SPATIAL_BODY_SUPPORT`로 실패,
+  3번은 정렬 VALID·네 부품 CORRECT. 3프레임 조립 결과는
+  `REVIEW / FRAME_STATE_CONFLICT`, 통합 결과도 REVIEW다. 최종 PASS는 아니다.
+- 저장 commit 약356ms, 조립 처리 약11.64초, 요청→Result 약13.745초.
+  Result sequence3064→Done3065(약50.9ms), Request 해제·출력 0 복귀 확인.
+  사용자가 실제 재가동과 이후 STOP을 확인했다. PLC 내부 로직 소비를 직접
+  읽어 검증한 것은 아니며, cyclic 완료와 물리 재가동 증거를 구분한다.
+- 이 서비스 실행의 health 갱신 누적 최대 약224ms. 해당 요청 중 health 차단,
+  Class1 timeout 또는 연결 변경 없음. 장시간 안정성·다음 제품은 이번 시험 범위 밖이다.
+
+촬영을 시작하지 못하던 직전 요청과 달리 실제 검사 경로가 수행됐다.
+다만 직전 원인을 하나로 확정하거나 조립 정렬이 해결됐다고 보고하지 않는다.
+세 프레임의 공간 지지를 안정적으로 확보하는 문제가 남았고, 판정 기준을
+완화하거나 세 번째 프레임만 골라 PASS로 바꾸지 않았다.
