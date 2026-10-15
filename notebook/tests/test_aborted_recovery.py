@@ -24,7 +24,8 @@ class AbortRecoveryTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory(); self.addCleanup(temp.cleanup)
         self.j = Journal(Path(temp.name), min_free_bytes=0); self.addCleanup(self.j.close)
-        binding = dict(plc_contract='OPENER_CYCLIC', plc_request_token='0000000000000001:1:1')
+        binding = dict(plc_contract='OPENER_CYCLIC', plc_request_token='0000000000000001:1:1',
+                       runtime_session_id='old', request_accepted_monotonic=1)
         self.identifier, _ = self.j.admit(dict(cell_id='t',plc_session_id=1,request_id=1,
             cycle_id=1,attempt=1,control_mode='production',runtime_binding=binding), {})
         self.j.finish(self.identifier, dict(decision='REVIEW', reason='ORIGINAL_MOTION',
@@ -128,6 +129,58 @@ class AbortRecoveryTests(unittest.TestCase):
         self.assertTrue(valid_abort(self.j.db,self.identifier))
         self.assertEqual(count_unfinished_inspections(self.j.db),0)
         self.assertEqual(before,tuple(self.j.db.execute('SELECT * FROM inspections').fetchone()))
+
+    def repeated_cycle_proof(self):
+        proof = self.plc_owned_proof()
+        proof['counter_evidence'] = 'REQUEST_BASELINE_V1'
+        counts = dict(result_count=2, done_count=2, completed_count=2)
+        proof['failed'].update(counts)
+        proof['failed']['request_snapshot'].update(counts)
+        proof['failed']['request_snapshot']['evidence_source'] = 'BOUND_REQUEST_AND_C_EVENT'
+        for event in proof['failed']['events']:
+            event.update(counts)
+        proof['failed']['trace_sha256'] = digest(canonical(proof['failed']['events']))
+        return proof
+
+    def test_prior_completed_cycles_do_not_prevent_aborting_unsent_request(self):
+        proof = self.repeated_cycle_proof()
+        before = tuple(self.j.db.execute('SELECT * FROM inspections').fetchone())
+        record_abort(self.j, self.identifier, proof, now=10)
+        self.assertTrue(valid_abort(self.j.db, self.identifier))
+        self.assertEqual(count_unfinished_inspections(self.j.db), 0)
+        self.assertEqual(before, tuple(self.j.db.execute('SELECT * FROM inspections').fetchone()))
+        self.assertIsNone(self.j.db.execute("SELECT 1 FROM service_state WHERE key LIKE 'integrated_decision:%'").fetchone())
+
+    def test_baseline_counters_cannot_hide_output_missing_data_or_counter_reset(self):
+        original = self.repeated_cycle_proof()
+        for target, key, value in [('last_event','done_count',3), ('last_event','result_count',1),
+                ('failed','result_count',3), ('snapshot','completed_count',None),
+                ('snapshot','done_count',-1), ('current','result_count',2)]:
+            proof = copy.deepcopy(original)
+            obj = {'last_event':proof['failed']['events'][-1], 'failed':proof['failed'],
+                   'snapshot':proof['failed']['request_snapshot'], 'current':proof['current']}[target]
+            obj[key] = value
+            proof['failed']['trace_sha256'] = digest(canonical(proof['failed']['events']))
+            with self.subTest(target=target,key=key), self.assertRaises(ValueError):
+                record_abort(self.j, self.identifier, proof, now=10)
+        self.assertEqual(count_unfinished_inspections(self.j.db), 1)
+
+    def test_abort_commit_rechecks_live_state_and_rolls_back_on_change(self):
+        proof = self.repeated_cycle_proof()
+        def changed(): raise ValueError('PLC_CHANGED_DURING_ABORT_RECOVERY')
+        with self.assertRaisesRegex(ValueError, 'PLC_CHANGED'):
+            record_abort(self.j, self.identifier, proof, now=10, recheck=changed)
+        self.assertFalse(valid_abort(self.j.db, self.identifier))
+        self.assertEqual(self.j.db.execute("SELECT count(*) FROM events WHERE event_type='SUPERVISED_CYCLE_ABORTED'").fetchone()[0], 0)
+
+    def test_cached_aborted_display_clears_only_after_verified_settlement(self):
+        runtime = display_runtime(self.j)
+        self.journal_cancel()
+        runtime._restore_aborted_inspection()
+        self.assertIsNotNone(runtime.aborted_inspection)
+        record_abort(self.j, self.identifier, self.repeated_cycle_proof(), now=10)
+        self.assertIsNone(runtime._aborted_status())
+        self.assertIsNone(runtime.aborted_inspection)
 
     def test_plc_owned_recovery_rejects_missing_policy_residue_old_boot_or_grant(self):
         original=self.plc_owned_proof()

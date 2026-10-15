@@ -1363,6 +1363,13 @@ class StandaloneRuntime(ProductionRuntime):
         if not aborted:
             return None
         identifier = aborted['inspection_id']
+        from src.runtime.aborted_recovery import valid_abort
+        with self.service.journal.lock:
+            if valid_abort(self.service.journal.db, identifier):
+                # Maintenance appended a verified settlement. Keep the original
+                # result/history, but do not display it as still awaiting recovery.
+                self.aborted_inspection = None
+                return None
         row = self.service.journal.detail(identifier)
         with self.service.journal.lock:
             final = self.service.journal.db.execute('SELECT value FROM service_state WHERE key=?',

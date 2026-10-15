@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime, timezone
 
 POLICY = 'SUPERVISED_ABORT_WITHOUT_PLC_RESULT_V1'
+COUNTERS = ('result_count', 'done_count', 'completed_count')
 
 
 def canonical(value):
@@ -42,19 +43,36 @@ def validate_evidence(row, proof, now):
         raise ValueError('BOUNDED_ABORT_TRACE_REQUIRED')
     accepted = next((e for e in events if e.get('event') == 'REQUEST_RECEIVED'), None)
     aborted = events[-1]
+    # These are adapter-lifetime counters, not counters for this request.
+    # Preserve validation of old receipts. The new baseline joins the durable
+    # binding to its C acceptance event; it is not a fabricated IPC packet.
+    baseline = {key: 0 for key in COUNTERS}
+    if proof.get('counter_evidence') == 'REQUEST_BASELINE_V1':
+        snapshot = failed.get('request_snapshot', {})
+        if (not plc_owned or not accepted or events[0] != accepted
+                or snapshot.get('evidence_source') != 'BOUND_REQUEST_AND_C_EVENT'
+                or binding.get('runtime_session_id') != failed.get('runtime_session')
+                or type(binding.get('request_accepted_monotonic')) not in (int, float)
+                or abs(binding['request_accepted_monotonic'] - accepted.get('monotonic_s', -1e99)) > .00001
+                or any(type(snapshot.get(key)) is not int or snapshot[key] < 0 for key in COUNTERS)
+                or any(accepted.get(key) != snapshot[key] for key in COUNTERS)):
+            raise ValueError('REQUEST_COUNTER_BASELINE_REQUIRED')
+        baseline = {key: snapshot[key] for key in COUNTERS}
+    elif proof.get('counter_evidence') is not None:
+        raise ValueError('UNKNOWN_ABORT_COUNTER_EVIDENCE')
     if (not accepted or aborted.get('event') != 'TRIAL_ABORTED_NO_NEW_DONE'
             or aborted.get('phase') != 'DISARMED' or aborted.get('armed') is not False
             or accepted.get('monotonic_s', 1e99) >= aborted.get('monotonic_s', 0)
             or any(e.get('connection_session') != identity[1] or e.get('trial_request_id') != identity[2]
                    or e.get('pid') != failed.get('pid')
-                   or any(e.get(k) != 0 for k in ('result_count','done_count','completed_count')) for e in events)):
+                   or any(e.get(k) != baseline[k] for k in COUNTERS) for e in events)):
         raise ValueError('MATCHING_REQUEST_ABORT_WITHOUT_TX_REQUIRED')
     if (proof.get('inspection_id') != row['inspection_id']
             or proof.get('result_sha256') != digest(row['result_json'])
             or tuple(failed.get(k) for k in ('boot','connection','request_id')) != identity
             or failed.get('phase') != 'DISARMED' or failed.get('armed') is not False
             or (not plc_owned and failed.get('initial_revoked') is not True)
-            or any(failed.get(k) != 0 for k in ('result_count','done_count','completed_count'))
+            or any(failed.get(k) != baseline[k] for k in COUNTERS)
             or failed.get('raw100') != '00000000'
             or len(failed.get('trace_sha256', '')) != 64):
         raise ValueError('NO_RESULT_AND_IRREVOCABLE_ABORT_EVIDENCE_REQUIRED')
@@ -100,7 +118,7 @@ def validate_evidence(row, proof, now):
         raise ValueError('SUPERVISED_RECOVERY_CONFIRMATION_REQUIRED')
 
 
-def record_abort(journal, identifier, proof, *, now=None):
+def record_abort(journal, identifier, proof, *, now=None, recheck=None):
     """Maintenance only. Call after fresh evidence collection under supervision."""
     now = time.monotonic() if now is None else now
     journal.capacity()
@@ -124,6 +142,8 @@ def record_abort(journal, identifier, proof, *, now=None):
         saved = dict(receipt, event_id=event['event_id'])
         journal.db.execute('INSERT INTO service_state VALUES (?,?)',
                            ('aborted_cycle:'+identifier, canonical(saved)))
+        if recheck is not None:
+            recheck()  # A changed live state rolls back both appended records.
         return saved
 
 
