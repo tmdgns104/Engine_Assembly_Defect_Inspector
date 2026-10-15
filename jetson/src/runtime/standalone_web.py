@@ -133,10 +133,17 @@ def line_view(status, identity):
         elif reason == 'WAIT_PLC_REQUEST':
             phase, title, detail = 'WAIT_REQUEST', '검사 대기중', '센서·PLC의 새 검사 요청을 자동으로 기다립니다. 브라우저는 닫아도 됩니다.'
     if automatic and automatic.get('product_identity_reason') and phase not in ('ERROR', 'WAIT_CAMERA', 'WAIT_PLC', 'INSPECTING'):
-        phase, title = 'HOLD', '제품 구분 근거 확인 중'
-        detail = ('화면 전체가 비어 있을 필요는 없습니다. 이전 제품의 이탈·새 제품 식별을 확인합니다. '
-                  '접수한 요청은 제한 시간 안에 ERROR·PLC NG로 마무리합니다. 모호함이 계속되면 현장 STOP 후 감독하에 복구하세요. '
-                  +str(automatic['product_identity_reason']))
+        reason = str(automatic['product_identity_reason'])
+        if automatic.get('request_identity_block'):
+            phase, title = 'HOLD', '새 제품 식별 실패 — 검사 미실행'
+            detail = ('현재 요청의 제품 구분 근거를 기다립니다. 요청 전에 관찰한 같은 진입의 근거가 '
+                      '기한 안에 확인되면 자동 검사하며, 부족하면 검사 미실행 ERROR·NG로 기록합니다. '+reason)
+        elif (automatic.get('product_passage') or {}).get('invalid') or reason=='PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN':
+            phase, title = 'HOLD', '제품 관찰 복구 필요'
+            detail = '이전 제품 문맥을 입증할 수 없습니다. 현재 제품의 검사 판정이 아닙니다. '+reason
+        else:
+            phase, title = 'WAIT_PRODUCT_MOVEMENT', '다음 제품 준비 중 — 이전 제품 이동 관찰'
+            detail = '이전 제품의 이송과 새 제품의 진입을 자동으로 관찰합니다. 화면 전체가 비어 있을 필요는 없습니다. '+reason
     aborted = status.get('aborted_inspection')
     if aborted:
         phase, title, verdict = 'ABORTED', '검사 중단 · 현장 STOP 및 복구 필요', 'INCOMPLETE'

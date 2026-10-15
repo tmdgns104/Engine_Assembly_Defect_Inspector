@@ -225,7 +225,9 @@ class StandaloneRuntime(ProductionRuntime):
             proof = self.product_passage.observe(packet, time.monotonic())
             self.eligible = False
             self.area_wait_reason = self.product_passage.reason
-            if proof and self._automatic_transaction_settled():
+            settled = self._automatic_transaction_settled()
+            pending = bool(proof and self._pending_entry_matches_request(proof, packet))
+            if proof and (settled or pending):
                 self._event(dict(event='AUTOMATIC_PRODUCT_SEPARATED', evidence=proof))
                 self.product_separation = proof
                 self.product_passage = None
@@ -233,8 +235,15 @@ class StandaloneRuntime(ProductionRuntime):
                 self.last_sequence = packet['sequence']
                 self.last_time = packet['monotonic_s']
                 self.latest_packet = packet
-                # Do not change the identity frozen by an already accepted
-                # ambiguous request. Preserve ERROR, never switch to a later product.
+                if pending:
+                    # The upstream entry existed before this request. Only its
+                    # proof was pending; no AI work or result has been bound yet.
+                    self.request_product_separation = self.product_separation
+                    self.product_separation = None
+                    self.automatic_identity_block = None
+                    self.arrival.update(track=None,preexisting_track=None,cycle_id=None)
+                    self._event(dict(event='PLC_REQUEST_ENTRY_PROVEN', token=self.handshake.token,
+                        evidence=self.request_product_separation))
             return True
         if self._release_unused_preview(packet):
             return True  # Reacquire from a subsequent valid Worker frame.
@@ -439,13 +448,50 @@ class StandaloneRuntime(ProductionRuntime):
         s = self.gateway.read_snapshot(now)
         old = self.product_passage.identity if self.product_passage else {}
         prefix = f"{s['boot']:016x}:{s['connection']}:" if s else ''
-        return bool(s and s['connected'] and s['fresh'] and s['bool_valid'] and s['run_idle']
+        settled = bool(s and s['connected'] and s['fresh'] and s['bool_valid'] and s['run_idle']
             and 0 <= now-s['generated'] <= .5 and 0 <= now-s['received'] <= .2
             and old.get('request_token', '').startswith(prefix)
             and int(old['request_token'].rsplit(':', 1)[1]) <= s['request_id']
             and s['raw100'] == '00000000'
             and s.get('transaction_settled') is True
             and not s['controls']['Inspection_Request'] and not self.service.active)
+        if settled and self.product_passage:
+            self.product_passage.settled_transaction = dict(boot=s['boot'],connection=s['connection'],
+                request_id=s['request_id'],previous_token=old['request_token'],observed_at=now)
+        return settled
+
+    def _pending_entry_matches_request(self, proof, packet):
+        """Resolve a Request/proof race without adopting a later product.
+
+        The old LOW/output reset was already observed on this connection. The
+        positive upstream entry must start before the current Request, and the
+        same still-live token must have no inspection bound. Existing deadlines
+        and control checks remain in force; a proof after cancellation is inert.
+        """
+        h = self.handshake
+        p = self.product_passage
+        settled = p.settled_transaction if p else None
+        entry = proof.get('upstream_entry') or {}
+        context = self.arrival or {}
+        if (self.automatic_identity_block != 'PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN'
+                or self.prior_product_identity_block or not settled or not entry
+                or h.state != 'REQUEST_LATCHED' or h.cancelled or h.inspection_id
+                or self.service.active or self.error or self.cycle_issue
+                or context.get('token') != h.token
+                or entry['first_time'] > h.accepted_at
+                or packet['camera_epoch'] != context.get('epoch')
+                or packet['generation'] != context.get('generation')):
+            return False
+        now = time.monotonic()
+        s = self.gateway.read_snapshot(now)
+        return bool(s and s['connected'] and s['fresh'] and s['bool_valid'] and s['run_idle']
+            and 0 <= now-s['generated'] <= .5 and 0 <= now-s['received'] <= .2
+            and 0 <= now-h.accepted_at < self.line_profile['arrival_deadline_s']
+            and (s['boot'],s['connection']) == (settled['boot'],settled['connection'])
+            and s['request_id'] > settled['request_id']
+            and f"{s['boot']:016x}:{s['connection']}:{s['request_id']}" == h.token
+            and s['phase'] == 'REQUEST_RECEIVED' and s['raw100'] == '00000000'
+            and all(s['controls'].get(k) for k in ('Inspection_Request','Mc_Run','EStop_OK','Stop_PB')))
 
     def _automatic_exit_evidence(self, now, settlement):
         proof = self.product_separation
@@ -586,17 +632,21 @@ class StandaloneRuntime(ProductionRuntime):
     def _packet(self, packet):
         # Record the data actually removed from the Worker queue. Even rejected
         # packets are visible; diagnostic sampling never changes the verdict.
+        was_invalid = bool(self.product_passage and self.product_passage.invalid)
         try:
             return super()._packet(packet)
         finally:
             self.consumed_frames.record(packet, consumed_at=time.monotonic(),
                 outcome=getattr(self, '_diagnostic_reason', None),
                 passage=self.product_passage.reason if self.product_passage else None,
-                token=self.handshake.token)
+                token=self.handshake.token,
+                passage_state=self.product_passage.status() if self.product_passage else None)
+            if self.product_passage and self.product_passage.invalid and not was_invalid:
+                self.consumed_frames.checkpoint('PRODUCT_PASSAGE_FIRST_INVALID', self.product_passage.status())
 
     def consumed_frame_snapshot(self):
         with self.lock:
-            return self.consumed_frames.snapshot()
+            return self.consumed_frames.snapshot(include_checkpoints=True)
 
     def _clear(self, now):
         if self._automatic_policy():
@@ -803,6 +853,9 @@ class StandaloneRuntime(ProductionRuntime):
                     self.request_product_separation = None
                     if self.cyclic_admissions and (self.product_passage or not self.product_separation):
                         self.automatic_identity_block = 'PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN'
+                        self.consumed_frames.checkpoint('REQUEST_WAITING_FOR_PRODUCT_IDENTITY',
+                            dict(request_token=self.handshake.token, accepted_at=self.handshake.accepted_at,
+                                 passage=self.product_passage.status() if self.product_passage else None))
                     # A physical STOP does not prove product removal. Evidence
                     # remains necessary even after a new START or a fault.
                     if not self.automatic_identity_block:
@@ -1387,6 +1440,7 @@ class StandaloneRuntime(ProductionRuntime):
                 readiness=self._automatic_readiness(),
                 product_identity_reason=self.automatic_identity_block or self.prior_product_identity_block or
                     (self.product_passage.reason if self.product_passage else None),
+                request_identity_block=self.automatic_identity_block if self.handshake.state=='REQUEST_LATCHED' else None,
                 product_passage=self.product_passage.status() if self.product_passage else None,
                 product_separation=self.product_separation,
                 area_clearance_required=False, raw_photo_sensor_available=False,

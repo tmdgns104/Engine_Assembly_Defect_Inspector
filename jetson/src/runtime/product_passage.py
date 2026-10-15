@@ -35,6 +35,7 @@ class ProductPassage:
         self.outbound_samples = 0
         self.entry = None
         self.geometry_pending = False
+        self.settled_transaction = None
 
     @classmethod
     def from_history(cls, identity, packets, edge, *, tracker_config):
@@ -113,21 +114,33 @@ class ProductPassage:
             self.entry = dict(first_sequence=p['sequence'],last_sequence=p['sequence'],
                 first_frame_id=p['frame_id'],last_frame_id=p['frame_id'],
                 first_time=p['monotonic_s'],last_time=p['monotonic_s'],
-                first_center=center,last_center=center,last_box=dict(current),samples=1)
+                first_center=center,last_center=center,last_box=dict(current),samples=1,
+                window_time=p['monotonic_s'],window_center=center)
         else:
             e = self.entry
             step = center-e['last_center']
-            if (p['sequence'] != e['last_sequence']+1 or step < -self.jitter
-                    or step > self.tracker_config.max_center_step_norm
+            gap = p['sequence']-e['last_sequence']-1
+            elapsed = p['monotonic_s']-e['last_time']
+            limit = self.tracker_config.max_center_step_norm
+            if gap:
+                limit += (self.tracker_config.max_center_speed_norm_s or 0)*elapsed
+            if (gap > self.tracker_config.max_missed_frames
+                    or (self.tracker_config.max_unobserved_seconds is not None and
+                        elapsed > self.tracker_config.max_unobserved_seconds)
+                    or step < -self.jitter or step > limit
                     or min(current['x2'],e['last_box']['x2']) <= max(current['x1'],e['last_box']['x1'])
                     or min(current['y2'],e['last_box']['y2']) <= max(current['y1'],e['last_box']['y1'])):
                 self.entry = None
                 return False
+            # Keep the observed upstream identity across a bounded gap, but
+            # restart the consecutive proof window. A gap supplies no evidence.
+            if gap or e['samples'] == 0:
+                e.update(samples=0,window_time=p['monotonic_s'],window_center=center)
             e.update(last_sequence=p['sequence'],last_frame_id=p['frame_id'],
                 last_time=p['monotonic_s'],last_center=center,last_box=dict(current),samples=e['samples']+1)
         e = self.entry
-        return (e['samples'] >= 3 and e['last_time']-e['first_time'] >= .2-1e-9
-                and e['last_center']-e['first_center'] >= max(self.jitter,self.pixel))
+        return (e['samples'] >= 3 and e['last_time']-e['window_time'] >= .2-1e-9
+                and e['last_center']-e['window_center'] >= max(self.jitter,self.pixel))
 
     def observe(self, p, now):
         if self.invalid:
@@ -146,7 +159,6 @@ class ProductPassage:
             # Tracking may associate two actual observations across a short
             # gap. Missing frames never count towards the exit-strip window.
             self.samples = []
-            self.entry = None
         self.last = p
         provider = p['provider']
         boxes = provider['observations']
@@ -157,6 +169,16 @@ class ProductPassage:
                 for k in ('x1', 'y1', 'x2', 'y2')) and
                 0 <= current['x1'] < current['x2'] <= 1 and 0 <= current['y1'] < current['y2'] <= 1):
             return self._fail('PRODUCT_PASSAGE_INVALID_BOX')
+        if self.entry and not current:
+            e = self.entry
+            if (p['sequence']-e['last_sequence'] > self.tracker_config.max_missed_frames or
+                    (self.tracker_config.max_unobserved_seconds is not None and
+                     p['monotonic_s']-e['last_time'] > self.tracker_config.max_unobserved_seconds)):
+                return self._fail('PRODUCT_PASSAGE_ENTRY_REOBSERVATION_LIMIT')
+            e['samples'] = 0
+            self.samples = []
+            self.reason = 'WAIT_ENTRY_REOBSERVATION'
+            return None
         if self.tracker_config and (not self.crossed or self.geometry_pending):
             # Reuse the Track's existing loss bounds. Valid camera frames can
             # intermittently contain no detector box while the belt is stopped.
@@ -244,4 +266,13 @@ class ProductPassage:
 
     def status(self):
         return dict(reason=self.reason, invalid=self.invalid, proof=self.proof,
-                    previous=self.identity, whole_scene_empty_required=False)
+                    previous=self.identity, whole_scene_empty_required=False,
+                    crossed=self.crossed, tail=self.tail, outbound_samples=self.outbound_samples,
+                    geometry_pending=self.geometry_pending, entry=dict(self.entry) if self.entry else None,
+                    last_trusted_box=dict(self.box) if self.box else None,
+                    last_trusted_frame={k:self.last_product.get(k) for k in
+                        ('frame_id','sequence','monotonic_s','camera_epoch','generation')}
+                        if self.last_product else None,
+                    last_observed_frame={k:self.last.get(k) for k in ('frame_id','sequence','monotonic_s')},
+                    exit_window_samples=len(self.samples),
+                    settled_transaction=self.settled_transaction)
