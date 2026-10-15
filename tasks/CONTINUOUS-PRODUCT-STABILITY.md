@@ -28,3 +28,11 @@
 - 상세 소비 프레임 진단의 큰 deepcopy가 Runtime 제어 잠금 아래 실행되는 결함을 재현. 짧게 불변 기록 참조를 잡은 뒤 잠금을 놓고 복사하도록 최소 수정. lease/timeout/판정/PLC 설정 불변.
 - 진단 복사 중 제어 잠금 획득 회귀: 이전 구현 FAIL, 수정 후 PASS. 집중 PC/ARM64 각144개 통과. 보완본 현장 적용·진단 부하 관찰 및 5회 재시험은 진행 중.
 - 첫 배포 때 카메라 timeout은 직전 코드 복원에서도 지속, 사용자 USB 재연결 후 복구됨. 코드 수정으로 카메라 장애를 해결했다고 주장하지 않는다.
+
+## 완료 — 감독하 연속6회
+
+- 소스 a859b21e00b2d1f661b27e301f4705be74273d04, 실제 engine-integrated-80882c05c181fbd6, 운영185파일 SHA 일치. 새 전체 실행본을 여러 개 상주시키지 않고 current의 검증된2파일+Release만 정상 정지 중 교체.
+- 진단 API 반복90초/1024프레임에서 health 최대195ms·차단0. 이후 최초 정상 배출 중 사용자 벨트 접촉1건은 별도 보존; 이것을 과거 소프트웨어 실패 원인으로 확대하지 않음. 동일 코드로 그 문맥만 STOP/실물 확인 후 종료하고 서비스 재시작 없이 재시험.
+- 최종 START1회/중간STOP·START·Reset·grant·service restart0: 정상 PASS → 왼쪽 결품 FAIL → 정상 PASS → 오른쪽 결품 FAIL → 정상 PASS → 사용자 추가 요청 문양 결품 FAIL. 모두 새3PNG, 총18프레임 SHA/픽셀/identity·고유검사6개·Journal·Result→바로다음Done·RequestLOW·작업자 LED/재가동 확인. 제품2~6 실제진입근거로 자동접수.
+- health 최대380.371ms, raw 저장293~534ms, ready=false0, Cconnection1/timeout0. 짧은 시험 성공이며 health 여유/장시간 Class1/무인복구는 미검증. AssemblyREVIEW는 기존V1정책 아래 보존, 정렬개선 아님.
+- 최종 실제STOP·PLCLOW/출력0·유휴·SQLiteok. 노트북 직전백업170파일 SHA1ff338bd... 검증. 상세 docs/CONTINUOUS_PRODUCT_STABILITY_REPORT.md, 비공개 VERIFIED_SIX_TRIALS.json/OPERATOR_CONFIRMATIONS.json. UI/DB 후속 작업 시작 없음.
