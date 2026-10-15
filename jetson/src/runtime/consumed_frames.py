@@ -39,9 +39,18 @@ class ConsumedFrames:
         self.checkpoints.append(dict(reason=reason, context=deepcopy(context),
             frames=deepcopy(list(self.frames)[-128:])))
 
-    def snapshot(self, limit=1024, *, include_checkpoints=False):
+    def capture(self, limit=1024, *, include_checkpoints=False):
+        # Call under the owner's lock. Records are append-only after creation,
+        # so these references remain stable after the lock is released.
         return dict(source='RUNTIME_CONSUMED', total=self.total, capacity=1024,
             retained=len(self.frames), overwritten=max(0, self.total-1024),
             sequence_gaps_are_exit_evidence=False,
-            frames=deepcopy(list(self.frames)[-max(1, min(1024, limit)):]),
-            checkpoints=deepcopy(list(self.checkpoints)) if include_checkpoints else [])
+            frames=list(self.frames)[-max(1, min(1024, limit)):],
+            checkpoints=list(self.checkpoints) if include_checkpoints else [])
+
+    @staticmethod
+    def copy_snapshot(captured):
+        return deepcopy(captured)
+
+    def snapshot(self, limit=1024, *, include_checkpoints=False):
+        return self.copy_snapshot(self.capture(limit, include_checkpoints=include_checkpoints))

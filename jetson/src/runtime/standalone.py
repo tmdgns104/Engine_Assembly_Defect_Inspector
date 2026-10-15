@@ -646,7 +646,9 @@ class StandaloneRuntime(ProductionRuntime):
 
     def consumed_frame_snapshot(self):
         with self.lock:
-            return self.consumed_frames.snapshot(include_checkpoints=True)
+            captured = self.consumed_frames.capture(include_checkpoints=True)
+        # Diagnostic copying must not hold the PLC control/health loop's lock.
+        return self.consumed_frames.copy_snapshot(captured)
 
     def _clear(self, now):
         if self._automatic_policy():

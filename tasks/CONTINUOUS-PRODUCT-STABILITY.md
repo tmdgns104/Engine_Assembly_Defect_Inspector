@@ -20,3 +20,11 @@
 - 수정 전 4개 실패(누락2조건·Request경합·UI), 수정 후 PC/ARM64 각각143개 통과(실제 PLC/카메라 없는 회귀). 기존 실제 shape-outlier 재생 포함. Windows 내부 소켓 제한 및 네이티브 테스트의 HTML 경로 누락을 확인해 환경을 보완하고 동일 회귀 완료.
 - 현재 STOP 및 모형 벨트 밖 보관 확인 후 마지막 제품 문맥을 기존 유지보수 경로로 1회 종료. 원본/판정 보존, 새 권한0/결과 재송신 없음. 실제 5회 현장 시험은 아직 미수행.
 - 비공개 증거: runs/continuous_stability_001/PRECHECK, PC_TESTS.json/log, NATIVE_TESTS.json/log, CONTEXT_CLOSED.json. DB·사진·개인 설정은 Git에 포함하지 않음.
+
+## 첫 현장 시도와 진단 잠금 보완
+
+- d376ffc / engine-integrated-a390a7fe1b7c99e8 적용 후 START 한 번으로 정상 PASS → 왼쪽 파이프 결품 FAIL → 정상 PASS 처리. 각각 새 원본3장·고유 ID·Result/Done·Request LOW 및 현장 LED/재가동 확인. 5회 완료는 아님.
+- 세 번째 종료 후 유휴 중 health 갱신 간격 423.689ms로 PYTHON_NOT_READY/HEALTH_LEASE_EXPIRED 발생. C 연결1·timeout0, 당시 IPC snapshot age44.86ms. Class1 장애로 분류하지 않는다.
+- 상세 소비 프레임 진단의 큰 deepcopy가 Runtime 제어 잠금 아래 실행되는 결함을 재현. 짧게 불변 기록 참조를 잡은 뒤 잠금을 놓고 복사하도록 최소 수정. lease/timeout/판정/PLC 설정 불변.
+- 진단 복사 중 제어 잠금 획득 회귀: 이전 구현 FAIL, 수정 후 PASS. 집중 PC/ARM64 각144개 통과. 보완본 현장 적용·진단 부하 관찰 및 5회 재시험은 진행 중.
+- 첫 배포 때 카메라 timeout은 직전 코드 복원에서도 지속, 사용자 USB 재연결 후 복구됨. 코드 수정으로 카메라 장애를 해결했다고 주장하지 않는다.

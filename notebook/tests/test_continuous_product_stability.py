@@ -1,5 +1,7 @@
 """Replay-shaped gaps and Request/proof ordering; no hardware qualification."""
 import unittest
+import threading
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from notebook.tests import test_automatic_runtime as automatic
@@ -7,6 +9,7 @@ from notebook.tests import test_product_passage_field as field
 from notebook.tests.test_line_presentation import status
 from src.runtime.standalone_web import line_view
 from src.runtime.consumed_frames import ConsumedFrames
+from src.runtime.standalone import StandaloneRuntime
 
 
 class EntryContinuityTests(unittest.TestCase):
@@ -143,6 +146,33 @@ class RequestOrderingTests(unittest.TestCase):
 
 
 class ConsumedCheckpointTests(unittest.TestCase):
+    def test_diagnostic_copy_does_not_hold_runtime_control_lock(self):
+        runtime = SimpleNamespace(lock=threading.RLock(), consumed_frames=ConsumedFrames())
+        copying = threading.Event()
+        release = threading.Event()
+        errors = []
+        def slow_copy(value):
+            copying.set()
+            release.wait(2)
+            return value
+        def read():
+            try: StandaloneRuntime.consumed_frame_snapshot(runtime)
+            except Exception as error: errors.append(error)
+        # Large copies represent a diagnostic reader, never a hardware worker.
+        with patch('src.runtime.consumed_frames.deepcopy', side_effect=slow_copy):
+            thread = threading.Thread(target=read)
+            thread.start()
+            try:
+                self.assertTrue(copying.wait(1))
+                acquired = runtime.lock.acquire(timeout=.1)
+                if acquired: runtime.lock.release()
+                self.assertTrue(acquired, 'diagnostic copy blocks the control/health loop')
+            finally:
+                release.set()
+                thread.join(2)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual(errors, [])
+
     def test_checkpoint_is_bounded_independent_and_excluded_from_regular_status(self):
         frames = ConsumedFrames()
         state = dict(invalid=False, entry=dict(samples=1))
