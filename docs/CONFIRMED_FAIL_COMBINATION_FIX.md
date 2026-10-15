@@ -30,4 +30,6 @@
 
 적용 결과와 정확한 Release/SHA는 같은 비공개 경로의 `DEPLOYMENT.json` 및 `POST_DEPLOY_VERIFICATION.json`에 기록한다. 수정 후 신규 실제 검사 시험은 별도로 구분하며, 저장 결과 재결합만으로 현장 최종 FAIL 성공을 주장하지 않는다.
 
+실제 적용 완료: source `887ea3f2eb1ffd141e9c3641e222da4e6438138b`, Release `engine-integrated-2719dff19eb79478`. 운영 185파일 해시 일치, 서비스/OpENer 각1개, 카메라 Worker 및 조립 Worker 유휴·준비 상태. PLC STOP, Request/Result/Done 0, 새 요청/발행 0. 이전 검사 원시 FAIL/저장 통합 REVIEW 보존 확인. 정지 백업 170파일 검증 및 SQLite 무결성 OK, archive SHA `07b34251d09950ed0ef51ee60a28f1894516f2646fdc570e0cc3ca1428574133`.
+
 기존 실제 시험 완료 후 카메라 Worker 교체와 `CAMERA_OR_OBSERVATION_STREAM_UNAVAILABLE`가 별도로 관측됐다. 이 판정 정책 수정은 그 원인 해결이나 연속 운전 안정성 검증이 아니다.
