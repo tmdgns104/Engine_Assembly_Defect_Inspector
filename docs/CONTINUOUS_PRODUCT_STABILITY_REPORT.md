@@ -1,6 +1,6 @@
 # 연속 제품 접수 안정화 — 실제 6회 확인
 
-2026-10-15. 현재 작업 범위에서 구현·배포·감독하 연속 검증 완료. 최초 START 한 번 뒤 **정상 → 왼쪽 파이프 결품 → 정상 → 오른쪽 파이프 결품 → 정상 → 문양 결품**을 처리했다. 여섯 번째는 사용자가 현장에서 추가 요청했다. 이 6회 사이에 Reset, STOP/START, 소프트웨어 권한 발급, 서비스 재시작은 없었다. 작업자가 각 LED·재가동과 마지막 STOP을 확인했다.
+2026-10-15. 구현·배포 후 감독하 연속6회 처리 경로를 검증했다. 최초 START 한 번 뒤 **정상 → 왼쪽 파이프 결품 → 정상 → 오른쪽 파이프 결품 → 정상 → 문양 결품**을 처리했다. 여섯 번째는 사용자가 현장에서 추가 요청했다. 이 6회 사이에 Reset, STOP/START, 소프트웨어 권한 발급, 서비스 재시작은 없었다. 작업자가 각 LED·재가동과 마지막 STOP을 확인했다. 다만 시험 종료 후 장시간 STOP 대기에서 카메라 수신 timeout/Worker 재기동이 발견됐으므로 현재 준비 상태와 6회 성공을 구분한다.
 
 ## 실제 원인과 수정 범위
 
@@ -61,5 +61,7 @@ PLC·EDS·4/8/10B·C 바이너리·모델·임계값·카메라 배치·RPI/time
 비공개 노트북 증거: `runs/continuous_stability_001/VERIFIED_SIX_TRIALS.json`, `OPERATOR_CONFIRMATIONS.json`, `FIVE_TRIALS_03/`, `FIVE_CYCLES_03/STATUS.jsonl`, `FINAL_STOP/`, `diagnostic_lock/`. 운영 DB·사진·개인 설정·인증정보는 Git에 올리지 않는다.
 
 ## 남은 한계
+
+종료 뒤 추가 확인에서 `CameraError: CAMERA_FRAME_TIMEOUT` → 기존 자동 카메라 복구 → camera epoch/Worker 교체가 반복됐다. main service/C 연결은 유지되고 새 Request/Result/Done은 없었다. 이때 과거 제품 문맥은 `PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN`으로 보수적으로 복원됐다. 6회 시험 동안 동일 Worker로 처리한 사실과 구분한다. 이 카메라 수신 문제는 원래 코드 복원 때도 관측됐으며 USB/드라이버/수집 경로 중 정확한 최초 원인은 미확정이다. 현재 보호 조건을 해제하거나 가짜 이탈로 복구하지 않는다.
 
 감독하 이 배치·간격의 6회 연속 처리를 검증했다. 미관측 진입, 큰 역행/가림, epoch 변화, 실제 통신/저장 장애에서 임의로 다음 제품을 정상으로 확정하지 않는다. 장시간 Class1·health 여유, 무인 장애 복구, 다양한 투입 간격/각도와 모델 정확도는 완료 주장에 포함하지 않는다. Assembly는 여전히 공간 지지 부족 REVIEW이며 기존 V1 기본검사·확정 FAIL 정책으로 최종 PASS/FAIL을 만들었다. 조립 정렬을 고친 작업이 아니다. 다음 UI/DB 작업은 시작하지 않았다.

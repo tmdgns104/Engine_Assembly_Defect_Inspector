@@ -36,3 +36,9 @@
 - 최종 START1회/중간STOP·START·Reset·grant·service restart0: 정상 PASS → 왼쪽 결품 FAIL → 정상 PASS → 오른쪽 결품 FAIL → 정상 PASS → 사용자 추가 요청 문양 결품 FAIL. 모두 새3PNG, 총18프레임 SHA/픽셀/identity·고유검사6개·Journal·Result→바로다음Done·RequestLOW·작업자 LED/재가동 확인. 제품2~6 실제진입근거로 자동접수.
 - health 최대380.371ms, raw 저장293~534ms, ready=false0, Cconnection1/timeout0. 짧은 시험 성공이며 health 여유/장시간 Class1/무인복구는 미검증. AssemblyREVIEW는 기존V1정책 아래 보존, 정렬개선 아님.
 - 최종 실제STOP·PLCLOW/출력0·유휴·SQLiteok. 노트북 직전백업170파일 SHA1ff338bd... 검증. 상세 docs/CONTINUOUS_PRODUCT_STABILITY_REPORT.md, 비공개 VERIFIED_SIX_TRIALS.json/OPERATOR_CONFIRMATIONS.json. UI/DB 후속 작업 시작 없음.
+
+## 종료 뒤 추가 상태
+
+- 여섯 검사 완료 후 STOP 대기 중 CAMERA_FRAME_TIMEOUT/기존 자동 Worker 복구 반복 발견. 서비스16809/C연결1·Request7/Result7/Done7 유지, 추가 검사 없음. epoch 교체로 과거 제품 문맥이 PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN으로 복원됨. 이 상태를 다음 검사 준비 완료로 보고하지 않는다.
+- 실제6회 동안 동일 Worker·무차단 관측은 보존한다. 카메라 수신 원인은 미확정이며 해당 시간대 USB 커널 로그는 없었다. 위치/각도/조명 유지한 동일 USB 재연결을 사용자에게 요청, 현장 확인 대기. 보호 조건 해제/가짜 이탈/추가 START 없음.
+- 이번 작업 임시222파일+링크4개를 노트북 archive SHA d7b852b8062eae25516e2bd0ee160a3ddaa1fedc306d932b5fce7cf3f6afc46a로 검증 후 장치 tmp 작업 경로만 제거. current/data/assets/config 미변경.
