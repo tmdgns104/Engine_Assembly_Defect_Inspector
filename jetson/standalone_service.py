@@ -87,11 +87,12 @@ def main():
     os.environ['PYTHONPATH'] = os.pathsep.join([str(ROOT), str(config['pythonpath'])])
     from launch_live import check_files
     from src.vision.misassembly_shadow import verify_assets
+    from src.vision.integrated_decision import POLICY
     station, identity = check_files(config['package'], config['station'], plc_bench=True)
     assets = ROOT.parent/'assets/misassembly_runtime'
     manifest = verify_assets(assets)
     identity.update(plc_contract=contract, mode=profile['mode'],
-        final_policy='BOTH_REQUIRED_V1', profile_path=str(config['line_profile']),
+        final_policy=POLICY, profile_path=str(config['line_profile']),
         inference_dependencies=len(manifest['files']), laptop_required=False)
     if contract == 'OPENER_CYCLIC':
         identity.update(backend='OPENER_CYCLIC',
