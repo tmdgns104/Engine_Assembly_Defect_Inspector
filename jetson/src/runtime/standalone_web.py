@@ -1,7 +1,55 @@
 """Field HMI with an opt-in authenticated preparation path; never web START."""
 import json
 from pathlib import Path
+from urllib.parse import urlsplit
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+
+
+def field_reset_allowed(request, hosts):
+    """A local same-origin Reset action, not a generated operator capability."""
+    host = request.headers.get('host', '')
+    return bool(host in hosts and request.headers.get('origin') == request.url.scheme+'://'+host
+                and request.headers.get('content-type','').split(';',1)[0].strip() == 'application/json'
+                and request.headers.get('sec-fetch-site','same-origin') in ('same-origin','none'))
+
+
+def saved_line_history(journal):
+    """Restore display evidence only; never put old results into the publisher."""
+    with journal.lock:
+        rows = journal.db.execute(
+            "SELECT i.inspection_id,s.value FROM inspections i JOIN service_state s "
+            "ON s.key='integrated_decision:'||i.inspection_id "
+            "WHERE i.state='COMPLETE' ORDER BY i.completed_at DESC LIMIT 30").fetchall()
+        history = []
+        for identifier, value in rows:
+            final = json.loads(value)
+            if (final.get('inspection_id') == identifier and final.get('synthetic') is False
+                    and final.get('source') in ('INTEGRATED_ACTUAL_INSPECTION','NO_ACTUAL_INSPECTION')
+                    and final.get('decision') in ('PASS','FAIL','REVIEW','ERROR')):
+                history.append(dict(final, publication_status='UNKNOWN', plc_consumption_confirmed=False))
+        if not history:
+            return []
+        identifiers = [row['inspection_id'] for row in history]
+        placeholders = ','.join('?' for _ in identifiers)
+        events = journal.db.execute(
+            "SELECT event_type,payload_json FROM events WHERE event_type IN "
+            "('PLC_CYCLIC_COMPLETION_OBSERVED','SUPERVISED_CYCLIC_COMPLETION_OBSERVED') "
+            "AND json_extract(payload_json,'$.payload.inspection_id') IN ("+placeholders+") "
+            "ORDER BY occurred_at DESC LIMIT 120", identifiers).fetchall()
+    for _, payload in events:
+        event = json.loads(payload).get('payload', {})
+        for row in history:
+            if (row['inspection_id'] == event.get('inspection_id') and row.get('request_token')
+                    and row['request_token'] == event.get('request_token')):
+                row.update(cyclic_done_reset_observed=True, publication_status='CYCLIC_DONE_AND_REQUEST_RESET')
+    return history
+
+
+def with_saved_history(status, saved):
+    """Current-session receipt details take precedence over restored display rows."""
+    rows = {row['inspection_id']: row for row in saved}
+    rows.update({row['inspection_id']: row for row in status.get('history', [])})
+    return dict(status, history=sorted(rows.values(), key=lambda row: row.get('completed_at') or '', reverse=True)[:30])
 
 
 def line_view(status, identity):
@@ -121,6 +169,7 @@ def configure_line_web(app, runtime, identity):
     from src.runtime.supervised_web import PreparationAccess, PREPARE_PATH
     access = None
     recovery_access = None
+    restored_history = None
     web = getattr(runtime, 'line_profile', {}).get('supervised_web', {})
     if web.get('enabled') is True:
         if not runtime._supervised_policy():
@@ -129,18 +178,19 @@ def configure_line_web(app, runtime, identity):
     maintenance = getattr(runtime, 'line_profile', {}).get('maintenance_recovery', {})
     if maintenance.get('enabled') is True:
         if not runtime._automatic_policy():raise ValueError('AUTOMATIC_MAINTENANCE_ONLY')
-        root = runtime.service.journal.root/'maintenance'
-        root.mkdir(mode=0o700, exist_ok=True)
-        if root.is_symlink():raise ValueError('MAINTENANCE_DIRECTORY_SYMLINK')
-        recovery_access = PreparationAccess(root, maintenance.get('allowed_hosts'),
-            purpose='CLOSE_HISTORICAL_PRODUCT_CONTEXT_ONLY')
+        hosts = maintenance.get('allowed_hosts')
+        if (not isinstance(hosts,list) or not hosts or len(hosts)>8
+                or any(not isinstance(host,str) or not host or '/' in host or '@' in host or '*' in host
+                       or urlsplit('//'+host).netloc != host for host in hosts)):
+            raise ValueError('EXPLICIT_MAINTENANCE_WEB_HOSTS_REQUIRED')
+        recovery_access = frozenset(hosts)
 
     @app.middleware('http')
     async def read_only_field_ui(request, call_next):
         if request.method not in ('GET', 'HEAD'):
             if request.method == 'POST' and request.url.path == '/api/v1/maintenance/product-context/close' and recovery_access:
-                if not recovery_access.permits(request):
-                    return JSONResponse({'error':'MAINTENANCE_AUTHENTICATION_REQUIRED'},status_code=403)
+                if not field_reset_allowed(request,recovery_access):
+                    return JSONResponse({'error':'LOCAL_SAME_ORIGIN_RESET_REQUIRED'},status_code=403)
                 try:
                     if not 1 <= int(request.headers.get('content-length','0')) <= 2048:
                         raise ValueError('BOUNDED_JSON_BODY_REQUIRED')
@@ -181,7 +231,12 @@ def configure_line_web(app, runtime, identity):
     def release(): return identity
 
     @app.get('/api/v1/line/view')
-    def view(): return line_view(runtime.status(), identity)
+    def view():
+        nonlocal restored_history
+        # One bounded Journal read per service, independent from preview polling.
+        if restored_history is None:
+            restored_history = saved_line_history(runtime.service.journal)
+        return line_view(with_saved_history(runtime.status(), restored_history), identity)
 
     @app.get('/api/v1/line/consumed-frames')
     def consumed_frames():

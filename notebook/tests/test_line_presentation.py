@@ -1,11 +1,15 @@
 """Field display semantics only; no camera, model, or PLC connections."""
 import copy
+import json
+import sqlite3
+import threading
+from types import SimpleNamespace
 from pathlib import Path
 import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'jetson'))
-from src.runtime.standalone_web import line_view
+from src.runtime.standalone_web import line_view, saved_line_history, with_saved_history
 
 
 def status():
@@ -19,6 +23,48 @@ def status():
 
 
 class LinePresentationTests(unittest.TestCase):
+    def test_restart_history_is_readonly_and_requires_matching_receipt(self):
+        db = sqlite3.connect(':memory:')
+        self.addCleanup(db.close)
+        db.executescript('CREATE TABLE inspections(inspection_id,state,completed_at);'
+            'CREATE TABLE service_state(key,value);'
+            'CREATE TABLE events(event_type,payload_json,occurred_at);')
+        final = dict(inspection_id='old', decision='ERROR', synthetic=False,
+                     source='NO_ACTUAL_INSPECTION', request_token='boot:1:2', completed_at='2026-10-15')
+        db.execute('INSERT INTO inspections VALUES(?,?,?)', ('old','COMPLETE','2026-10-15'))
+        db.execute('INSERT INTO service_state VALUES(?,?)', ('integrated_decision:old',json.dumps(final)))
+        def receipt(token):
+            db.execute('INSERT INTO events VALUES(?,?,?)', ('PLC_CYCLIC_COMPLETION_OBSERVED',
+                json.dumps(dict(payload=dict(inspection_id='old',request_token=token))), '2026-10-15'))
+        journal = SimpleNamespace(db=db,lock=threading.RLock())
+        receipt('different:1:2')
+        before = db.total_changes
+        restored = saved_line_history(journal)
+        self.assertEqual(db.total_changes,before)
+        self.assertEqual(restored[0]['publication_status'],'UNKNOWN')
+        receipt('boot:1:2')
+        restored = saved_line_history(journal)
+        self.assertTrue(restored[0]['cyclic_done_reset_observed'])
+        self.assertFalse(restored[0]['plc_consumption_confirmed'])
+        value = line_view(with_saved_history(status(),restored),{})
+        self.assertEqual(value['last_result']['inspection_id'],'old')
+        self.assertEqual(value['last_result']['source'],'NO_ACTUAL_INSPECTION')
+        self.assertEqual(value['verdict'],'NOT_RUN')
+        db.execute("UPDATE inspections SET state='ACCEPTED'")
+        self.assertEqual(saved_line_history(journal),[])
+
+    def test_memory_history_overrides_saved_without_mutating_runtime(self):
+        saved = [dict(inspection_id='old',completed_at='2026-10-14',publication_status='UNKNOWN')]
+        current = status()
+        current['history'] = [dict(inspection_id='old',completed_at='2026-10-14',publication_status='ACKNOWLEDGED'),
+                              dict(inspection_id='new',completed_at='2026-10-15')]
+        before = copy.deepcopy(current)
+        merged = with_saved_history(current,saved)
+        self.assertEqual([row['inspection_id'] for row in merged['history']],['new','old'])
+        self.assertEqual(merged['history'][1]['publication_status'],'ACKNOWLEDGED')
+        self.assertEqual(current,before)
+        self.assertEqual(saved[0]['publication_status'],'UNKNOWN')
+
     def test_preview_and_false_result_bit_never_become_pass(self):
         s = status(); original = copy.deepcopy(s)
         v = line_view(s, {})

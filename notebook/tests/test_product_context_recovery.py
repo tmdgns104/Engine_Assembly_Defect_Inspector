@@ -98,7 +98,7 @@ class ProductContextRecoveryTests(unittest.TestCase):
         self.r._restore_previous_product_identity()
         self.assertEqual(self.r.prior_product_identity_block,'PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN')
 
-    def test_maintenance_route_narrow_authenticated_disabled_by_default(self):
+    def test_reset_route_same_origin_no_code_and_disabled_by_default(self):
         from fastapi import FastAPI
         from notebook.tests.supervised_asgi_fixture import LocalAsgiClient
         from src.runtime.standalone_web import configure_line_web
@@ -107,19 +107,20 @@ class ProductContextRecoveryTests(unittest.TestCase):
         with LocalAsgiClient(app) as c:self.assertEqual(c.post(path,json={}).status_code,403)
         self.r.line_profile['maintenance_recovery']=dict(enabled=True,allowed_hosts=['testserver'])
         app=FastAPI();configure_line_web(app,self.r,{})
-        token=json.loads((self.j.root/'maintenance/web_pairing.json').read_text())['token']
-        headers={'Origin':'http://testserver','Authorization':'Bearer '+token}
+        self.assertFalse((self.j.root/'maintenance/web_pairing.json').exists())
+        headers={'Origin':'http://testserver','Content-Type':'application/json'}
         with LocalAsgiClient(app) as c:
             self.assertEqual(c.post(path,json={},headers={}).status_code,403)
             self.assertEqual(c.post('/api/v1/runtime/start',json={},headers=headers).status_code,403)
             self.assertEqual(c.post(path,json={},headers=headers).status_code,409)
-            self.assertNotIn(token,c.get('/line').text)
+            self.assertNotIn('recovery-token',c.get('/line').text)
             self.assertEqual(c.get('/api/v1/line/consumed-frames').status_code,200)
             self.assertEqual(c.get('/line_details.js').status_code,200)
-            self.assertNotIn(token,c.get('/api/v1/maintenance/product-context/status').text)
-            for bad in [{'Origin':'http://other','Authorization':'Bearer '+token},
-                        {'Origin':'http://testserver','Authorization':'Bearer wrong'}]:
-                self.assertEqual(c.post(path,json={},headers=bad).status_code,403)
+            self.assertNotIn('token',c.get('/api/v1/maintenance/product-context/status').text)
+            for bad in [{'Origin':'http://other'}, {'Origin':'http://testserver','Host':'other'},
+                        {'Origin':'http://testserver','Sec-Fetch-Site':'cross-site'},
+                        {'Origin':'http://testserver','Content-Type':'text/plain'}]:
+                self.assertEqual(c.post(path,json={},headers={**headers,**bad}).status_code,403)
 
     def test_ui_preflight_is_readonly_and_rechecks_stop_on_commit(self):
         identifier=self.prepare()

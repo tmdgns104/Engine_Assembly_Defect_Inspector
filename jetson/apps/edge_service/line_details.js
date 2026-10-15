@@ -16,7 +16,7 @@ const LineDetails = (() => {
     UNFINISHED_INSPECTION_BLOCKS_CONTEXT_RECOVERY:'실제 미완료 검사가 있습니다. 별도 중단 복구가 필요하며 이 버튼으로 지우지 않습니다.',
     CONTEXT_RECOVERY_ALREADY_RECORDED:'이 제품의 문맥은 이미 정리됐습니다. 다른 차단 원인을 확인하세요.',
     LATEST_PRODUCT_CONTEXT_REQUIRED:'정리할 과거 제품 문맥이 없거나 대상이 바뀌었습니다.',
-    MAINTENANCE_AUTHENTICATION_REQUIRED:'유지보수 인증 또는 허용된 화면 주소를 확인하세요.',
+    LOCAL_SAME_ORIGIN_RESET_REQUIRED:'Jetson의 현장 화면에서 Reset을 실행해 주세요. 다른 사이트의 요청은 허용하지 않습니다.',
     MAINTENANCE_RECOVERY_DISABLED:'현재 실행에서 유지보수 복구가 비활성 상태입니다.',
     PLC_CHANGED_DURING_CONTEXT_RECOVERY:'처리 중 PLC 상태가 바뀌어 복구를 취소했습니다.',
     JOURNAL_INTEGRITY_FAILED:'검사 원장 무결성 오류입니다. 재시험 전에 저장소 점검이 필요합니다.'};
@@ -26,7 +26,7 @@ const LineDetails = (() => {
   const add=(parent,tag,text,className)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;parent.append(e);return e};
   const fixed=value=>Number.isFinite(value)?value.toFixed(2):'기록 없음';
   let selectedId=null,followLatest=true,loadedKey=null,loadGeneration=0,controller=null;
-  let recovery=null,recoveryBusy=false,maintenanceToken='';
+  let recovery=null,recoveryBusy=false;
 
   function summarize(raw,assembly,final){
     const observations=raw?.result?.observations||[];
@@ -141,41 +141,36 @@ const LineDetails = (() => {
 
   function updateLatest(result){if(followLatest&&result?.inspection_id!==loadedKey)select(result?.inspection_id)}
   async function refreshRecovery(){
-    recovery=null;byId('recovery-submit').disabled=true;byId('recovery-physical').checked=false;
+    recovery=null;byId('recovery-submit').disabled=true;
     byId('recovery-state').textContent='현재 PLC·작업·과거 제품 문맥 확인 중…';
     try{
       recovery=await json('/api/v1/maintenance/product-context/status',AbortSignal.timeout(4000));
       byId('recovery-state').textContent=explain(recovery.reason)+(recovery.inspection_id?' · 대상 '+recovery.inspection_id:'');
-      if(recovery.eligible)byId('recovery-state').textContent='프로그램의 STOP·무출력·유휴 확인됨. 아래 실제 현장 확인과 유지보수 인증이 필요합니다. 대상 '+recovery.inspection_id;
+      if(recovery.eligible)byId('recovery-state').textContent='프로그램의 STOP·무출력·작업 종료 확인됨. 실제 벨트 정지와 모형 정리를 확인했다면 아래 Reset을 누르세요. 대상 '+recovery.inspection_id;
     }catch(error){byId('recovery-state').textContent=error.message}
     recoveryEnabled();
   }
   function recoveryEnabled(){
-    byId('recovery-submit').disabled=recoveryBusy||!recovery?.eligible||!byId('recovery-physical').checked||
-      !(byId('recovery-token').value.trim()||maintenanceToken)||!byId('recovery-actor').value.trim()||!byId('recovery-reason').value.trim();
+    byId('recovery-submit').disabled=recoveryBusy||!recovery?.eligible;
   }
   async function submitRecovery(){
     if(byId('recovery-submit').disabled)return;
     recoveryBusy=true;recoveryEnabled();
-    const token=byId('recovery-token').value.trim()||maintenanceToken;
-    byId('recovery-token').value='';
     try{
       const response=await fetch('/api/v1/maintenance/product-context/close',{method:'POST',
-        headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},signal:AbortSignal.timeout(6000),
-        body:JSON.stringify({identifier:recovery.inspection_id,actor:byId('recovery-actor').value.trim(),
-          reason:byId('recovery-reason').value.trim(),confirmations:['PHYSICAL_STOP','PRODUCT_REMOVED_OR_HELD_OFF_LINE','CLOSE_CONTEXT_WITHOUT_RESULT']})});
+        headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(6000),
+        body:JSON.stringify({identifier:recovery.inspection_id,actor:'FIELD_HMI_OPERATOR',
+          reason:'OPERATOR_CONFIRMED_STOP_AND_PRODUCT_OFF_LINE',confirmations:['PHYSICAL_STOP','PRODUCT_REMOVED_OR_HELD_OFF_LINE','CLOSE_CONTEXT_WITHOUT_RESULT']})});
       const value=await response.json();
-      if(!response.ok){if(response.status===403)maintenanceToken='';throw Error(explain(value.error||'복구 거부'))}
-      maintenanceToken=token;
+      if(!response.ok)throw Error(explain(value.error||'복구 거부'));
       byId('recovery-state').textContent='이전 제품 문맥 정리 완료 · 기록 보존 · 결과 재송신 없음. 현재 화면의 준비 상태를 다시 확인하세요. 복구 기록 '+value.recovery_id;
     }catch(error){byId('recovery-state').textContent='복구 완료 미확인 · '+error.message+' 자동 재시도하지 않습니다. 상태 다시 확인을 눌러 주세요.'}
-    finally{recovery=null;recoveryBusy=false;byId('recovery-physical').checked=false;recoveryEnabled()}
+    finally{recovery=null;recoveryBusy=false;recoveryEnabled()}
   }
   function init(){
     byId('recovery-open').onclick=()=>{byId('recovery-dialog').showModal();refreshRecovery()};
     byId('recovery-close').onclick=()=>byId('recovery-dialog').close();
     byId('recovery-refresh').onclick=()=>{if(!recoveryBusy)refreshRecovery()};
-    for(const id of ['recovery-physical','recovery-token','recovery-actor','recovery-reason'])byId(id).addEventListener('input',recoveryEnabled);
     byId('recovery-submit').onclick=submitRecovery;
     byId('evidence-retry').onclick=()=>{loadedKey=null;select(selectedId)};
     byId('evidence-latest').onclick=()=>{followLatest=true;loadedKey=null;updateLatest(window.lineLatestResult)};

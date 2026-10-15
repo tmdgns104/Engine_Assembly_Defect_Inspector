@@ -21,6 +21,7 @@ const rejected={state:'COMPLETE',frames:observations.map(o=>({...o,preprocessing
 assert(summarize(raw,rejected,{}).rows.every(p=>p.assembly==='NOT_RUN'));
 assert(!script.includes('innerHTML'),'stored content must not be HTML');
 assert(!script.includes('localStorage')&&!script.includes('sessionStorage'),'no persistent maintenance secret');
+assert(!script.includes('Authorization')&&!script.includes('recovery-token'),'Reset must not require a software code');
 assert(script.includes('confirmations:')&&script.includes('PHYSICAL_STOP'));
 assert(!script.includes('automatic_arm')&&!script.includes('initial_arm'));
 console.log('line evidence: missing / misassembly / conflicting frames / invalid evidence / no capture / unsafe rendering guards PASS');
@@ -37,16 +38,14 @@ async function recoveryUI(){
   vm.createContext(ctx);vm.runInContext(script,ctx);vm.runInContext('LineDetails.init()',ctx);
   assert.equal(calls.length,0,'page load must not preflight or reset');
   get('recovery-open').onclick();for(let i=0;i<12;i++)await Promise.resolve();
-  assert.equal(calls.length,1);assert.equal(get('recovery-submit').disabled,true,'eligible snapshot is not physical confirmation');
-  get('recovery-token').value='test-secret';get('recovery-actor').value='operator';get('recovery-reason').value='model removed';
-  get('recovery-physical').checked=true;get('recovery-physical').input();
+  assert.equal(calls.length,1);assert.equal(calls.filter(c=>c.options.method==='POST').length,0,'opening dialog is not physical confirmation');
   assert.equal(get('recovery-submit').disabled,false);
   const first=get('recovery-submit').onclick();await get('recovery-submit').onclick();await first;
   assert.equal(calls.filter(c=>c.options.method==='POST').length,1,'double click created a second mutation');
   const posted=JSON.parse(calls[1].options.body);assert.equal(posted.identifier,'a'.repeat(32));
   assert.deepEqual(posted.confirmations,['PHYSICAL_STOP','PRODUCT_REMOVED_OR_HELD_OFF_LINE','CLOSE_CONTEXT_WITHOUT_RESULT']);
-  assert.equal(get('recovery-token').value,'');assert.equal(get('recovery-physical').checked,false);
-  assert.equal(get('recovery-submit').disabled,true);assert(!get('recovery-state').textContent.includes('test-secret'));
-  console.log('reset UI: no page-load writes, explicit physical confirmation, authenticated single POST, no automatic retry PASS');
+  assert.equal(calls[1].options.headers.Authorization,undefined);
+  assert.equal(get('recovery-submit').disabled,true);
+  console.log('reset UI: no page-load writes, physical-confirmation button, no code/token, single POST, no automatic retry PASS');
 }
 recoveryUI().catch(error=>{console.error(error);process.exitCode=1});
