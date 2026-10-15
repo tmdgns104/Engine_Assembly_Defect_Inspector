@@ -1,5 +1,12 @@
 # TASK-022 — 실제 영상의 AI·조립 전처리 실패 수정
 
+### 2026-10-15 형상/LoFTR/상대 LK 비교 결과
+- B/C를 같은 현장27+TRAIN13 원본에서 실행. 후보17/22개는 기하 성공 수가 아님. 최근3장 C 독립점 최대20.57/22.97/23.84px, 반전 오수락; B도 오대응/모호. 기존13TRAIN 대조의 새 crop 분류는 B/C 모두 정답 상태와 일치. 운영 후보 자격은 미달.
+- 현재 시야 reference 효과와 상대 LK를 분리 평가. 같은 검사 각 원본을 별도 crop·분류하면 12개 모두 CORRECT였으나 anchor 절대 정확도 및 LK 보류점 오대응 남음. 분류 결과 복사/운영 PASS 처리/LoFTR+LK 자동 결합 없음.
+- Jetson 저장3장 LK warm118–125ms, 전체13.745초 단축량 미측정. Runtime 수정/새PLC시험 없음. 실제 소스e20ebbd/Release engine-integrated-a8d842b879cd14ea 유지.
+- 사용자 전원 사고 후 STOP 재확인. 기존 소켓 무소유 복구 절차로 서비스 복구,185SHA/카메라/Assembly/PLC LOW·유휴 확인, 새 Result/Done0. 소켓 자동복구 개발은 이번 범위 아님.
+- 비교 구현·집중5회귀 완료. 현장 정렬 완료 조건은 미달이며 실패 후보 미배포. 상세: docs/ASSEMBLY_AI_FIELD_FIX_REPORT.md, 비공개 matcher_comparison/BODY_MATCH_COMPARISON.html.
+
 ## 현재 요구와 범위
 ### 자세 재사용 후속 — 현재 수행 범위
 - 후속 결과: **가설의 이번 구현 기각 / 조립 복구 미완료 / 후보 미배포**. D001/T0001 similarity 보류점 최대19.44px, 몸체 국소 보정0/15 현장·0/13 TRAIN. 기존 반전 falseaccept 재현. 같은 raw frame의 pose 저장 확인과 좌표 합성·역변환 검증, 원본 해시 불변. 자세 재사용 경로를 Runtime에 추가하거나 새 현장 START를 실행하지 않았다. `docs/ASSEMBLY_AI_FIELD_FIX_REPORT.md` 최신 절 및 private `pose_reuse_followup` 비교 참조.
