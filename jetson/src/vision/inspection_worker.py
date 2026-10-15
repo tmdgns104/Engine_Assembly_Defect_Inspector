@@ -287,6 +287,43 @@ def worker_main(package_root, station, generation, commands, results, previews, 
             motion_mode=(job.get('production_binding',{}).get('inspection_motion_mode') in motion_modes
                 and job.get('production_binding',{}).get('inspection_motion_mode')==
                     job.get('experiment_policy',{}).get('inspection_motion_mode'))
+            from src.runtime.inspection_start import FULL_FRAME
+            binding = job.get('production_binding', {})
+            stationary_capture = bool(engine and job['request']['kind'] == 'inspect'
+                and binding.get('plc_contract') == 'OPENER_CYCLIC'
+                and binding.get('inspection_start_policy') == FULL_FRAME
+                and binding.get('inspection_motion_mode') == 'STATIONARY'
+                and job.get('experiment_policy', {}).get('inspection_motion_mode') == 'STATIONARY')
+            # The PLC edge accepts the request immediately, but may precede the
+            # physical stop. Keep the existing motion test and acquire a settled
+            # trio within the original deadline, instead of judging coasting.
+            stationary_candidates = []
+            stationary_rejections = []
+            stationary_candidate_count = stationary_rejected_count = 0
+            discarded_stable_frames = 0
+
+            def stationary_evidence(selected):
+                return dict(policy='POST_REQUEST_STABLE_THREE_FRAMES',
+                    candidate_count=stationary_candidate_count,
+                    rejected_count=stationary_rejected_count,
+                    rejected_frames=list(stationary_rejections),
+                    rejected_metadata_truncated=max(0, stationary_rejected_count-len(stationary_rejections)),
+                    discarded_stable_frames=discarded_stable_frames,
+                    selected_frame_ids=[o['frame_id'] for o in selected],
+                    deadline_monotonic=selector.deadline if selector else job['deadline'])
+
+            def fresh_evidence(selected):
+                evidence = selector.evidence()
+                if stationary_capture:
+                    candidates = evidence['selected_frames']
+                    selected_ids = {o['frame_id'] for o in selected}
+                    # Fresh acquisition candidates and final inspection evidence
+                    # are different sets once motion can reject a candidate.
+                    evidence['acquisition_candidate_count'] = len(candidates)
+                    evidence['acquisition_candidates'] = candidates[-32:]
+                    evidence['selected_frames'] = [f for f in candidates if f['frame_id'] in selected_ids]
+                return evidence
+
             conveyor_rejections=[]
             def progress(stage):
                 if engine is None:return
@@ -330,6 +367,26 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                     if engine:
                         detected['engine_dynamic']['inspection_id']=job['inspection_id']
                         detected['engine_dynamic']['stage_timings_ms']['camera_receive_ms']=capture_elapsed
+                    if stationary_capture:
+                        stationary_candidate_count += 1
+                        stationary_candidates.append((frame, detected))
+                        stationary_candidates = stationary_candidates[-3:]
+                        value = detected['engine_dynamic']
+                        if value.get('stable') is not True:
+                            stationary_rejected_count += 1
+                            stationary_rejections.append(dict(frame_id=frame.frame_id,
+                                sequence=freshness['sequence'], camera_epoch=freshness['camera_epoch'],
+                                source_pts_ns=freshness['source_pts_ns'],
+                                source_monotonic=freshness['estimated_source_monotonic'],
+                                motion_fraction=value.get('motion_fraction'),
+                                reason='WAIT_FOR_STABLE_FRAME'))
+                            stationary_rejections = stationary_rejections[-32:]
+                            # A moving frame breaks the contiguous stable trio;
+                            # a prior stable image cannot be reused after it.
+                            discarded_stable_frames += len(frames)
+                            frames.clear(); observations.clear()
+                            progress('WAIT_FOR_STABLE_FRAME')
+                            continue
                     if motion_mode:
                         from src.vision.engine_inspector import conveyor_frame_gate
                         reason=conveyor_frame_gate(detected,job['production_binding']['inspection_zone'])
@@ -392,6 +449,8 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                               worker_total_ms=(time.monotonic()-job["accepted_monotonic"])*1000,
                               visibility_limit=("자동 긍정 슬롯 근거만 사용; 미검출의 누락/가림 구분 미검증" if bound else
                                                 "Human-assisted visibility; automatic occlusion/orientation recognition unverified"))
+                if stationary_capture:
+                    result['stationary_capture'] = stationary_evidence(observations)
                 encoding_started=perf_counter()
                 images = encode_evidence(frames,observations,package.recipe,displayed_calibration,result=result)
                 result['evidence_encoding_ms']=(perf_counter()-encoding_started)*1000
@@ -401,9 +460,14 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                     raise RuntimeError('EVIDENCE_INPUT_MUTATED')
                 if selector:
                     selector.check_active(time.monotonic(), stopping.is_set() or cancellation.is_set())
-                    result['fresh_frame'] = selector.evidence()
+                    result['fresh_frame'] = fresh_evidence(observations)
                 results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],"result":result,"images":images},timeout=2)
             except Exception as error:
+                if stationary_capture and stationary_candidates:
+                    # Preserve bounded, real originals on failure. They are
+                    # diagnostic evidence, never a replacement successful trio.
+                    frames = [item[0] for item in stationary_candidates]
+                    observations = [item[1] for item in stationary_candidates]
                 insufficient=(motion_mode and isinstance(error,FreshFrameError)
                               and error.reason=='DEADLINE_EXCEEDED' and len(frames)<3)
                 if insufficient:
@@ -412,17 +476,21 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 else:
                     failure={"decision":"ERROR","reason":f"{type(error).__name__}: {error}","defects":[],"unassessed":[]}
                 failure['observations']=observations
+                if stationary_capture:
+                    failure['stationary_capture'] = stationary_evidence(observations)
                 if not insufficient:
                     failure['reason_code']=str(error)
                 failure_images=[]
-                if engine and frames and (insufficient or not isinstance(error,(FreshFrameError,TimeoutError))) and not cancellation.is_set() and not stopping.is_set():
+                stationary_expired = (stationary_capture and isinstance(error, FreshFrameError)
+                                      and error.reason == 'DEADLINE_EXCEEDED')
+                if engine and frames and (insufficient or stationary_expired or not isinstance(error,(FreshFrameError,TimeoutError))) and not cancellation.is_set() and not stopping.is_set():
                     try:failure_images=encode_evidence(frames,observations,package.recipe,job.get('calibration'),result=failure)
                     except Exception as evidence_error:failure['evidence_error']=str(evidence_error)
                 if failure['decision']!='ERROR' and not any(image['kind']=='raw' for image in failure_images):
                     failure.update(decision='ERROR',reason='CONVEYOR_ORIGINAL_EVIDENCE_UNAVAILABLE',
                                    reason_code='CONVEYOR_ORIGINAL_EVIDENCE_UNAVAILABLE')
                 if selector:
-                    failure['fresh_frame'] = selector.evidence()
+                    failure['fresh_frame'] = fresh_evidence(observations)
                     if insufficient:
                         failure['capture_stop_reason']=error.reason
                     else:
