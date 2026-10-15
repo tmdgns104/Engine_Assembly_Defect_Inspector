@@ -115,5 +115,42 @@ class ProductContextRecoveryTests(unittest.TestCase):
             self.assertEqual(c.post(path,json={},headers=headers).status_code,409)
             self.assertNotIn(token,c.get('/line').text)
             self.assertEqual(c.get('/api/v1/line/consumed-frames').status_code,200)
+            self.assertEqual(c.get('/line_details.js').status_code,200)
+            self.assertNotIn(token,c.get('/api/v1/maintenance/product-context/status').text)
+            for bad in [{'Origin':'http://other','Authorization':'Bearer '+token},
+                        {'Origin':'http://testserver','Authorization':'Bearer wrong'}]:
+                self.assertEqual(c.post(path,json={},headers=bad).status_code,403)
+
+    def test_ui_preflight_is_readonly_and_rechecks_stop_on_commit(self):
+        identifier=self.prepare()
+        self.g.s.update(self.proof['current'])
+        now=self.now+self.at+.03
+        self.g.s.update(generated=now,received=now)
+        self.service.health=lambda:dict(self.proof['owners'],state='IDLE',error=None)
+        self.r.assembly.status=lambda:dict(ready=True,active_identifier=None,pending=0,outstanding=0)
+        before=self.j.db.total_changes
+        with patch('src.runtime.standalone.time.monotonic',return_value=now):
+            preflight=self.r.previous_product_recovery_status()
+            self.assertTrue(preflight['eligible'],preflight)
+            self.assertEqual(preflight['inspection_id'],identifier)
+            self.assertEqual(before,self.j.db.total_changes)
+            self.g.s['controls']['Mc_Run']=True
+            with self.assertRaisesRegex(ValueError,'STOPPED'):
+                self.r.close_previous_product_context(identifier,'operator','removed',self.proof['confirmations'])
+            self.assertFalse(self.r.previous_product_recovery_status()['eligible'])
+            self.assertEqual(before,self.j.db.total_changes)
+
+    def test_preflight_keeps_worker_fault_and_unfinished_blockers(self):
+        self.prepare()
+        self.g.s.update(self.proof['current'])
+        now=self.now+self.at+.03;self.g.s.update(generated=now,received=now)
+        self.service.health=lambda:dict(self.proof['owners'],state='IDLE',error=None)
+        self.r.assembly.status=lambda:dict(ready=True,active_identifier=None,pending=0,outstanding=0)
+        with patch('src.runtime.standalone.time.monotonic',return_value=now):
+            self.r.error='CAMERA_FAILURE'
+            self.assertEqual(self.r.previous_product_recovery_status()['reason'],'OWNER_ERROR_BLOCKS_CONTEXT_RECOVERY')
+            self.r.error=None
+            self.j.admit(dict(cell_id='new',plc_session_id=9,request_id=1,cycle_id=1,attempt=1),{})
+            self.assertIn('UNFINISHED',self.r.previous_product_recovery_status()['reason'])
 
 if __name__=='__main__':unittest.main()

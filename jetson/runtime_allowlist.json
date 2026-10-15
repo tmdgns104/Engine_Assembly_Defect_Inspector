@@ -17,6 +17,7 @@
     "apps/edge_service/integrated_runtime.py",
     "apps/edge_service/integration_api.py",
     "apps/edge_service/lab_port.py",
+    "apps/edge_service/line_details.js",
     "apps/edge_service/line_hmi.html",
     "apps/edge_service/mock_port.py",
     "apps/edge_service/result_storage.py",

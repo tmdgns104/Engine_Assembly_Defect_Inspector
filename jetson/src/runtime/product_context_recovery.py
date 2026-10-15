@@ -22,7 +22,8 @@ def latest_product(db):
         ORDER BY i.rowid DESC LIMIT 1""").fetchone()
 
 
-def validate(row, final, proof, now):
+def validate_state(row, final, proof, now):
+    """Read-only eligibility shared by the UI preflight and durable closure."""
     if (row['state'] != 'COMPLETE' or not row['completed_at']
             or json.loads(row['result_json']).get('storage_success') is not True
             or proof.get('inspection_id') != row['inspection_id']
@@ -45,6 +46,10 @@ def validate(row, final, proof, now):
     if (any(k not in owners or owners[k] != value for k,value in required.items())
             or owners.get('runtime_session') != s['runtime_session']):
         raise ValueError('EXPLICIT_IDLE_OWNERS_REQUIRED')
+
+
+def validate(row, final, proof, now):
+    validate_state(row, final, proof, now)
     if (proof.get('confirmations') != ['PHYSICAL_STOP','PRODUCT_REMOVED_OR_HELD_OFF_LINE','CLOSE_CONTEXT_WITHOUT_RESULT']
             or not isinstance(proof.get('actor'),str) or not proof['actor'].strip()
             or not isinstance(proof.get('reason'),str) or not proof['reason'].strip()):

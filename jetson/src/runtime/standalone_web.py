@@ -187,6 +187,19 @@ def configure_line_web(app, runtime, identity):
     def consumed_frames():
         return JSONResponse(runtime.consumed_frame_snapshot(),headers={'Cache-Control':'no-store'})
 
+    @app.get('/api/v1/maintenance/product-context/status')
+    def recovery_status():
+        value=(runtime.previous_product_recovery_status() if recovery_access else
+               dict(eligible=False,reason='MAINTENANCE_RECOVERY_DISABLED'))
+        return JSONResponse(dict(value,enabled=recovery_access is not None),headers={'Cache-Control':'no-store'})
+
+    @app.get('/line_details.js')
+    def line_details():
+        from fastapi.responses import Response
+        path=Path(__file__).resolve().parents[2]/'apps/edge_service/line_details.js'
+        return Response(path.read_text(encoding='utf-8'),media_type='application/javascript',
+                        headers={'Cache-Control':'no-store'})
+
     @app.get('/api/v1/line/final/{identifier}')
     def final(identifier: str):
         runtime.assembly.checked_id(identifier)

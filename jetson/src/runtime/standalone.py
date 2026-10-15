@@ -18,7 +18,7 @@ from src.runtime.inspection_bridge import InspectionBridge
 from src.runtime.production_profile import calibration_sha
 from src.runtime.inspection_start import FULL_FRAME, start_policy, tracked_frame_evidence
 from src.vision.integrated_decision import combine_decisions
-from src.runtime.initial_approval import InitialApproval, JournalAdmissionGuard, POLICY as INITIAL_POLICY
+from src.runtime.initial_approval import InitialApproval, JournalAdmissionGuard, count_unfinished_inspections, POLICY as INITIAL_POLICY
 from src.runtime.supervised_approval import SupervisedApproval, POLICY as REPEAT_POLICY
 AUTO_POLICY = 'PLC_AUTOMATIC_REPEAT'
 from src.runtime.product_passage import ProductPassage
@@ -303,28 +303,58 @@ class StandaloneRuntime(ProductionRuntime):
         self.prior_product_identity_block = (
             'PREVIOUS_RUNTIME_PRODUCT_EXIT_UNPROVEN' if row and not proof and not closed else None)
 
+    def _product_recovery_proof(self, identifier=None):
+        """Caller holds runtime/service locks; no confirmations are invented."""
+        now=time.monotonic()
+        s=self.gateway.read_snapshot(now)
+        if not s: raise ValueError('CURRENT_PLC_SNAPSHOT_REQUIRED')
+        s=dict(s,observed_at=now,runtime_session=self.gateway.runtime_session)
+        health=self.service.health(); a=self.assembly.status(); j=self.service.journal
+        if self.error or health.get('error') or a.get('error'):
+            raise ValueError('OWNER_ERROR_BLOCKS_CONTEXT_RECOVERY')
+        with j.lock:
+            row=latest_product(j.db)
+            if not row or (identifier is not None and row['inspection_id']!=identifier):raise ValueError('LATEST_PRODUCT_CONTEXT_REQUIRED')
+            identifier=row['inspection_id']
+            final=j.db.execute('SELECT value FROM service_state WHERE key=?',('integrated_decision:'+identifier,)).fetchone()[0]
+        proof=dict(inspection_id=identifier,
+            request_sha256=digest(row['request_json']),result_sha256=digest(row['result_json']),final_sha256=digest(final),
+            current=s,owners=dict(runtime_session=self.gateway.runtime_session,
+                worker_state=health.get('state'),worker_alive=health.get('worker_alive'),camera_ready=health.get('camera_ready'),
+                active_inspection_id=health.get('active_inspection_id'),storage_pending=health.get('storage_pending'),
+                final_commit_pending=self.final_pending is not None,
+                assembly_active=a.get('active_identifier'),assembly_pending=a.get('pending'),assembly_outstanding=a.get('outstanding')))
+        return row,final,proof
+
+    def previous_product_recovery_status(self):
+        """On-demand preflight, never a normal admission gate or a reset on GET."""
+        from src.runtime.product_context_recovery import validate_state
+        if not self._automatic_policy():
+            return dict(eligible=False,reason='AUTOMATIC_CONTEXT_RECOVERY_ONLY')
+        with self.lock, self.service.lock:
+            try:
+                row,final,proof=self._product_recovery_proof()
+                j=self.service.journal
+                with j.lock:
+                    if valid_context_close(j.db,row['inspection_id']):
+                        return dict(eligible=False,reason='CONTEXT_RECOVERY_ALREADY_RECORDED',inspection_id=row['inspection_id'])
+                    if count_unfinished_inspections(j.db):
+                        raise ValueError('UNFINISHED_INSPECTION_BLOCKS_CONTEXT_RECOVERY')
+                j.capacity()
+                validate_state(row,final,proof,time.monotonic())
+                return dict(eligible=True,reason='PHYSICAL_CONFIRMATION_AND_AUTHENTICATION_REQUIRED',
+                    inspection_id=row['inspection_id'],completed_at=row['completed_at'],
+                    plc=proof['current']['controls'],outputs=proof['current']['raw100'])
+            except (ValueError,KeyError,TypeError,OSError) as error:
+                return dict(eligible=False,reason=str(error))
+
     def close_previous_product_context(self, identifier, actor, reason, confirmations):
         """Authenticated maintenance only; no PLC write, grant, or result replay."""
         if not self._automatic_policy(): raise ValueError('AUTOMATIC_CONTEXT_RECOVERY_ONLY')
         with self.lock, self.service.lock:
-            now=time.monotonic()
-            s=self.gateway.read_snapshot(now)
-            if not s: raise ValueError('CURRENT_PLC_SNAPSHOT_REQUIRED')
-            s=dict(s,observed_at=now,runtime_session=self.gateway.runtime_session)
-            health=self.service.health(); a=self.assembly.status(); j=self.service.journal
-            if self.error or health.get('error') or a.get('error'):
-                raise ValueError('OWNER_ERROR_BLOCKS_CONTEXT_RECOVERY')
-            with j.lock:
-                row=latest_product(j.db)
-                if not row or row['inspection_id']!=identifier:raise ValueError('LATEST_PRODUCT_CONTEXT_REQUIRED')
-                final=j.db.execute('SELECT value FROM service_state WHERE key=?',('integrated_decision:'+identifier,)).fetchone()[0]
-            proof=dict(inspection_id=identifier,actor=actor,reason=reason,confirmations=confirmations,
-                request_sha256=digest(row['request_json']),result_sha256=digest(row['result_json']),final_sha256=digest(final),
-                current=s,owners=dict(runtime_session=self.gateway.runtime_session,
-                    worker_state=health.get('state'),worker_alive=health.get('worker_alive'),camera_ready=health.get('camera_ready'),
-                    active_inspection_id=health.get('active_inspection_id'),storage_pending=health.get('storage_pending'),
-                    final_commit_pending=self.final_pending is not None,
-                    assembly_active=a.get('active_identifier'),assembly_pending=a.get('pending'),assembly_outstanding=a.get('outstanding')))
+            row,final,proof=self._product_recovery_proof(identifier)
+            proof.update(actor=actor,reason=reason,confirmations=confirmations)
+            j=self.service.journal;s=proof['current'];now=s['observed_at']
             def recheck():
                 current=self.gateway.read_snapshot(time.monotonic())
                 if not current or any(current.get(k)!=s.get(k) for k in
