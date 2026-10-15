@@ -8,6 +8,7 @@ import uuid
 import json
 import logging
 import shutil
+import math
 from collections import deque
 
 from src.journal.sqlite import ConflictError, Journal
@@ -350,6 +351,30 @@ class InspectionService:
                 except Exception as error:
                     if self.lab.mode!='MANUAL': self.lab.fault('LAB_CONTROL_ERROR: '+str(error))
                     self.mock.transition('FAULT','CONTROL_ERROR: '+str(error))
+
+    def preview_snapshot(self):
+        """Read one immutable JPEG and its identity; no Journal or inference work.
+
+        A preview is display-only, never a health renewal or inspection input.
+        Ages use the camera/Worker's Jetson monotonic clock, not browser time.
+        """
+        with self.lock:
+            now = time.monotonic()
+            preview = self.preview
+            if (not preview or not self.process or not self.process.is_alive()
+                    or self.state in ('INIT', 'RECOVERY', 'STOPPED')
+                    or preview.get('generation') != self.generation
+                    or not 0 <= now - self.preview_received < 2):
+                return None
+            freshness = dict(preview.get('freshness', {}))
+            source = freshness.get('estimated_source_monotonic')
+            if (not freshness.get('frame_id') or not isinstance(source, (int, float))
+                    or not math.isfinite(source) or not 0 <= now - source < 2):
+                return None
+            return dict(jpeg=preview['jpeg'], jpeg_no_slots=preview.get('jpeg_no_slots', preview['jpeg']),
+                        freshness=freshness, generation=self.generation, worker_state=self.state,
+                        frame_age_ms=(now - source) * 1000,
+                        received_age_ms=(now - self.preview_received) * 1000)
 
     def status(self):
         with self.lock:

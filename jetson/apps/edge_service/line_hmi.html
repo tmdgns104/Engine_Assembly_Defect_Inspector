@@ -25,14 +25,14 @@ __MAINTENANCE_PANEL__
 </main><script>
 'use strict';const $=id=>document.getElementById(id);const labels={PASS:'PASS · 정상',FAIL:'FAIL · 불량',REVIEW:'REVIEW · 판정 보류',ERROR:'ERROR · 검사 오류'};
 const pubs={NOT_STARTED:'미전송',NOT_SENT:'미전송',BLOCKED:'전송 차단',ACKNOWLEDGED:'쓰기·읽기 확인됨',UNKNOWN:'전송 여부 불확실',FAILED:'전송 실패'};
-let lastFrame=null,lastAdvance=0,lastResult=null,evidenceKey=null,lastResponse=0;
+let lastResult=null,evidenceKey=null,lastResponse=0;
 __MAINTENANCE_SCRIPT__
 function text(id,value){$(id).textContent=value??'미확인'}function bit(v){return v===true?'ON':v===false?'OFF':'미확인'}
-function disconnect(reason){__MAINTENANCE_RESET__text('state','연결 오류 · 현재 판정 확인 불가');text('reason',reason);text('loop-status','프로그램 실행 여부: 현재 연결에서 확인 불가');text('camera-status','갱신 확인 불가');text('plc-status','현재 연결 미확인');text('write-status','현재 설정 미확인');text('request','미확인');text('inspection','미확인');text('current-result','미확인');text('done','미확인');text('result-bit','현재 Result 미확인');text('current-consumption','미확인');$('camera-wrap').classList.add('offline');text('updated','마지막 성공 조회: '+(lastResponse?new Date(lastResponse).toLocaleString():'없음')+' · 아래 완료 결과는 과거 기록입니다.')}
-function render(v){const now=Date.now();lastResponse=now;if(v.camera.frame_id!==lastFrame){lastFrame=v.camera.frame_id;lastAdvance=now}const live=v.camera.fresh&&now-lastAdvance<5000;
-text('state',v.title);text('reason',v.detail);text('camera-status',live?'영상 갱신 중':'새 영상 대기');$('camera-wrap').classList.toggle('offline',!live);if(!live&&!['ERROR','ABORTED'].includes(v.phase)){text('state','새 영상 수신 대기');text('reason','표시된 이미지는 오래된 영상일 수 있습니다. 현재 제품의 판정이 아닙니다.')}
+function disconnect(reason){__MAINTENANCE_RESET__text('state','연결 오류 · 현재 판정 확인 불가');text('reason',reason);text('loop-status','프로그램 실행 여부: 현재 연결에서 확인 불가');text('plc-status','현재 연결 미확인');text('write-status','현재 설정 미확인');text('request','미확인');text('inspection','미확인');text('current-result','미확인');text('done','미확인');text('result-bit','현재 Result 미확인');text('current-consumption','미확인');text('updated','마지막 성공 조회: '+(lastResponse?new Date(lastResponse).toLocaleString():'없음')+' · 아래 완료 결과는 과거 기록입니다.')}
+function render(v){const now=Date.now();lastResponse=now;
+text('state',v.title);text('reason',v.detail);
 __MAINTENANCE_RENDER__text('loop-status',v.runtime_loop_alive?'프로그램 실행 중 · 요청 감시와 화면 갱신을 계속합니다.':'프로그램 감시 루프 상태 확인 필요');$('issue-panel').hidden=!v.issue;if(v.issue){text('issue-status',v.issue.active?'해당 제품 처리 보류 · 새 영상 관찰 중':'관찰 재개됨 · 이전 오류 기록 보존');text('issue-reason',(v.issue.occurred_at||'')+' · '+v.issue.reason)}
-text('plc-status',v.plc.connected?'연결됨':'연결 대기');text('write-status',v.plc.publication_enabled?'활성':'꺼져 있음');text('frame-info','영상 수신 시각: '+(v.camera.source_time||'미확인')+' · 프레임 '+(v.camera.frame_id||'없음'));
+text('plc-status',v.plc.connected?'연결됨':'연결 대기');text('write-status',v.plc.publication_enabled?'활성':'꺼져 있음');
 text('request',bit(v.plc.request));text('inspection',v.phase==='INSPECTING'?'검사 중':v.phase==='WAIT_PRODUCT'?'영상 조건 대기':'검사 대기중');text('progress',v.progress.required_frames?`${v.progress.completed_frames??0} / ${v.progress.required_frames} 프레임 처리`:'기존 검사 + 네 부품 조립 검사');
 const a=v.aborted_inspection;const h=a?null:v.last_result;lastResult=h;const same=h&&h.inspection_id===v.current_inspection_id;text('current-result',same?(labels[h.decision]||'미확인'):v.verdict==='PENDING'?'판정 계산 중':'아직 없음');text('done',bit(v.plc.done));text('result-bit','Result='+bit(v.plc.result_bit)+' · 이 비트만으로 새 판정을 확인하지 않음');text('current-consumption',v.plc.consumption_confirmed?'확인됨':'미확인');
 $('verdict').className='verdict '+(h?h.decision:'NOT_RUN');text('verdict',h?labels[h.decision]:'검사 대기중');text('result-description',h?(h.reason||'저장된 실제 검사 결과입니다.'):'아직 PASS·FAIL 판정이 없습니다.');text('result-time',h?'검사 완료: '+new Date(h.completed_at).toLocaleString():'완료된 실제 검사 결과 없음');text('existing',h?(labels[h.existing_inspector]||'미확인'):'미실행');text('assembly',h?(labels[h.assembly_inspector]||'미확인'):'미실행');text('publication',h?((h.plc_result_value===0?'OK':h.plc_result_value===1?'NG':'미확인')+' · '+(h.cyclic_done_reset_observed?'Done 송신·요청 해제 확인':(pubs[h.publication_status]||h.publication_status||'미확인'))):'미전송');text('saved-duration',h?'Journal 저장: '+(h.journal_saved?'완료':'미확인')+' · 요청→최종 판정: '+(Number.isFinite(h.inspection_elapsed_ms)?(h.inspection_elapsed_ms/1000).toFixed(2)+'초':'미계측'):'');text('consumption',h&&h.plc_consumption_confirmed?'확인됨':'미확인');text('result-id',h?'검사 ID: '+h.inspection_id:'');
@@ -42,6 +42,59 @@ renderHistory(v.recent_results||[]);if($('evidence-panel').open)loadEvidence();}
 function renderHistory(rows){const host=$('recent-history');host.replaceChildren();for(const h of rows){const p=document.createElement('p');p.textContent=(h.completed_at||'')+' · '+(labels[h.decision]||h.decision)+' · PLC '+(h.plc_result_value===0?'OK':h.plc_result_value===1?'NG':'미전송')+' · '+(h.reason||'')+' · '+h.inspection_id;host.append(p)}if(!rows.length)host.textContent='완료된 검사 없음'}
 async function loadEvidence(){const h=lastResult;if(!h){text('evidence','아직 실제 검사 결과가 없습니다.');return}if(evidenceKey===h.inspection_id)return;evidenceKey=h.inspection_id;const id=h.inspection_id;const host=$('evidence');host.replaceChildren();text('evidence','저장된 사진 조회 중');try{const r=await fetch('/api/v1/runtime/shadow/'+encodeURIComponent(id));if(!r.ok)throw Error(r.status);const a=await r.json();if(!lastResult||lastResult.inspection_id!==id)return;host.replaceChildren();for(const f of a.frames||[]){const section=document.createElement('section');section.className='evidence-frame';const title=document.createElement('h3');title.textContent='검사 프레임 '+f.frame_id;section.append(title);const info=document.createElement('pre');info.textContent=JSON.stringify({preprocessing:f.preprocessing,parts:f.parts,pose:f.pose,three_frames:f.three_frames},null,2);section.append(info);const images=document.createElement('div');images.className='images';const entries=[['원본',f.raw_path],...Object.entries(f.images||{}).map(([k,val])=>[k,val.path])];for(const [name,path] of entries){if(typeof path!=='string')continue;const fig=document.createElement('figure'),im=document.createElement('img'),cap=document.createElement('figcaption');im.alt=name+' · 저장 검사 '+id;im.loading='lazy';im.src='/api/v1/runtime/shadow/'+encodeURIComponent(id)+'/images/'+encodeURIComponent(path);cap.textContent=name;fig.append(im,cap);images.append(fig)}section.append(images);host.append(section)}if(!(a.frames||[]).length)text('evidence','사진 생성 결과 없음: '+(a.reason||a.state||'미확인'))}catch(e){evidenceKey=null;text('evidence','검사 사진 조회 실패: '+e.message)}}
 $('evidence-panel').addEventListener('toggle',()=>{if($('evidence-panel').open)loadEvidence()});
-$('camera').addEventListener('error',()=>{$('camera-wrap').classList.add('offline');text('camera-status','영상 표시 오류')});
-async function tick(){try{const r=await fetch('/api/v1/line/view',{signal:AbortSignal.timeout(4500),cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);render(await r.json());$('camera').src='/api/v1/preview.jpg?slots=false&t='+Date.now()}catch(e){disconnect('서버 응답을 확인하지 못했습니다. '+e.message)}finally{setTimeout(tick,1000)}}tick();
+// Status/history remain at 1 Hz. A slow database/UI response cannot queue images.
+async function tick(){try{const r=await fetch('/api/v1/line/view',{signal:AbortSignal.timeout(4500),cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);render(await r.json())}catch(e){disconnect('서버 응답을 확인하지 못했습니다. '+e.message)}finally{setTimeout(tick,1000)}}
+
+let previewTag='',previewFrame='',previewUrl=null,previewDisplayedAt=0,previewAgeMs=Infinity;
+function previewFreshness(){
+  // Combine a server-measured duration with browser elapsed time; never subtract clocks.
+  const age=previewAgeMs+performance.now()-previewDisplayedAt;
+  const fresh=Number.isFinite(age)&&age<2000;
+  $('camera-wrap').classList.toggle('offline',!fresh);
+  text('camera-status',fresh?'영상 갱신 중':'새 영상 대기');
+}
+async function showPreview(blob,frameId,expiresAt){
+  const url=URL.createObjectURL(blob),image=new Image();
+  try{
+    image.src=url;
+    let decodeTimer;
+    try{await Promise.race([image.decode(),new Promise((_,reject)=>{decodeTimer=setTimeout(()=>reject(Error('IMAGE_DECODE_TIMEOUT')),1000)})])}
+    finally{clearTimeout(decodeTimer)}
+    if(performance.now()>=expiresAt)throw Error('STALE_FRAME');
+    const displayed=$('camera');
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>finish(Error('IMAGE_DISPLAY_TIMEOUT')),1000);
+      function finish(error){clearTimeout(timer);displayed.onload=null;displayed.onerror=null;error?reject(error):resolve()}
+      displayed.onload=()=>finish();displayed.onerror=()=>finish(Error('IMAGE_DISPLAY_FAILED'));
+      displayed.dataset.frameId=frameId;displayed.src=url;
+    });
+    const previous=previewUrl;previewUrl=url;
+    if(previous)URL.revokeObjectURL(previous);
+  }catch(error){URL.revokeObjectURL(url);throw error}
+}
+async function previewTick(){
+  const started=performance.now();let delay=100;
+  try{
+    if(document.hidden)return;
+    const headers=previewTag?{'If-None-Match':previewTag}:{};
+    const r=await fetch('/api/v1/preview.jpg?slots=false',{headers,cache:'no-store',signal:AbortSignal.timeout(1000)});
+    if(r.status===304)return; // The same JPEG is not a newly displayed camera frame.
+    if(!r.ok)throw Error('HTTP '+r.status);
+    const frameId=r.headers.get('X-Frame-Id'),age=Number(r.headers.get('X-Frame-Age-Ms'));
+    if(!frameId||!r.headers.has('X-Frame-Age-Ms')||!Number.isFinite(age))throw Error('FRAME_METADATA_MISSING');
+    const blob=await r.blob();
+    if(frameId===previewFrame)return;
+    if(age+performance.now()-started>=2000)throw Error('STALE_FRAME');
+    await showPreview(blob,frameId,started+2000-age);
+    previewFrame=frameId;previewTag=r.headers.get('ETag')||'';
+    previewDisplayedAt=performance.now();previewAgeMs=age+previewDisplayedAt-started;
+    text('frame-info','프레임 '+frameId+' · 서버 영상 나이 '+Math.round(age)+'ms');
+  }catch(error){delay=300;text('frame-info','영상 갱신 대기 · '+error.message)}
+  finally{
+    previewFreshness();
+    // Only schedule after fetch, decode and display have finished: one in flight, no queue.
+    setTimeout(previewTick,Math.max(0,delay-(performance.now()-started)));
+  }
+}
+tick();previewTick();
 </script></body></html>

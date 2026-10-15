@@ -67,15 +67,23 @@ def create_app(service, catalog, own_service=False):
     def status(): return service.status()
 
     @app.get('/api/v1/preview.jpg')
-    def preview(slots:bool=True):
-        if not service.status()['camera_ready']: raise HTTPException(503,'CAMERA_NOT_READY')
-        preview=service.preview
-        freshness=preview.get('freshness',{})
-        return Response(preview['jpeg'] if slots else preview.get('jpeg_no_slots',preview['jpeg']),media_type='image/jpeg',headers={
+    def preview(request:Request, slots:bool=True):
+        preview=service.preview_snapshot()
+        if preview is None: raise HTTPException(503,'CAMERA_NOT_READY')
+        freshness=preview['freshness']
+        etag='"'+freshness['frame_id']+('::slots"' if slots else '::plain"')
+        headers={
             'X-Frame-Id':str(freshness.get('frame_id','')),
             'X-Frame-Sequence':str(freshness.get('sequence','')),
             'X-Frame-Monotonic':str(freshness.get('estimated_source_monotonic','')),
-            'Cache-Control':'no-store'})
+            'X-Frame-Age-Ms':format(preview['frame_age_ms'],'.3f'),
+            'X-Preview-Received-Age-Ms':format(preview['received_age_ms'],'.3f'),
+            'X-Worker-Generation':str(preview['generation']),
+            'X-Worker-State':preview['worker_state'],
+            'ETag':etag, 'Cache-Control':'no-store'}
+        if request.headers.get('if-none-match') == etag:
+            return Response(status_code=304,headers=headers)
+        return Response(preview['jpeg'] if slots else preview['jpeg_no_slots'],media_type='image/jpeg',headers=headers)
 
     @app.post('/api/v1/inspection-jobs')
     def inspect(body:dict):
