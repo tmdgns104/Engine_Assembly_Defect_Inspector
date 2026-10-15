@@ -1,5 +1,15 @@
 # V1 실제 판정·복구·반복 검사
 
+## 최신 완료 범위 — 2026-10-15 추가 현장 시험
+
+- source `7ec9d25e204f60a0e2ec7825f1d1560968510611`, Release `engine-integrated-32d132a4256d4ef8`, 185 SHA 일치. 폭 전용 검출 outlier를 마지막 신뢰 상자에서 기존 한도 내 재관측하며 임계값·PLC·모델·C 계약 변경 없음. PC125/ARM64125 및 실제 소비133프레임 재현 검증.
+- 실제 START 한 번/중간 STOP·START·Reset·권한 없이 네 사이클: 왼쪽a489d5fa LEFT_PIPE_MISSING, 오른쪽5d1aa003 RIGHT_PIPE_MISSING, 문양86131de3 PRODUCT_ENVELOPE_NOT_FOUND, 추가 문양caabb4cb SYMBOL_MODULE_MISSING. 모두 실제3원본·Journal·finalFAIL·NG→다음Done·요청해제, 사용자 불량LED/재가동 확인. 후속3회는 이전 이송+신규 상류진입 근거로 자동 접수.
+- 첫 문양은 한 프레임 엔진점수0.484<0.5로 부품미평가, 나머지2문양MISSING. 재시험3장문양MISSING 확인. 첫 검출 불안정을 성공으로 덮지 않고 보존. 오조립 참고REVIEW·장기무인/장애복구는 별도 미검증.
+- 최종 사용자STOP 및 실제PLC McRun/Request/Result/Done0, WorkerIDLE/Assembly유휴/SQLite정상. 새12원본SHA·frameID/PTS·C단일송신 검증. 저장277~421ms, 시험health최대255.45ms/readyfalse0. 같은서비스12092/Worker12135/C연결1/timeout0.
+- 노트북 직전 백업170파일 및SQLite 확인(SHA74a80da9...), 원본 이력 보존. 보고서 docs/V1_LINE_COMPLETION_REPORT.md와 기존 사진 viewer 최신 절 참조. 새 알고리즘·다음TASK·추가START 자동 진행 없음.
+
+아래 내용은 위 완료 범위에 이르기 전의 작업·관측 이력이다.
+
 사용자 요청 2026-10-15, 현재 작업 하나. 기준 source887ea3f2 / Release2719dff19eb79478, 문서 HEAD5defdb0. 현재 현장 STOP·방호·감독과 시험 범위 확인. 과거 사진·검사·승인 이력 보존.
 
 ## 순서와 완료 기준
