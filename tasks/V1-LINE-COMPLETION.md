@@ -23,4 +23,16 @@ PLC·EDS·카메라·조명·모델·임계값 유지. 새로운 정렬 알고�
 
 - `BASIC_WITH_CONFIRMED_ASSEMBLY_FAIL_V1`: 유효 원본3장과 기본 판정 유지. 오조립 후보는 각 원본의 몸체 기하·안전 crop·저장 SHA·분류 argmax·3프레임 합의로 확인. 정렬 REVIEW/분석 불확실만으로 기본PASS를NG로 변경하지 않음. 원본/저장/취소 문제는 참고 분석으로 우회하지 않음.
 - 카메라 복구: 존재하지 않는 V3 RunPermit 대신 실제 cyclic STOP·신선한 연결·출력0·저장/조립유휴 검사. 새 Worker 대기 동안 옛 프레임으로 stale 계산하지 않으며 새epoch로 대기 복원. 과거 제품 이탈/ABORTED를 만들어 내지 않고 기존 Journal admission을 유지.
-- 노트북 집중 영향 회귀147개 PASS(Windows 전용 한계2skip), ARM64 및 실제 V1 정상/결품/복원3회는 아직 진행 중.
+- 노트북 집중 영향 회귀147개 PASS(환경 조건2skip), ARM64 집중 회귀147개 PASS(플랫폼 조건1skip), UI 검사 PASS.
+- 일관된 노트북 백업170파일 SHA 및 SQLite 무결성 확인 후 `engine-integrated-9f6abef5e3c00168` 적용. 소스 `6a9dd7a6bea26bbd0f1fbb1e3e251655d5167078`, 실제185파일 SHA 일치. 서비스9609/C9626/Worker9652/Assembly9630, 재시작0, 연결1.
+- 신규 정상 `b57e91faa06549b1a6a74665f9356f90` 기본PASS/조립REVIEW/최종PASS→OK/Done/요청해제. 정상 LED·재가동 사용자 확인. 추가 정상 재투입 `109fe4afce494563b2654b46ec4d3b5f`도 새3원본/PASS/OK/Done. 사이에 소프트웨어 승인·Reset 없음.
+- 이후 `2622483389b24be0bcbbddc0fce8a256` PASS 원본에는 배기 부품이 존재. 사용자는 결품을 앞으로 투입할 예정이라고 설명했으므로 이 기록을 결품 성공/오판으로 단정하지 않음. 추가 요청 `d9d903c35f274614a830453ec9d750eb`는 제품 식별 근거 부족으로 실제촬영0/ERROR, 기존계약NG/Done, 별도 보존. 새 STOP·모형 벨트 밖 보관 근거로 이전 제품 문맥만 종료.
+
+## 최종 검증 상태: 판정 실물 검증 PASS / 연속운전 완성 미달
+
+- 실제 결품 `6d0b4101c116434dbc807bd55a234d36`: 새3PNG/basicFAIL EXHAUST_TOP_MISSING/finalFAIL/NG18192→Done18193/요청해제. 사용자 불량LED·재가동 확인. 요청→Result9.134초.
+- 실제 복원 `9aeab7d71b944392b93851eae1e90244`: 새3PNG/basicPASS/finalPASS/OK22530→Done22531/요청해제. 사용자 정상LED·재가동·현재STOP 확인. 요청→Result9.231초. 결품→복원 사이 소프트웨어 Reset·권한 없음, 같은 서비스/C/카메라 유지.
+- 최종185SHA일치/SQLite정상/PLCSTOP·출력0/WorkerIDLE/Assembly유휴. 실제5건15PNG SHA·픽셀·식별 검증, 별도촬영0 오류1건도 그대로 보존.
+- 기본 정상/결품/복원 PASS/FAIL/PASS는 확인했으나 추가투입·물리STOP·중간문맥복구가 있어 무중단3회로 세지 않음.
+- 마지막 완료 후 실제Runtime sequence12243→12244의 bbox폭 증가가 기존허용0.05보다0.00013766 커져 PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY. 영상/epoch 연속, 약100ms. 다음제품 대기 차단이 남음; 허용치변경/가짜이탈/추가시험 없음. V1 전체 완성으로 표시하지 않음.
+- 보고서 `docs/V1_LINE_COMPLETION_REPORT.md`, 사진 비교 `runs/v1_line_completion_001/V1_FIELD_RESULTS.html`. 운영 V1 수정본 유지, 다음 TASK 자동 시작 없음.

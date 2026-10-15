@@ -1,6 +1,6 @@
 # V1 판정·복구·실물 검사
 
-2026-10-15 진행 중. 새 정책의 현장 정상/결품/복원 검증은 아직 완료되지 않았다.
+2026-10-15. **새 V1 판정의 실제 정상 PASS / 배기 결품 FAIL / 정상 복원 PASS는 확인했다. 중단 없는 연속운전 완성은 미달이다.** 마지막 정상 복원 완료 후 제품 이탈 추적 차단이 남았으며, 현재 현장 STOP·무출력 상태다.
 
 ## 변경 전 실물 확인
 
@@ -20,8 +20,49 @@
 
 ## 검증·배포 상태
 
-노트북 집중 회귀147개 PASS(환경별2skip), UI 검사 PASS. ARM64 집중 회귀도147개 PASS(플랫폼 조건1skip). 노트북 일관된 백업·해시 검증·실제 적용과 새 정책3회 현장 시험은 진행 중이다. 검증용 도구의 첫 ARM64 실행은 spawn 진입 가드 및 fixture 누락으로 실패하여 도구를 수정했다. 운영 실패나 현장 성공으로 혼동하지 않는다.
+노트북 집중 회귀147개 PASS(환경별2skip), UI 검사 PASS. ARM64 집중 회귀도147개 PASS(플랫폼 조건1skip). 검증용 도구의 첫 ARM64 실행은 spawn 진입 가드 및 fixture 누락으로 실패하여 도구를 수정했다. 증거 내보내기의 ID 길이 검사 및 검증기의 UI 파생 필드 가정도 바로잡았으며 운영 판정/원본은 수정하지 않았다.
+
+직전 current/config/systemd/SQLite backup API 사본170파일을 노트북에서 읽고 SHA와 DB 무결성을 확인했다. 백업 SHA `a817e5cb532409e1f687bf50456cea8a175d262753038aca14d854c87bbcca26`.
+
+- 실제 소스 commit: `6a9dd7a6bea26bbd0f1fbb1e3e251655d5167078`
+- 실제 운영 Release: `engine-integrated-9f6abef5e3c00168`
+- 전체 통합 묶음 SHA: `be33f96039d3bf1a900e2cae9838e2f64913866095db3474fff17caafb57b8ca`
+- 기동 직후 및 시험 종료 시 **185파일 SHA 일치**, 서비스9609/OpENer9626/카메라Worker9652/Assembly9630 한 벌, 서비스 재시작0, C 연결1/timeout0.
+- C 실행 파일은 기존 `63ca4b16db530eecc9f95155a40cf758b291a590d85894dc8e9faf7aa0b2f4a4` 그대로다.
+
+## 실제 판정·PLC 검증
+
+|실물 조건|검사 ID|기본 / 최종|오조립 참고|Result → Done cyclic|요청→실제 Result|
+|---|---|---|---|---|---|
+|정상|b57e91faa06549b1a6a74665f9356f90|PASS / PASS|REVIEW|6596 → 6597, OK|10.142초|
+|배기만 결품|6d0b4101c116434dbc807bd55a234d36|FAIL / FAIL, EXHAUST_TOP_MISSING|REVIEW|18192 → 18193, NG|9.134초|
+|정상 복원|9aeab7d71b944392b93851eae1e90244|PASS / PASS|REVIEW|22530 → 22531, OK|9.231초|
+
+각각 실제 새로운 원본3장, PNG와 BGR 픽셀SHA, frame ID/epoch/sequence/PTS, Journal COMPLETE, 통합 final, 정확한 C 요청 식별자, 단일 Result와 다음 패킷 Done, Request OFF/출력0를 대조했다. 사용자는 세 조건 모두 해당 정상/불량 LED와 재가동을 확인했다. PLC의 별도 소비 ACK 태그는 없으므로 소프트웨어 확인 범위는 cyclic 송신·요청 해제이고 물리 LED/재가동은 사용자 확인 근거로 분리했다.
+
+오조립 참고 분석은 세 조건 모두 `SEED_INSUFFICIENT_SPATIAL_BODY_SUPPORT`였다. 이를 정상 조립 CORRECT 또는 정렬 해결로 표시하지 않는다. 신뢰 가능한 오조립 FAIL의 우선순위는 회귀로 검증했으며 이번 현장에서는 확정 오조립 FAIL 장면을 수행하지 않았다.
+
+## 추가 실제 요청과 연속성 한계
+
+- `109fe4afce494563b2654b46ec4d3b5f`: 사용자가 정상 모형을 추가 재투입. 새3원본/PASS/OK→Done/요청해제, 9.245초. 첫 정상 이후 Reset·권한 발급 없이 자동 접수됐다.
+- `2622483389b24be0bcbbddc0fce8a256`: 배기 결품을 예정했지만 실제 저장 원본에는 배기 부품이 있었다. PASS/OK, 8.944초. 사용자가 결품을 앞으로 투입할 예정이라고 설명했다. 폴더의 예정 장면명 `MISSING_EXHAUST`를 결품 정답으로 사용하지 않는다.
+- `d9d903c35f274614a830453ec9d750eb`: 이후 추가 요청은 제품 식별/이탈 근거 부족으로 실제 촬영0, `PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN` ERROR. 기존 사용자 확정 ERROR→NG/Done 계약으로 30.144초에 처리됐다. 실제 AI 성공이나 결품 검증으로 세지 않는다.
+- STOP·모형 벨트 밖 보관을 새로 확인한 후 위 제품 문맥만 기존 유지보수 경로로 종료했다. 원본/이전 결과/오류를 보존했고 승인 발급·결과 재송신·가짜 이탈은 없었다. 이후 실제 결품→정상 복원 사이에는 추가 Reset·권한·서비스 전환이 없었다. 부품 조작 때 물리 STOP은 있었다.
+
+따라서 **정상/결품/복원 세 판정은 검증됐지만, START 한 번·무중단3회 또는 모든 다음 요청 준비 성공으로 보고할 수 없다.**
+
+마지막 복원 완료 후 실제 Runtime 연속프레임12243→12244에서 상자 폭이0.426125→0.476263으로 늘었다. 기존 폭 증가 허용0.05를 1280폭 기준 약0.176픽셀 초과해 `PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY`가 됐다. 같은 epoch/generation·sequence+1·약100ms이며 중심은 왼쪽으로24.77픽셀 이동했다. HTTP 표본 누락, 카메라 재시작, 통신 timeout이 이 최초 거부 원인은 아니다. 검출 상자 흔들림과 실제 실물 궤적을 더 대조해야 하므로 임계값만 늘리거나 이탈을 TRUE로 만들지 않았다. **현재 이 문맥이 남아 다음 제품 접수는 준비 완료로 표시하지 않는다.**
+
+## 저장·통신 및 남은 범위
+
+949개 상태 표본과 기존 bounded 진단을 보존했다. 정상/결품/복원 저장 commit은 각각503.48/337.41/436.59ms였다. 서비스 기동 이후 health 갱신 최대281.48ms, IPC snapshot 수신 간격 최대128.63ms. 시험 구간 기록에 ready=false가 없고 Worker/Assembly/C 연결이 유지됐다. C 처리/IPC poll 최대18.06ms, 비동기 디스크 쓰기 최대1.293초는 서로 다른 지표다. 장기 Class1 안정성과 장애복구 성능을 이 짧은 관측으로 확정하지 않는다.
+
+카메라 복구 소프트웨어 경계는 회귀 통과했지만 이번 현장에서 카메라 오류를 주입하거나 자동 복구를 실물 재현하지 않았다. 조립 정렬, 모든 부품/오조립 정확도, 마지막 제품 이탈 추적, 중단 없는 반복운전과 무인 장애복구는 미해결/미검증이다.
 
 비공개 원본/Journal/실행 증거: `runs/v1_line_completion_001/`. GitHub에는 코드·합성 회귀·보고서만 보관한다. PLC·EDS·카메라·조명·모델·C 바이너리·현장 설정은 변경 대상이 아니다. 신규 제품별 권한 없음.
 
 복원은 서비스 정상 종료 후 검증된 노트북 직전 백업의 current/config/unit만 사용한다. 최신 Journal·PNG·ABORTED·승인 소비 원장은 되돌리지 않는다. 직전 코드는 V2이므로 V1 현장 성공으로 표시하지 않는다.
+
+사진·검출 표시·요청별 비교: 비공개 `runs/v1_line_completion_001/V1_FIELD_RESULTS.html`. 결정적 확인: `VERIFIED_V1_FIELD_SEQUENCE.json`, `FIELD_HEALTH_SUMMARY.json`, `RESTORED_PASSAGE_CAUSE.json`, `FINAL_STOP/`. 이 작업에서 운영 복원은 수행하지 않았고 V1 판정 수정본을 유지한다. 추가 START나 새로운 정렬 연구는 진행하지 않는다.
+
+종료된 Jetson 임시 검증 폴더126파일(630,589,682바이트)은 노트북으로 전부 회수해 SHA를 대조한 뒤 정리했다. 보존 manifest SHA `d0669568d10a9e7cd5d2c8da741c05987a1dbb413c665cc6872d353438531dd0`. 운영185파일을 다시 확인했고 current/설정/모델/Journal/사진은 삭제하지 않았다.
