@@ -36,3 +36,12 @@ PLC·EDS·카메라·조명·모델·임계값 유지. 새로운 정렬 알고�
 - 기본 정상/결품/복원 PASS/FAIL/PASS는 확인했으나 추가투입·물리STOP·중간문맥복구가 있어 무중단3회로 세지 않음.
 - 마지막 완료 후 실제Runtime sequence12243→12244의 bbox폭 증가가 기존허용0.05보다0.00013766 커져 PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY. 영상/epoch 연속, 약100ms. 다음제품 대기 차단이 남음; 허용치변경/가짜이탈/추가시험 없음. V1 전체 완성으로 표시하지 않음.
 - 보고서 `docs/V1_LINE_COMPLETION_REPORT.md`, 사진 비교 `runs/v1_line_completion_001/V1_FIELD_RESULTS.html`. 운영 V1 수정본 유지, 다음 TASK 자동 시작 없음.
+
+## 같은 V1 작업 계속: 제품 궤적 차단 및 추가 결품
+
+사용자가 왼쪽/오른쪽 파이프와 문양의 실제 결품 확인을 추가했다. 직접 START한 요청7 `66596ea1a0f94dcdbdbec07d448fd386`은 남은 제품 문맥 때문에 촬영0/ERROR로 끝났으며 결품 성공으로 세지 않는다. STOP·모형 벨트 밖 보관을 다시 확인했다. 임시 Reset 반복보다 영구 차단 원인을 먼저 수정하라는 지시에 따라 기존 ProductPassage의 폭 변화 한 프레임을 조사했다.
+
+- 기록된12244 폭 outlier 뒤12245는 마지막 신뢰 상자와 정상 연결된다. 폭 전용 이상은 근거에서 제외하고 기존 missed-frame/time 한도 안에서 같은 제품을 재관측한다. 역방향·서로 떨어진 상자·모호한 다중 물체·epoch/품질 변경은 계속 차단한다. 폭/시간/검출 임계값은 변경하지 않는다.
+- 실제 소비133프레임 재생에서 outlier를 근거로 쓰지 않고 추적을 재개했다. 새 진입 영상이 없는 기록이므로 제품 분리 proof는 여전히 없음. 격리 PC125/ARM64125 PASS; 현장 적용·왼쪽/오른쪽/문양 결품은 진행 대기다.
+- 최초 PC 실행은 옛 root src가 import돼 실패했고, sandbox 임시 SQLite 접근 및 redirection 실행에도 문제가 있었다. 올바른 jetson 우선 경로·프로젝트 임시 폴더·직접 테스트 러너로 최종125개를 실행 확인했다. 운영 코드를 이 환경 문제에 맞춰 변경하지 않았다.
+- 시험 종료 후 대기 중11795.887에 Worker heartbeat false,11796.003에 READY 복귀가 관측됐다. C는 추가 결과 없이 DISARMED→STOPPED_BASELINE으로 돌아왔다. 새 시험 중 저장 health 성공과 구분하며 순간 Worker 갱신 원인은 미확정이다.

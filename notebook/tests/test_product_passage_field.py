@@ -159,7 +159,11 @@ class FieldPassageTests(unittest.TestCase):
             self.assertFalse(self.p.invalid,self.p.status())
 
     def test_sudden_unassociated_width_expansion_still_blocks(self):
-        self.frame((.10,.24,.92,.95))
+        # A width-only outlier stays untrusted. Sustained uncertainty still
+        # expires the existing loss bound; it never supplies departure proof.
+        for _ in range(self.p.tracker_config.max_missed_frames+2):
+            self.assertIsNone(self.frame((.10,.24,.92,.95)))
+            self.assertIsNone(self.p.proof)
         self.assertTrue(self.p.invalid)
         self.assertIsNone(self.p.proof)
 

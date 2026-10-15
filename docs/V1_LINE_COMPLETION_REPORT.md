@@ -66,3 +66,11 @@
 사진·검출 표시·요청별 비교: 비공개 `runs/v1_line_completion_001/V1_FIELD_RESULTS.html`. 결정적 확인: `VERIFIED_V1_FIELD_SEQUENCE.json`, `FIELD_HEALTH_SUMMARY.json`, `RESTORED_PASSAGE_CAUSE.json`, `FINAL_STOP/`. 이 작업에서 운영 복원은 수행하지 않았고 V1 판정 수정본을 유지한다. 추가 START나 새로운 정렬 연구는 진행하지 않는다.
 
 종료된 Jetson 임시 검증 폴더126파일(630,589,682바이트)은 노트북으로 전부 회수해 SHA를 대조한 뒤 정리했다. 보존 manifest SHA `d0669568d10a9e7cd5d2c8da741c05987a1dbb413c665cc6872d353438531dd0`. 운영185파일을 다시 확인했고 current/설정/모델/Journal/사진은 삭제하지 않았다.
+
+## 추가 현장 요청과 추적 보완 진행
+
+사용자가 직접 START해 왼쪽 파이프 결품을 시도한 요청7 `66596ea1a0f94dcdbdbec07d448fd386`은 실제 촬영 없이 기존 제품 식별 차단 ERROR로 끝났다. 약30.07초 뒤 기존 계약에 따른 NG/Done·요청 해제는 관측했지만 왼쪽 파이프 결품을 검출한 FAIL이 아니다. 이후 사용자 요청에 따라 왼쪽/오른쪽 파이프·문양 결품 검증까지 같은 V1 작업에서 계속한다.
+
+`product_passage.py`의 폭 변화만으로 영구 invalid를 만드는 분기를 최소 보완했다. 해당 상자는 근거에서 제외하고 마지막 신뢰 상자를 보존하며 기존 Track 재관측 한도 안에서 후속 관측을 연결한다. 한도 초과·실제 역방향/불연속·다중 물체·영상 식별/품질 오류는 그대로 차단한다. 허용 폭이나 시간 임계값을 확대하지 않았고 검출 누락으로 이탈 proof를 만들지 않는다. 실제 Runtime133프레임 재생에서는12244를 제외하고12245부터 이어졌으며, 별도의 후속 진입이 없어 분리 proof는 만들지 않았다. 집중 PC125/ARM64125 통과, 보완본 현장 적용 및 추가 세 결품 시험은 아직 진행 전이다.
+
+최종 읽기 중 시험 이후 대기 구간에서 `WORKER_HEARTBEAT_LOST`가11795.887에 발생하고11796.003에 READY로 돌아온 것도 추가 보존했다. C는 새 Done 없이 DISARMED 후11796.069에 정지 기준 상태로 복귀했다. 실제 검사 구간의 저장 health 유지와 구분한다. 한 번의 일시 Worker 갱신 누락 원인은 아직 확정하지 않았다. 근거는 비공개 `FINAL_READONLY_STATUS.json`, `POST_TRIAL_IDLE_C_EVENTS.jsonl`, `OPERATOR_ADDITIONAL_MISSING_STATUS.json`이다.

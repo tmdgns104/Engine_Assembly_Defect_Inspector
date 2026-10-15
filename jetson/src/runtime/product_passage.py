@@ -34,6 +34,7 @@ class ProductPassage:
         self.furthest = sum(self._axis(self.box))/2 if self.box else 0.
         self.outbound_samples = 0
         self.entry = None
+        self.geometry_pending = False
 
     @classmethod
     def from_history(cls, identity, packets, edge, *, tracker_config):
@@ -67,27 +68,27 @@ class ProductPassage:
         self.proof = None
         return None
 
-    def _associated_outbound(self, current, elapsed):
+    def _outbound_rejection(self, current, elapsed):
         a, b = self._axis(self.box)
         x, y = self._axis(current)
         center = (x+y)/2
         if (x < a-self.jitter-1e-9 or x >= b or y < b-self.jitter-1e-9
                 or center < self.furthest-self.jitter-1e-9
-                # Detector width changes along the image. Bound its change
-                # against the adjacent associated box, not the first box.
-                or y-x > b-a+2*self.jitter+1e-9
                 or min(current['y2'],self.box['y2']) <= max(current['y1'],self.box['y1'])):
-            return False
+            return 'MOTION_OR_OVERLAP'
         if self.tracker_config:
             limit = self.tracker_config.max_center_step_norm
             limit += (self.tracker_config.max_center_speed_norm_s or 0)*elapsed
             cross_step = (current['y1']+current['y2']-self.box['y1']-self.box['y2'])/2
             if math.hypot(center-(a+b)/2,cross_step) > limit:
-                return False
+                return 'MOTION_OR_OVERLAP'
         elif current['y2']-current['y1'] > self.box['y2']-self.box['y1']+1e-9:
-            return False
-        self.furthest = max(self.furthest,center)
-        return True
+            return 'SHAPE_CHANGED'
+        # A noisy width measurement is not evidence of either departure or a
+        # different product. Keep the last trusted box for bounded reassociation.
+        if y-x > b-a+2*self.jitter+1e-9:
+            return 'SHAPE_CHANGED'
+        return None
 
     def _observe_entry(self, current, p):
         """Positive entry from the opposite edge, separate from the old box.
@@ -156,7 +157,7 @@ class ProductPassage:
                 for k in ('x1', 'y1', 'x2', 'y2')) and
                 0 <= current['x1'] < current['x2'] <= 1 and 0 <= current['y1'] < current['y2'] <= 1):
             return self._fail('PRODUCT_PASSAGE_INVALID_BOX')
-        if self.tracker_config and not self.crossed:
+        if self.tracker_config and (not self.crossed or self.geometry_pending):
             # Reuse the Track's existing loss bounds. Valid camera frames can
             # intermittently contain no detector box while the belt is stopped.
             # Reappearance must still associate with the last actual product.
@@ -172,7 +173,7 @@ class ProductPassage:
                 self.reason = 'WAIT_SAME_PRODUCT_REOBSERVATION'
                 return None
         entry_ready = False
-        if current and self.crossed:
+        if current and self.crossed and not self.geometry_pending:
             entry_ready = self._observe_entry(current,p)
         if not self.tail and not self.entry:
             if not current and not (self.tracker_config and self.crossed):
@@ -183,15 +184,26 @@ class ProductPassage:
             origin_a, origin_b = self._axis(self.origin)
             # A disjoint upstream successor after a witnessed shrinking tail
             # is still the original supported exit-strip path.
-            disjoint_after_tail = self.tail and y < a
-            if not disjoint_after_tail and not self._associated_outbound(
-                    current, p['monotonic_s']-self.last_product['monotonic_s']):
-                return self._fail('PRODUCT_EXIT_TAIL_REVERSED_OR_CHANGED' if self.tail
-                                  else 'PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY')
+            disjoint_after_tail = self.tail and y < a and not self.geometry_pending
+            if not disjoint_after_tail:
+                rejection = self._outbound_rejection(
+                    current, p['monotonic_s']-self.last_product['monotonic_s'])
+                if rejection == 'SHAPE_CHANGED' and self.tracker_config:
+                    self.geometry_pending = True
+                    self.samples = []
+                    self.entry = None
+                    self.proof = None
+                    self.reason = 'WAIT_SAME_PRODUCT_GEOMETRY'
+                    return None
+                if rejection:
+                    return self._fail('PRODUCT_EXIT_TAIL_REVERSED_OR_CHANGED' if self.tail
+                                      else 'PRODUCT_PASSAGE_TRAJECTORY_DISCONTINUITY')
             if (origin_b < 1-self.pixel and b < 1-self.pixel
                     and y >= 1-self.pixel and x > origin_a+self.jitter):
                 self.crossed = True
             if not disjoint_after_tail:
+                self.geometry_pending = False
+                self.furthest = max(self.furthest, (x+y)/2)
                 self.box = current
                 self.last_product = p
                 self.outbound_samples += 1
