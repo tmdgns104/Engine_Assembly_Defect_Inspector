@@ -24,6 +24,7 @@ from src.vision.assembly_inspection import AssemblyInspector
 from src.vision.inspection_worker import worker_main
 from src.vision.integrated_decision import combine_decisions
 from test_field_worker import FakeCamera
+from notebook.tests.assembly_result_fixture import assembly_result, PARTS
 
 
 class CameraWithoutIntegrity(FakeCamera):
@@ -43,7 +44,9 @@ class AssemblyBoundary:
     def process(self, image, context):
         self.contexts.append(context)
         state = self.state if context.quality_valid else 'REVIEW'
-        return dict(shadow_state=state, reason='MODEL_OR_QUALITY_EVIDENCE', parts={}), None, {}
+        record = assembly_result(state)['frames'][0]
+        record.update(shadow_state=state, reason='MODEL_OR_QUALITY_EVIDENCE')
+        return record, image, {name:image for name in PARTS}
 
 
 def inspector(root, model, *, start=False):
@@ -212,7 +215,7 @@ class AssemblyContractTests(unittest.TestCase):
                         asset['sha256'] = hashlib.sha256(data).hexdigest()
                         obs['input_pixel_sha256'] = hashlib.sha256(image.tobytes()).hexdigest()
                 value = inspector(root, AssemblyBoundary('PASS_CANDIDATE')).process_one(row)
-                self.assertEqual(combine_decisions('PASS', value)['decision'], 'REVIEW')
+                self.assertEqual(combine_decisions('PASS', value)['decision'], 'REVIEW' if invalid=='quality' else 'ERROR')
                 self.assertTrue(all(not frame['evidence_validation']['quality_valid'] for frame in value['frames']))
 
     def test_missing_legacy_evidence_is_durable_error_not_keyerror(self):
@@ -245,7 +248,7 @@ class AssemblyContractTests(unittest.TestCase):
         from notebook.tests.test_opener_guards import DurableIdentityGuards
         for model_state, decision, plc_value in (
                 ('PASS_CANDIDATE', 'PASS', 0), ('FAIL_CANDIDATE', 'FAIL', 1),
-                ('REVIEW', 'REVIEW', 1), ('ERROR', 'ERROR', 1)):
+                ('REVIEW', 'PASS', 0), ('ERROR', 'PASS', 0)):
             with self.subTest(model_state=model_state):
                 fixture = DurableIdentityGuards()
                 fixture.setUp()
@@ -254,8 +257,7 @@ class AssemblyContractTests(unittest.TestCase):
                     runtime = fixture.r
                     runtime.bridge = SimpleNamespace(inspection_id=identifier,
                         poll=lambda: None, error=None, phase='INSPECTION_DURABLE')
-                    runtime.assembly = SimpleNamespace(submit=Mock(), result=lambda _: dict(
-                        state='COMPLETE', three_frames=dict(state=model_state)),
+                    runtime.assembly = SimpleNamespace(submit=Mock(), result=lambda _: assembly_result(model_state),
                         evidence_path=lambda _: 'offline-assembly/result.json')
                     runtime.line_profile, runtime.error = {'assembly_deadline_s':30}, None
                     for now in range(5, 10):

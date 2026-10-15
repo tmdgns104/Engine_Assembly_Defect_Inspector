@@ -71,7 +71,7 @@ def line_view(status, identity):
     elif line == 'WAIT_FIELD_PROFILE':
         phase, title, detail = 'BLOCKED', '검사 대기중', '현재 벨트의 검사 위치 설정이 미완료입니다. 영상 미리보기만 실행 중입니다.'
     elif plc.get('state') == 'INSPECTING':
-        phase, title, detail = 'INSPECTING', '엔진 검사 중', '현재 요청에 연결된 새 영상으로 기존 검사와 네 부품 조립 검사를 수행합니다.'
+        phase, title, detail = 'INSPECTING', '엔진 검사 중', '현재 요청에 연결된 새 영상으로 기본 부품 검사와 오조립 참고 분석을 수행합니다.'
         verdict = 'PENDING'
     elif plc.get('state') == 'REQUEST_LATCHED':
         phase, title, detail = 'WAIT_PRODUCT', 'PLC 요청 접수 · 영상 조건 대기', '제품 위치·새 프레임·안정 조건을 확인 중입니다. 검사 완료가 아닙니다.'
@@ -162,7 +162,7 @@ def line_view(status, identity):
         automatic=automatic, recent_results=[{k:row.get(k) for k in
             ('inspection_id','decision','reason','completed_at','plc_result_value','publication_status')}
             for row in list(status.get('history', []))[:30]],
-        motor_feedback='UNVERIFIED', final_policy='기존 검사 + 네 부품 조립 검사 모두 필수')
+        motor_feedback='UNVERIFIED', final_policy='기본 부품 판정 사용 · 근거가 확인된 오조립 FAIL 우선')
 
 
 def configure_line_web(app, runtime, identity):

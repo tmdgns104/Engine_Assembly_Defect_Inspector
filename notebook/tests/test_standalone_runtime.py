@@ -16,6 +16,7 @@ from src.control.standalone_plc import LineHandshake, LineGateway, TAGS, WIRE
 from src.journal.sqlite import Journal
 from src.runtime.standalone_web import configure_line_web
 from notebook.tests.test_standalone_line import MemoryPLC
+from notebook.tests.assembly_result_fixture import assembly_result
 
 
 class ArrivalTests(unittest.TestCase):
@@ -74,7 +75,7 @@ class FinalBoundaryTests(unittest.TestCase):
         self.r._commit_and_publish = Mock()
         self.r._poll_result(4)
         self.r._commit_and_publish.assert_not_called()
-        result[0] = {'state':'COMPLETE','three_frames':{'state':'FAIL_CANDIDATE'}}
+        result[0] = assembly_result('FAIL_CANDIDATE')
         self.r._poll_result(5)
         self.assertEqual(self.r._commit_and_publish.call_args.args[1]['decision'], 'FAIL')
         self.r.assembly.submit.assert_called_once()

@@ -2,24 +2,25 @@
 import copy
 import unittest
 from src.vision.integrated_decision import combine_decisions
+from notebook.tests.assembly_result_fixture import assembly_result
 
 
 class IntegratedDecisionTests(unittest.TestCase):
     def test_all_sixteen_completed_component_pairs(self):
         states = ('PASS', 'FAIL', 'REVIEW', 'ERROR')
         assembly_states = ('PASS_CANDIDATE', 'FAIL_CANDIDATE', 'REVIEW', 'ERROR')
-        expected = (('PASS', 'FAIL', 'REVIEW', 'ERROR'),
+        expected = (('PASS', 'FAIL', 'PASS', 'PASS'),
                     ('FAIL', 'FAIL', 'FAIL', 'FAIL'),
-                    ('REVIEW', 'FAIL', 'REVIEW', 'ERROR'),
+                    ('REVIEW', 'FAIL', 'REVIEW', 'REVIEW'),
                     ('ERROR', 'FAIL', 'ERROR', 'ERROR'))
         for i, existing in enumerate(states):
             for j, component in enumerate(assembly_states):
                 with self.subTest(existing=existing, assembly=component):
-                    value = combine_decisions(existing, dict(state='COMPLETE', three_frames=dict(state=component)))
+                    value = combine_decisions(existing, assembly_result(component))
                     self.assertEqual(value['decision'], expected[i][j])
                     self.assertEqual(value['existing_inspector'], existing)
                     self.assertEqual(value['assembly_inspector'], states[j])
-                    self.assertEqual(value['policy'], 'ANY_CONFIRMED_FAIL_V2')
+                    self.assertEqual(value['policy'], 'BASIC_WITH_CONFIRMED_ASSEMBLY_FAIL_V1')
 
     def test_real_missing_failure_is_not_hidden_by_alignment_review(self):
         assembly = dict(state='COMPLETE', three_frames=dict(state='REVIEW'),
@@ -32,12 +33,12 @@ class IntegratedDecisionTests(unittest.TestCase):
 
     def test_uncompleted_assembly_does_not_invent_a_defect(self):
         value = combine_decisions('PASS', dict(state='NOT_RUN', three_frames=dict(state='FAIL_CANDIDATE')))
-        self.assertEqual(value['decision'], 'REVIEW')
+        self.assertEqual(value['decision'], 'ERROR')
         self.assertEqual(value['assembly_inspector'], 'REVIEW')
 
     def test_no_confirmed_failure_keeps_existing_uncertainty_or_error(self):
-        for assembly, expected in [({}, 'REVIEW'), ({'state':'NOT_RUN'}, 'REVIEW'),
-                                   ({'state':'ERROR'}, 'ERROR'), ({'state':'COMPLETE'}, 'REVIEW')]:
+        for assembly, expected in [({}, 'ERROR'), ({'state':'NOT_RUN'}, 'ERROR'),
+                                   ({'state':'ERROR'}, 'ERROR'), ({'state':'COMPLETE'}, 'ERROR')]:
             self.assertEqual(combine_decisions('PASS', assembly)['decision'], expected)
 
     def test_unknown_basic_result_never_becomes_pass(self):

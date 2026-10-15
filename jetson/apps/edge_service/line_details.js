@@ -33,7 +33,8 @@ const LineDetails = (() => {
     const frames=assembly?.frames||[];
     const noCapture=final?.source==='NO_ACTUAL_INSPECTION'||(!observations.length&&raw?.state==='COMPLETE');
     // Only recorded three-frame agreement can become an assembly part summary.
-    const agreement=['PASS_CANDIDATE','FAIL_CANDIDATE'].includes(assembly?.three_frames?.state)
+    const qualified=final?.policy!=='BASIC_WITH_CONFIRMED_ASSEMBLY_FAIL_V1'||['PASS','FAIL'].includes(final?.assembly_inspector);
+    const agreement=qualified&&['PASS_CANDIDATE','FAIL_CANDIDATE'].includes(assembly?.three_frames?.state)
       &&frames.length===3&&new Set(frames.map(f=>f.frame_id)).size===3
       &&frames.every(f=>observations.some(o=>o.frame_id===f.frame_id));
     const rows=Object.entries(parts).map(([key,name])=>{
@@ -65,6 +66,7 @@ const LineDetails = (() => {
       const stage=add(stages,'div',undefined,'step');add(stage,'span',name);add(stage,'strong',value);
     }
     if(data.noCapture)add(host,'p','검사 미실행 · '+explain(final?.reason||raw?.result?.reason),'notice');
+    add(host,'p','오조립 참고 분석: '+label(final?.assembly_inspector)+' · '+explain(final?.assembly_reason),'muted');
     add(host,'p','존재 검사와 방향·조립 분류는 별도 결과입니다. 아래 내용은 선택한 검사에 저장된 증거이며 현재 미리보기의 판정이 아닙니다.','muted');
     const cards=add(host,'div',undefined,'part-grid');
     for(const row of data.rows){

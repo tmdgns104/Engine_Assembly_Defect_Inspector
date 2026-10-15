@@ -17,7 +17,7 @@ from src.runtime.production import ProductionRuntime
 from src.runtime.inspection_bridge import InspectionBridge
 from src.runtime.production_profile import calibration_sha
 from src.runtime.inspection_start import FULL_FRAME, start_policy, tracked_frame_evidence
-from src.vision.integrated_decision import combine_decisions
+from src.vision.integrated_decision import combine_decisions, POLICY as FINAL_POLICY
 from src.runtime.initial_approval import InitialApproval, JournalAdmissionGuard, count_unfinished_inspections, POLICY as INITIAL_POLICY
 from src.runtime.supervised_approval import SupervisedApproval, POLICY as REPEAT_POLICY
 AUTO_POLICY = 'PLC_AUTOMATIC_REPEAT'
@@ -1165,18 +1165,16 @@ class StandaloneRuntime(ProductionRuntime):
             return  # No SQL read can wait for fsync or expose a pre-commit result.
         issue = getattr(self, 'cycle_issue', None)
         row = self.service.journal.detail(identifier)
+        if row and row.get('state') == 'CANCELLED':
+            self._fault('CANCELLED_REQUEST_IS_NOT_A_VALID_CLASSIFICATION')
+            self._cancel_pending(row['result']['reason'])
+            return
         if issue and issue['request_token'] == self.handshake.token:
             if not row or row['state'] not in ('COMPLETE', 'CANCELLED'):
                 return  # Existing worker cancellation/timeout owns the raw record.
             self._commit_and_publish(identifier, dict(decision='ERROR',
                 existing_decision=row['decision'], assembly_decision='NOT_RUN',
                 policy='INVALID_CURRENT_PRODUCT_CONTEXT', reason=issue['reason']), now)
-            return
-        if row and row.get('state') == 'CANCELLED':
-            self._commit_and_publish(identifier, dict(decision='ERROR',
-                existing_decision='ERROR', assembly_decision='NOT_RUN',
-                policy='CANCELLED_REQUEST_IS_NOT_A_VALID_CLASSIFICATION',
-                reason=row['result']['reason']), now)
             return
         updated = self.bridge.poll()
         if updated: self.snapshot = updated
@@ -1198,6 +1196,10 @@ class StandaloneRuntime(ProductionRuntime):
         if result is None:
             result = dict(state='ERROR', reason='ASSEMBLY_DEADLINE')
         final = combine_decisions(row['decision'], result)
+        if not final['publication_allowed']:
+            self._fault('ASSEMBLY_SYSTEM_FAILURE:' + str(final['assembly_reason']))
+            self._cancel_pending('ASSEMBLY_SYSTEM_FAILURE')
+            return
         final['assembly_evidence'] = str(self.assembly.evidence_path(identifier))
         if self.error:
             final.update(decision='ERROR', reason=self.error)
@@ -1205,6 +1207,8 @@ class StandaloneRuntime(ProductionRuntime):
 
     def _acquisition(self, now):
         status = self.service.health()
+        if self.camera_recovery and self.camera_recovery.is_alive():
+            return  # Replacement owns the old epoch; it is not a running frame stream.
         if status['ready'] and not self.operating and not self.error:
             self.operating = True  # Software frame acquisition only, never PLC Run.
             self.observation_started_at = now
@@ -1223,6 +1227,9 @@ class StandaloneRuntime(ProductionRuntime):
         # V3 requires a stopped PLC session. Legacy can only establish an idle
         # request context; it has no physical-stop input or motor command.
         try:
+            if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
+                self._recover_cyclic_camera()
+                return
             legacy = getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL'
             if legacy and (self.handshake.token or self.handshake.state not in ('SYNC_LOW', 'ARMED')):
                 return
@@ -1230,6 +1237,58 @@ class StandaloneRuntime(ProductionRuntime):
                 self.service.activate(self.service.package.root)
         except Exception:
             self.logger.exception('Camera recovery waits for next bounded attempt')
+
+    def _camera_recovery_baseline(self):
+        """No absent V3 RunPermit assumption on the four-slot cyclic contract."""
+        now = time.monotonic()
+        s = self.gateway.read_snapshot(now)
+        if (not s or not all(s.get(k) is True for k in ('connected','fresh','run_idle','bool_valid'))
+                or not 0 <= now-s['generated'] <= .5 or not 0 <= now-s['received'] <= .2
+                or s.get('phase') not in ('DISARMED','SYNC_LOW') or s.get('raw100') != '00000000'
+                or s.get('controls') != dict(Mc_Run=False,Inspection_Request=False,EStop_OK=True,Stop_PB=True)
+                or self.service.active or self.service.storage_pending or self.final_pending
+                or self.service.switching or self.assembly.status().get('outstanding') != 0):
+            return None
+        return (s['boot'], s['connection'])
+
+    def _recover_cyclic_camera(self):
+        with self.lock, self.service.lock:
+            baseline = self._camera_recovery_baseline()
+            if baseline is None or self.error not in (None,'CAMERA_OR_OBSERVATION_STREAM_UNAVAILABLE'):
+                return
+            previous_generation = self.worker_generation
+            self.operating = False
+            self.observation_started_at = None
+            self.handshake.fault('CAMERA_RECOVERY', 'BLOCKED')
+            self._cancel_pending('CAMERA_RECOVERY')
+            self._event(dict(event='CAMERA_RECOVERY_STARTED', previous_generation=previous_generation,
+                connection=baseline, reason=self.service.health().get('error')))
+        # Activation waits for model + camera readiness. Do not hold Runtime's
+        # lock during that wait: STOP/connection/cancellation must still update.
+        result = self.service.activate(self.service.package.root)
+        with self.lock, self.service.lock:
+            if (not result.get('activated') or self._camera_recovery_baseline() != baseline
+                    or not self.service.health()['ready']
+                    or self.error not in (None,'CAMERA_OR_OBSERVATION_STREAM_UNAVAILABLE')):
+                return
+            self._restore_previous_product_identity()  # Restart does not prove product exit.
+            # Camera recovery must not depend on closing an interrupted Journal:
+            # that recovery itself requires a live, idle Worker. Its unfinished
+            # row remains untouched and the existing Journal admission guard
+            # still blocks new requests until durable ABORT recovery succeeds.
+            self.product_passage = self.product_separation = None
+            self._passage_history.clear()
+            self._reset_unbound_observation(time.monotonic())
+            self.bridge = InspectionBridge(self.service, self.coordinator)
+            self.latest_packet = None
+            self.epoch = None
+            self.last_sequence, self.last_time = -1, 0
+            self.worker_generation = self.service.generation
+            self.handshake.retire_automatic()  # Retains seen_token; never replays an old request.
+            self.error = None
+            self.phase, self.line_wait = 'IDLE', 'WAIT_FRESH_CAMERA_FRAME'
+            self._event(dict(event='CAMERA_RECOVERY_VERIFIED', previous_generation=previous_generation,
+                worker_generation=self.worker_generation, connection=baseline, product_exit_claimed=False))
 
     def _storage_wait_health(self, now):
         """Only known in-flight storage may defer SQL, never control health.
@@ -1316,7 +1375,7 @@ class StandaloneRuntime(ProductionRuntime):
                 "FROM service_state WHERE key LIKE 'integrated_decision:%' GROUP BY 1").fetchall()
         result.update(line_mode=self.line_profile['mode'], line_state=self.line_wait,
             runtime_issue=self.issue, runtime_loop_alive=self.thread.is_alive() and not self.closing,
-            final_result_policy='EXISTING_AND_FROZEN_ASSEMBLY_REQUIRED',
+            final_result_policy=FINAL_POLICY,
             line_profile=self.line_profile, arrival_context=self.arrival,
             actual_motor_feedback='NOT_INSTALLED_COMMAND_AND_VISUAL_STABILITY_ONLY',
             operator_control='PHYSICAL_BUTTONS', laptop_required=False,
