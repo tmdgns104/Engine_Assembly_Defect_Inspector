@@ -1,3 +1,25 @@
+ATTEMPT11 PHYSICAL START VERIFIED / LAPTOP LAN DISCONNECTED / 30-CYCLE RESULT PENDING
+2026-10-17 새 운영555c3a43053ce4ce·bootc8d72e3f의 실제START신호(Mc_Run/EStop_OK/Stop_PB=true,Request=false),IDLE/오류없음/카운터0/Worker2741/수집4393 확인. 사용자노트북LAN분리와SSH타임아웃확인; PLC–Jetson연결유지·노트북전원OFF미시험. 정상모형30회 한개씩투입 안내, 매회승인없음. 정확한 완료/유효3장/판정분포는 재연결후Journal/C기록대조까지미확정. START확인스크립트최초Stop_PB=false 가정은기존계약true와불일치해거부됐으며도구만수정; PLC극성/운영코드변경없음. 증거 runs/capture_stability_20261017/FIELD30_START_CONFIRMED.json, FIELD30_NOTEBOOK_DISCONNECTED.json. 기존247검사보존·실제재부팅/수집preflight검증완료. GitHub현재변경반영중. 다음: 사용자30회완료/멈춤→필요시실제STOP→LAN재연결→원기록집계. 실패를성공으로합산하지않음.
+
+Previous checkpoint:
+TARGET STABILITY DEPLOYED / REBOOT AUTOSTART VERIFIED / ATTEMPT11 START PENDING
+2026-10-17 현재 운영 engine-integrated-555c3a43053ce4ce, 새 boot c8d72e3f-d5cf-423a-b832-774394ba8243. 변경3파일·189파일SHA, systemd enabled/active, 단일 카메라Worker2741·모델/PLC 준비·WAIT_START 확인. 추가30.685초7개새프레임/동일Worker. 백업56d370b47fa7fd52f84a3ee4d9473dedd306e9f2d79c22db6ec8d483687e57f1/174파일SHA·SQLite·기존247검사 보존 검증. 모델/부품/PLC/임계값/촬영3초·연속3장·0.6초·15초 유지. Windows/Jetson 최종44각PASS·관련기존119재사용·C2·UI2PASS. 공개소스만 별도44회귀+UI2PASS(첫 내보내기 dependency누락 보존 후16개재검증). Jetson 수집기 실제기존PASS 결과·원본 읽기/저장preflight완료, PID4393/attempt11 준비·새검사0. 사용자STOP·빈벨트확인 및 공식유지보수종료 완료. 현재 실제START한번 질문대기; 이후신호확인→노트북LAN분리→정상30한번에안내. 새실물30 미실행, 안정성달성미주장. 보고 docs/CONTINUOUS_RUNTIME_AUDIT.md, 증거 runs/capture_stability_20261017. GitHub 반영준비.
+
+Previous checkpoint:
+TARGET STABILITY VERIFIED / STOPPED APPLY PREPARATION / EMPTY-BELT CONFIRMATION PENDING
+2026-10-17 최근4ERROR 각각 DEADLINE_EXCEEDED·안정연속3장부족 확인. 최종 후보555c3a43053ce4ce: 같은 카메라좌표의 envelope합집합 마스크, 기존57600분모/461픽셀거부 유지(작은영역분모 중간후보는 폐기·증거보존), source시간0.6초·요청별초기화·상세원시오류. Windows44/ARM6444 최종PASS+영향없는119회귀재사용,CIPC2·UI2PASS. 실제24원본 마지막쌍 대조·기존4결품 마스크/판정회귀 확인. 전체3초원본없음; POST진단수집 정책차단,우회없음. 운영a8afabe667e881ed/boot081d4e63 유지,Main1079/Worker2725/13거래/STOP. 후보3파일·백업/적용스크립트 준비,운영미적용·재부팅/새30미실행. 사용자START→STOP위치조정 보고,카운터변화없음. 현재모형제거/빈벨트질문대기. 다음: 확인→기존유지보수종료→sudo전환·백업검증·적용/재부팅→실제결과읽고저장 수집preflight→단독30. 증거 runs/capture_stability_20261017, 단일보고 docs/CONTINUOUS_RUNTIME_AUDIT.md. GitHub반영대기;관련없는변경보존.
+
+Previous checkpoint:
+CAPTURE STABILITY TASK AUTHORIZED / FOUR RAW ERRORS CONFIRMED / CANDIDATE NOT DEPLOYED
+2026-10-17 최신 첨부 TASK가 대상 중심 촬영 안정 판정·최소 상세 표시·검증·정지 적용·재부팅·단독30회를 명시 승인했다. 아래 설명 대기는 과거 기록이다. 운영 a8afabe667e881ed/boot081d4e63/Main1079/Worker2725/재시작0을 GET·읽기 전용 증거로 확인, STOP/RequestLOW, 13요청·13완료. 대상1feea8a2/680c0018/45062997/7e21efd2 모두 raw DEADLINE_EXCEEDED·후보11, 거부9/11/11/10. 직전38731852와 직후e93bce8b/e0fa1b2f, 이전e14586d0 포함8건32자산SHA·24원본 보존. 마지막3장만으로 전체3초를 재현하지 않는다.
+후보 engine_inspector.py·inspection_worker.py 및 test_engine_motion.py/test_stationary_inspection_capture.py. 고정 카메라 좌표의 이전/현재 영역 union, 제품bbox와 기존slot영역, source시각, 요청별reset. 수치25/0.008/0.6s·촬영3s/연속3장/처리15s·모델/PLC 유지. RED2 보존 후 motion10PASS. Worker 포함23건은22PASS/품질불량 REVIEW 대 ERROR 기대1건 불일치로 확인 중. 저장pair에는 작은영역0.008 초과 사례가 남아 전부 해결로 판단하지 않음. 운영 적용·재부팅·새실물시험 미실행.
+Evidence runs/capture_stability_20261017/{INITIAL_RUNTIME,RAW_SUMMARY,NATIVE_EVIDENCE,SAVED_PAIRS_WINDOWS}.json, RAW_ORIGINALS.zip, MOTION_RED/GREEN.log. 다음: Worker 품질불량 기대를 계약과 대조, ID별 C시계열/원인표, 같은 원본의 native후보 비교·결품회귀·UI최소표시·관련통합시험. GitHub17b9379c 일치, 이번후보 미push. 원기록·무관한변경 보존.
+
+Previous checkpoint:
+DESIGN EXPLANATION REQUESTED / NO STABILITY-GATE CHANGE AUTHORIZED YET
+2026-10-17 사용자: 오류 검사 중 엔진은 멈춰 있었다고 확인. 관측 진술이며 영상만으로 물리 원인을 확정하지 않음. 제품 영역 중심 안정 판정 수정안에 대해 '변경 전 설명 더 듣기' 선택. 운영 a8afabe667e881ed 그대로; 새 구현·적용·재부팅·시험 시작 없음. STOP·모형 그대로, 5거래/4PASS/촬영ERROR1 보존. GitHub master 17b9379c97a61ff6a9a0f436cc7f055a97920aa7와 로컬HEAD 일치 확인(실제배포소스+2테스트+3보고서,6파일). 다음: 비교 영역 변경의 이유·위험·검증 계획을 설명하고 사용자의 결정을 기다림.
+
+Previous checkpoint:
 STANDALONE30 ATTEMPT10 AUDITED / CAPTURE STABILITY ERROR / 30 NOT MET
 2026-10-17 a8afabe667e881ed 실제 재부팅 후 한 START·노트북 LAN 분리로 5요청/5PLC거래 완료. 순서 PASS→PASS→ERROR→PASS→PASS, 최대연속유효PASS2. 사용자의 오류 후 추가검사 관측과 일치하며 실제로는 오류 뒤 새요청2건이 있었다. 3번째 e14586d0…는 촬영3초 내 안정연속3장 부족(DEADLINE_EXCEEDED), 후보11/거부10/안정1장폐기. 진단3장의 각 부품검사는PASS지만 유효촬영 성공으로 세지 않는다. 20자산SHA·SQLite·같은ID Result→laterDone→LOW→다음대기 검증. 요청→C완료 9.498–13.345초(중앙10.795), 첫요청→5완료84.194초. 동일boot/Main1079/Worker2725, 서비스재시작0. 요청수락·Ready/통신 중단 없음.
 사용자 STOP·LAN재연결 완료, 모형은 그대로 유지 요청. 실제Mc_Runfalse/RequestLOW/출력0·유휴 확인. 별도GET-only수집기는 첫결과의 지연import 누락(replay_basic_part_presence)으로중단; 운영원장·20원본은보존되고 직접회수했다. 준비완료 검증이 부족했던 수집기 오류를 숨기지 않는다. 해당의존성전송과 다음준비시사전import검사를보완하며 새수집기/검사재실행없음.

@@ -45,7 +45,14 @@ const LineDetails = (() => {
         new Set(perFrame.filter(Boolean)).size>1?'CONFLICT':'UNCERTAIN';
       return {key,name,presence:noCapture?'NOT_RUN':raw?.result?.slot_states?.[key]||'NOT_EVALUATED',assembly:assemblyState,perFrame};
     });
-    return {observations,frames,rows,noCapture};
+    const basic=raw?.result||{},capture=basic.stationary_capture,fresh=basic.fresh_frame;
+    const diagnostic=basic.decision==='ERROR'&&Boolean(fresh?.terminal_reason);
+    const publication=raw?.production_publication;
+    const samePublication=Boolean(raw?.inspection_id&&publication?.inspection_id===raw.inspection_id);
+    const details={decision:basic.decision||'미기록',reason:basic.reason_code||basic.reason||'상세 원인 미기록',
+      terminal:fresh?.terminal_reason||null,capture,diagnostic,
+      plcComplete:samePublication&&publication.event==='PLC_CYCLIC_COMPLETION_OBSERVED'};
+    return {observations,frames,rows,noCapture,details};
   }
 
   function image(parent,title,url){
@@ -67,6 +74,16 @@ const LineDetails = (() => {
       const stage=add(stages,'div',undefined,'step');add(stage,'span',name);add(stage,'strong',value);
     }
     if(data.noCapture)add(host,'p','검사 미실행 · '+explain(final?.reason||raw?.result?.reason),'notice');
+    const detail=data.details;
+    add(host,'p','기본 검사: '+detail.decision+' · '+detail.reason,'notice');
+    if(detail.terminal)add(host,'p','촬영 종료 원인: '+detail.terminal);
+    if(detail.capture){
+      const c=detail.capture,known=value=>Number.isInteger(value)?value:'미기록';
+      add(host,'p',`촬영 후보 ${known(c.candidate_count)}장 · 거부 ${known(c.rejected_count)}장 · 연속성 초기화 ${known(c.continuity_reset_count)}회 · 폐기된 안정 후보 ${known(c.discarded_stable_frames)}장`);
+    }
+    if(detail.diagnostic)add(host,'p','저장된 사진은 실패 원인 확인용입니다. 안정된 연속 3장 검사 완료로 집계하지 않습니다.','notice');
+    add(host,'p','PLC: '+(detail.plcComplete?'해당 검사의 Result·Done·Request 해제 완료 관측':'해당 검사 거래 완료 관측 미기록')+
+      ' · PLC 프로그램 내부 소비 확인과는 구분됩니다.','muted');
     add(host,'p','오조립 참고 분석: '+label(final?.assembly_inspector)+' · '+explain(final?.assembly_reason),'muted');
     if(final?.policy==='BASIC_PRESENCE_ASSEMBLY_REFERENCE_V2')
       add(host,'p','이 검사의 최종 PASS/FAIL은 필수 부품 결합 유무 기준입니다. 오조립 분류는 최종 판정과 PLC OK/NG에 반영하지 않습니다.','muted');
@@ -92,7 +109,7 @@ const LineDetails = (() => {
       const images=add(section,'div',undefined,'images');
       const rawAsset=raw?.result?.assets?.find(a=>a.kind==='raw'&&a.frame_id===frameId);
       const prefix='/api/v1/runtime/shadow/'+encodeURIComponent(selectedId)+'/images/';
-      if(rawAsset)image(images,'① 검사 원본','/api/v1/assets/'+encodeURIComponent(rawAsset.asset_id));
+      if(rawAsset)image(images,detail.diagnostic?'① 실패 진단 원본':'① 검사 원본','/api/v1/assets/'+encodeURIComponent(rawAsset.asset_id));
       else if(frame?.raw_path)image(images,'① 검사 원본',prefix+encodeURIComponent(frame.raw_path));
       const canonical=frame?.images?.canonical;
       if(canonical)image(images,'② 몸체 전체 정렬',prefix+encodeURIComponent(canonical.path));

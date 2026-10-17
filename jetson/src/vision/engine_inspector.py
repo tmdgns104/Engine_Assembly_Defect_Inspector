@@ -32,8 +32,7 @@ class EngineInspector:
         if envelope_package.names!=['product_envelope']:
             raise ValueError('ENVELOPE_CLASS_CONTRACT_INVALID')
         self.detector=create_detector(envelope_package,latency_enabled=True)
-        self.previous_gray=None
-        self.stable_since=None
+        self.reset_motion()
 
     def detect(self,frame,observation,*,parts_detector=None):
         started=time.perf_counter()
@@ -75,9 +74,12 @@ class EngineInspector:
         if not observation['quality']['valid']:
             value['geometric_slot_observations']=value['slot_states']
             value['slot_states']=dict.fromkeys(SLOTS,'NOT_EVALUATED')
-        changed,stable=self.motion(frame.image)
+        changed,stable=self.motion(frame.image,product=value.get('product'),
+            freshness=observation['freshness'],context='inspection',
+            visible=observation['quality']['valid'] and value.get('pose',{}).get('reliable') is True)
         value.update(frame_id=frame.frame_id,source_pts_ns=observation['freshness']['source_pts_ns'],
             quality_valid=observation['quality']['valid'],motion_fraction=changed,stable=stable,
+            motion_evidence=dict(self.motion_evidence),
             engine_processing_ms=(time.perf_counter()-started)*1000)
         if observation['freshness'].get('camera_epoch') is not None:
             value['camera_epoch']=observation['freshness']['camera_epoch']
@@ -86,16 +88,80 @@ class EngineInspector:
         observation['inference_ms']+=envelope['inference_ms']
         return value
 
-    def motion(self,image):
+    def reset_motion(self):
+        """A new request/uncertain target must earn its own source-time stability."""
+        self.previous_gray=None
+        self.stable_since=None
+        self._motion_sample=None
+        self.motion_evidence={}
+
+    def motion(self,image,*,product=None,freshness=None,visible=True,context='inspection'):
+        """Compare one union mask in camera coordinates, never aligned crops.
+
+        The unique envelope does not require any particular part to be present.
+        Slot search regions are deliberately excluded: those broad regions can
+        extend onto the conveyor rails. Both frames use the same union of old
+        and new envelope masks. Translation changes pixels at the old AND new
+        locations; detector box jitter alone cannot create pixel motion.
+        Keep the existing 320x180 normalization area and 0.008 threshold:
+        461 changed target pixels still reject a pair. Only the numerator's
+        spatial scope changes. Also record the target-area ratio so it cannot
+        be mistaken for the full-canvas normalized decision value.
+        """
+        evidence=dict(policy='TARGET_CAMERA_COORDINATES_V1',coordinate_space='camera_pixels',
+            difference_threshold=25,motion_fraction_threshold=.008,stable_seconds=.6,
+            comparison_size=[320,180],reason='TARGET_UNCERTAIN')
+        try:
+            if not visible or product is None or freshness is None:raise ValueError('TARGET_UNCERTAIN')
+            source=float(freshness['estimated_source_monotonic'])
+            epoch=freshness['camera_epoch']
+            if not epoch or not np.isfinite(source):raise ValueError('SOURCE_TIME_UNCERTAIN')
+            height,width=image.shape[:2]
+            box=box_of(product)
+            mask=np.zeros((180,320),dtype=bool)
+            x1,y1,x2,y2=box
+            if not (0<=x1<x2<=width and 0<=y1<y2<=height):raise ValueError('TARGET_REGION_OUTSIDE_FRAME')
+            left,top=int(np.floor(x1*320/width)),int(np.floor(y1*180/height))
+            right,bottom=int(np.ceil(x2*320/width)),int(np.ceil(y2*180/height))
+            mask[top:bottom,left:right]=True
+            if not mask.any():raise ValueError('EMPTY_TARGET_REGION')
+        except (KeyError,ValueError,TypeError,IndexError) as error:
+            self.reset_motion()
+            evidence['reason']=str(error)
+            self.motion_evidence=evidence
+            return 1.,False
+
         gray=cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2GRAY),(320,180))
-        now=time.monotonic()
+        identity=(context,epoch,height,width)
+        previous=getattr(self,'_motion_sample',None)
         changed=1.
-        if self.previous_gray is not None:
-            changed=float(np.mean(cv2.absdiff(gray,self.previous_gray)>25))
+        evidence.update(source_monotonic=source,camera_epoch=epoch,context=context,
+            product_box=list(box),region_count=1,reason='FIRST_TARGET_FRAME')
+        if previous is not None and previous['identity']==identity:
+            elapsed=source-previous['source']
+            if elapsed>0:
+                union=mask|previous['mask']
+                different=cv2.absdiff(gray,self.previous_gray)>25
+                count=int(np.count_nonzero(different & union))
+                area=int(np.count_nonzero(union))
+                changed=count/gray.size
+                old=previous['box']
+                evidence.update(comparison_area_pixels=area,changed_pixels=count,
+                    normalization_area_pixels=int(gray.size),target_area_motion_fraction=count/area,
+                    full_frame_motion_fraction=float(different.mean()),source_interval_s=elapsed,
+                    bbox_center_delta_px=[(box[0]+box[2]-old[0]-old[2])/2,
+                                          (box[1]+box[3]-old[1]-old[3])/2],
+                    reason='TARGET_CHANGED' if changed>.008 else 'WAIT_STABILITY_INTERVAL')
+            else:
+                evidence['reason']='SOURCE_TIME_DISCONTINUITY'
         if changed>.008:self.stable_since=None
-        elif self.stable_since is None:self.stable_since=now
+        elif self.stable_since is None:self.stable_since=source
         self.previous_gray=gray
-        stable=self.stable_since is not None and now-self.stable_since>=.6
+        self._motion_sample=dict(identity=identity,source=source,mask=mask,box=box)
+        stable=self.stable_since is not None and source-self.stable_since>=.6
+        evidence['stable_since_source']=self.stable_since
+        if stable:evidence['reason']='TARGET_STABLE'
+        self.motion_evidence=evidence
         return changed,stable
 
     def observe_product(self,frame,observation):
@@ -104,7 +170,8 @@ class EngineInspector:
         envelope=self.detector.detect(frame).to_dict()
         policy=self.estimator.cfg['decision_policy']
         valid=[d for d in envelope['detections'] if d['confidence']>=policy['product_confidence']]
-        changed,stable=self.motion(frame.image)
+        changed,stable=self.motion(frame.image,product=valid[0] if len(valid)==1 else None,
+            freshness=observation['freshness'],visible=observation['quality']['valid'],context='tracking')
         observation['detections']=envelope['detections']
         observation['inference_ms']=envelope['inference_ms']
         return dict(frame_id=frame.frame_id,camera_epoch=observation['freshness']['camera_epoch'],
@@ -115,6 +182,7 @@ class EngineInspector:
             pose={'reliable':False,'reliability_reason':'NOT_EVALUATED_DURING_TRACKING'},
             slot_states=dict.fromkeys(SLOTS,'NOT_EVALUATED'),slot_polygons={},
             quality_valid=observation['quality']['valid'],motion_fraction=changed,stable=stable,
+            motion_evidence=dict(self.motion_evidence),
             stage_timings_ms={'product_detection_ms':(time.perf_counter()-started)*1000},
             source_pts_ns=observation['freshness']['source_pts_ns'])
 

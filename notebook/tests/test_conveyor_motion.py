@@ -27,6 +27,15 @@ POLICY = {'source_mode': 'PRODUCTION_AUTO', 'inspection_motion_mode': 'CONVEYOR_
           'human_acceptance': 'PENDING', 'capture_zone': ZONE}
 
 
+class TriggerRuntime(SimpleNamespace):
+    """Use the real extracted trigger methods without starting device owners."""
+    _inspection_start_ready = ProductionRuntime._inspection_start_ready
+    _begin_inspection = ProductionRuntime._begin_inspection
+
+    def __init__(self, **values):
+        super().__init__(tracker_config=SimpleNamespace(plc_request_tracking=False), **values)
+
+
 def observation(number, *, y2=500, pose=True, quality=True):
     product = {'class_name': 'product_envelope', 'confidence': .9,
                'bounding_box': {'x1': 500, 'y1': 170 + number * 20,
@@ -77,7 +86,7 @@ class ConveyorMotionTests(unittest.TestCase):
         for mode,should_submit in [('STATIONARY',False),('CONVEYOR_MOTION_DEV',True),
                                    ('CONVEYOR_MOTION_PLC_BENCH',True)]:
             bridge=SimpleNamespace(inspection_id='inspection-1',submit_production=Mock())
-            runtime=SimpleNamespace(operating=True,error=None,
+            runtime=TriggerRuntime(operating=True,error=None,
                 handshake=SimpleNamespace(state='REQUEST_LATCHED',accepted_at=100.,token='request-1',
                                           bind=Mock()),
                 service=SimpleNamespace(active=False,generation='worker',
@@ -96,7 +105,7 @@ class ConveyorMotionTests(unittest.TestCase):
         packet={'stable':False,'processed_monotonic':100.,'sequence':10,'monotonic_s':99.9,
                 'provider':{'observations':[{'bbox':{'x1':.4,'y1':.2,'x2':.6,'y2':.6}}]}}
         bridge=SimpleNamespace(inspection_id='inspection-1',submit_production=Mock())
-        runtime=SimpleNamespace(operating=True,error=None,
+        runtime=TriggerRuntime(operating=True,error=None,
             handshake=SimpleNamespace(state='REQUEST_LATCHED',accepted_at=100.,token='request-1',bind=Mock()),
             service=SimpleNamespace(active=False,generation='worker',package=SimpleNamespace(manifest_hash='package')),
             area_config_version=None,coordinator=SimpleNamespace(
@@ -128,7 +137,7 @@ class ConveyorMotionTests(unittest.TestCase):
 
     def test_plc_request_without_a_track_finishes_as_timeout_diagnostic(self):
         bridge=SimpleNamespace(inspection_id='inspection-1',submit_production=Mock())
-        runtime=SimpleNamespace(operating=True,error=None,
+        runtime=TriggerRuntime(operating=True,error=None,
             handshake=SimpleNamespace(state='REQUEST_LATCHED',accepted_at=100.,token='request-1',bind=Mock()),
             service=SimpleNamespace(active=False,generation='worker',package=SimpleNamespace(manifest_hash='package')),
             area_config_version='area-v1',coordinator=SimpleNamespace(

@@ -294,6 +294,8 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 and binding.get('inspection_start_policy') == FULL_FRAME
                 and binding.get('inspection_motion_mode') == 'STATIONARY'
                 and job.get('experiment_policy', {}).get('inspection_motion_mode') == 'STATIONARY')
+            if stationary_capture:
+                engine.reset_motion()
             # The PLC edge accepts the request immediately, but may precede the
             # physical stop. Keep the existing motion test and acquire a settled
             # trio within the original deadline, instead of judging coasting.
@@ -301,6 +303,7 @@ def worker_main(package_root, station, generation, commands, results, previews, 
             stationary_rejections = []
             stationary_candidate_count = stationary_rejected_count = 0
             discarded_stable_frames = 0
+            continuity_reset_count = 0
 
             def stationary_evidence(selected):
                 return dict(policy='POST_REQUEST_STABLE_THREE_FRAMES',
@@ -309,6 +312,7 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                     rejected_frames=list(stationary_rejections),
                     rejected_metadata_truncated=max(0, stationary_rejected_count-len(stationary_rejections)),
                     discarded_stable_frames=discarded_stable_frames,
+                    continuity_reset_count=continuity_reset_count,
                     selected_frame_ids=[o['frame_id'] for o in selected],
                     deadline_monotonic=selector.deadline if selector else job['deadline'])
 
@@ -389,10 +393,13 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                                 source_pts_ns=freshness['source_pts_ns'],
                                 source_monotonic=freshness['estimated_source_monotonic'],
                                 motion_fraction=value.get('motion_fraction'),
+                                motion_evidence=value.get('motion_evidence'),
                                 reason='WAIT_FOR_STABLE_FRAME'))
                             stationary_rejections = stationary_rejections[-32:]
                             # A moving frame breaks the contiguous stable trio;
                             # a prior stable image cannot be reused after it.
+                            if frames:
+                                continuity_reset_count += 1
                             discarded_stable_frames += len(frames)
                             frames.clear(); observations.clear()
                             progress('WAIT_FOR_STABLE_FRAME')

@@ -69,7 +69,10 @@ class StationaryCaptureTests(unittest.TestCase):
                 self.stable_since = None
 
             def detect(self, frame, detected, parts_detector=None):
-                changed, stable = self.motion(frame.image)
+                product = dict(class_name='product_envelope', confidence=.99,
+                    bounding_box=dict(x1=20, y1=20, x2=110, y2=110))
+                changed, stable = self.motion(frame.image, product=product,
+                    freshness=detected['freshness'], visible=detected['quality']['valid'])
                 sequence = detected['freshness']['sequence']
                 if sequence == 5 and inference_delay:
                     time.sleep(inference_delay)
@@ -77,11 +80,9 @@ class StationaryCaptureTests(unittest.TestCase):
                         cancel.set()
                 if stable_pattern is not None:
                     stable = stable_pattern.get(sequence, False)
-                product = dict(class_name='product_envelope', confidence=.99,
-                    bounding_box=dict(x1=20, y1=20, x2=110, y2=110))
                 slots = dict.fromkeys(SLOTS, 'PRESENT')
                 if missing:
-                    slots['pipe_left'] = 'MISSING'
+                    slots[missing if isinstance(missing,str) else 'pipe_left'] = 'MISSING'
                 detected['detections'] = [product]
                 detected['engine_dynamic'] = dict(frame_id=frame.frame_id,
                     source_pts_ns=detected['freshness']['source_pts_ns'], camera_epoch=detected['freshness']['camera_epoch'],
@@ -202,11 +203,16 @@ class StationaryCaptureTests(unittest.TestCase):
         message = self.run_worker(stable_pattern={3: True, 4: True, 5: False, 6: True, 7: True, 8: True})
         self.assertEqual([o['frame_id'] for o in message['result']['observations']], ['e-6', 'e-7', 'e-8'])
         self.assertEqual(message['result']['decision'], 'PASS')
+        self.assertEqual(message['result']['stationary_capture']['continuity_reset_count'], 1)
+        self.assertEqual(message['result']['stationary_capture']['discarded_stable_frames'], 2)
 
     def test_stationary_missing_part_keeps_actual_fail(self):
-        result = self.run_worker(missing=True)['result']
-        self.assertEqual(result['decision'], 'FAIL')
-        self.assertEqual(result['reason_code'], 'LEFT_PIPE_MISSING')
+        from src.decision.engine_dynamic import MISSING_CODES
+        for slot,code in MISSING_CODES.items():
+            with self.subTest(slot=slot):
+                result = self.run_worker(missing=slot)['result']
+                self.assertEqual(result['decision'], 'FAIL')
+                self.assertEqual(result['reason_code'], code)
 
     def test_never_stable_expires_with_actual_evidence(self):
         message = self.run_worker(settle=False, timeout=.45)
@@ -234,9 +240,17 @@ class StationaryCaptureTests(unittest.TestCase):
         self.assertEqual(result['reason_code'], 'CAMERA_EPOCH_CHANGED')
 
     def test_invalid_quality_is_not_promoted(self):
-        result = self.run_worker(invalid_quality=True)['result']
+        # The existing non-stationary path still reports its quality REVIEW.
+        result = self.run_worker(binding=False, invalid_quality=True)['result']
         self.assertEqual(result['decision'], 'REVIEW')
         self.assertEqual(result['reason_code'], 'IMAGE_QUALITY_INSUFFICIENT')
+
+    def test_invalid_quality_cannot_earn_stationary_capture(self):
+        result = self.run_worker(invalid_quality=True, timeout=.45)['result']
+        self.assertEqual(result['decision'], 'ERROR')
+        self.assertEqual(result['reason_code'], 'DEADLINE_EXCEEDED')
+        self.assertTrue(all(not o['engine_dynamic']['stable'] for o in result['observations']))
+        self.assertTrue(all(not o['quality']['valid'] for o in result['observations']))
 
     def test_other_job_policy_still_uses_existing_first_three_frames(self):
         result = self.run_worker(binding=False)['result']

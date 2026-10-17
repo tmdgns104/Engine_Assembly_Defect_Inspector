@@ -32,7 +32,8 @@ class NativeAutomaticIpc(unittest.TestCase):
                         time.sleep(.02)
                     self.fail(str(s))
                 s=wait(lambda s:s['connected'] and s['fresh'])
-                for number,decision in enumerate(('PASS','FAIL','REVIEW','ERROR'),1):
+                # A completed capture ERROR must not block the next valid cycle.
+                for number,decision in enumerate(('PASS','FAIL','REVIEW','ERROR','PASS'),1):
                     self.assertFalse(hasattr(gateway,'automatic_arm'))
                     self.assertFalse(s['approval_id'])
                     if number==1:process.stdin.write('S');process.stdin.flush()
