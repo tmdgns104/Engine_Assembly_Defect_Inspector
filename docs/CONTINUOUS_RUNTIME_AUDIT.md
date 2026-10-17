@@ -1,5 +1,65 @@
 # 실제 운영 중단 조건 감사 — 2026-10-17
 
+## Attempt14 — 첫 정상 모형이 부품검사 전에 취소됨
+
+정상→오른쪽 파이프만 결품 교대30회는 완료하지 못했다. 실제 첫 요청75, 검사 `9c3882c3a53b4420b7e905c5be732d9c`만 접수됐으며 SQLite `CANCELLED/ERROR`, 이유 `REQUEST_STORAGE_DEADLINE_EXCEEDED`다. 원본 자산0·유효3장0·부품 검사0·통합 최종0·PLC 완료0. 취소 사실은 `storage_success=true`로 영속화했고 SQLite quick_check는ok다. 이를 저장 성공한 제품검사로 세지 않는다. 앞서 완료한74개 거래와 별도이며 추가Result/Done은 발행되지 않았다.
+
+| 단계 | 실제 단조시각(초) | 관측 |
+|---|---:|---|
+| PLC요청75 접수 | 3937.630917 | Ready유효,health나이28.343ms |
+| 첫 현재제품 track확보 | 3960.235785 | 접수후22.605초 |
+| 요청저장완료 | 3960.482505 | 총236.238ms,error없음,admit commit포함6.659ms |
+| 현재프레임 대기 | 3960.482538 | `ADMISSION_WAIT_CURRENT_FRAME`,provider=`NO_FOREGROUND` |
+| 원admission기한 | 3963.235895 | trigger3960.235895부터3초;기한재시작안함 |
+| Python오류/차단 | 3963.251039 | 촬영Worker실행전취소,요청동일 |
+| C거래중단 | 3963.275950 | `PYTHON_NOT_READY`,새Result/Done0 |
+
+`request_start.py:_poll`은 성공한 저장영수증을 보존하고 `tracked_frame_evidence()`에 맞는 현재 한제품 관찰을 기다린다. 이 검사에서 저장은 완료됐으나 관찰조건이 충족되지 않은 채 원래3초기한이 만료됐다. `_live_error`의 공통 오류명이 STORAGE여서 저장지연으로 오인하기 쉽다. 실제 저장시간·오류없음·`NO_FOREGROUND`대기 기록을 근거로 이번경로를구분한다. 400ms lease만료나재부팅/카메라worker교체의증거는없다. 런타임로그끝에있는과거15:45 BrokenPipe는 이번16:52요청원인으로쓰지않는다.
+
+사용자는검사위치계속정지→STOP·LAN재연결→현재모형네부품모두정상임을확인했다. 모형이그대로있는STOP에서기존Worker의GET프리뷰메타데이터12개만읽었다. 서로다른12프레임모두유효,제품전체검출점수0.381231–0.489778,기준0.5미만으로provider모두NO_FOREGROUND였다. 후속정지진단프리뷰를열어정상모형이보이는것을확인했다. 회색제품박스는관찰기준미달의단서이며최종부품FAIL을뜻하지않는다. screenshot의Tailscale주소로본화면과노트북유선LAN분리는모순되지않으며노트북전원OFF시험은아니다.
+
+이12장은실패후진단표본이며실패당시원본이나3장검사로바꾸지않는다. 원실패의촬영dispatch자체가없어원본PNG가없다. FAULT의runtime/status에는관찰링전체가아닌최근4개만있고,후속전체링회수시요청구간은이미벗어났다. 따라서3초내모든프레임점수/누락률은미측정이다. 최초분석도구의구간선택검증실패는이자료범위차이를보였고,카메라중복/유실의증거로오해하지않도록 `right_OBSERVATION_LIMIT.json`에남겼다. 모델·반사·위치·금색손잡이방향중물리근본원인은아직확정하지않았다.
+
+현재STOP·RequestLOW·출력0·저장유휴,같은운영555c3a43053ce4ce/Main1161/Worker2741/재시작0을확인했다. 기준0.5를임의하향하거나ERROR를FAIL로전환하지않았고운영수정·재부팅·추가START없음. 오른쪽파이프결품모형은이번블록에서아직검사되지않았다. 정상30/결품37의이전유한한성공은보존하지만현재혼합30/전체안정성완료는아니다. 다음은제품전체관찰이약한정상모형조건의원인과검증가능한보정범위를정하는단계다.
+
+근거 `runs/mixed_stability_20261017/right_FAILURE_AUDIT.json`, `right_NATIVE.json`, `right_FAULT.json`, `right_STOPPED_PRODUCT_SAMPLES.json`, `right_POSTSTOP_DIAGNOSTIC_PREVIEW.jpg`, `right_POSTSTOP_PREVIEW_RECEIPT.json`, `right_OPERATOR_SCREENSHOT.png`, `right_OBSERVATION_LIMIT.json`, `right_OPERATOR_AFTER.json`. 원본·모델·DB는GitHub에올리지않는다.
+
+---
+
+이하 당시 준비·이전 시험 기록을 보존한다.
+
+## 현재 후속 — 정상·오른쪽 파이프 결품 혼합30 진행 중
+
+사용자 후속 지시로 정상→오른쪽파이프만미결합 교대30회(15쌍)를 선택했다. 시작 전 준비했던 정상/배기구/문양 3상태 attempt13은 새요청0 상태에서 GET-only기록기6574만 종료했으며 모든 파일을 보존했다. 사용자 정상/오른쪽결품 준비 확인 후 `continuous30_20261017_attempt14_normal_right` 기록기6708을 시작했다. 실제START·카운터74·새요청0·같은Worker2741·운영555c3a43053ce4ce 유지 확인, 노트북LAN분리·SSH단절 확인 후 연속투입을 안내했다. 운영프로그램/모델/임계값/PLC는 변경하지 않았고 재부팅도 반복하지 않았다. 다음 결과는 실제요청75이후 원본/원장/C기록으로 확인하며 현재 미확정이다. 증거 `runs/mixed_stability_20261017/right_READY.json`, `right_START.json`, `right_NOTEBOOK_DISCONNECTED.json`.
+
+## Attempt12 — 결품 37건 연속 처리, REVIEW 8건 별도 보존
+
+사용자는 기존 운영본으로 먼저 시험하겠다고 결정했다. `engine-integrated-555c3a43053ce4ce`·같은 boot `c8d72e3f-d5cf-423a-b832-774394ba8243`·Main1161·CameraWorker2741·NRestarts0를 유지했고 운영 코드·모델·임계값·400ms·PLC 계약을 변경하지 않았다. 정상30과 합산하지 않는 별도 결품 시험이며 사전에 배기구만 빠진 모형과 가운데 문양만 빠진 모형을 준비했다. 기대 정답은 수집 계획에만 두었고 Detector 입력에는 전달하지 않았다.
+
+한 번 실제 START 후 노트북 LAN을 분리했다. 사용자의 “대충30번”과 달리 원장에는 새 요청38–74의 **37건**이 있다. 사용자가 STOP을 누르고 LAN을 재연결한 뒤 기록을 회수했다. 사용자는 “순서를 지켰고, 추가 START 없이 계속 배출·재가동됐어요”라고 일괄 확인했다(`fail_OPERATOR_CONFIRMED.json`). C 로그에서 시험 구간의 STOP/START·재접속·중단은 없었다. 물리 관측과 시스템 기록은 구분한다.
+
+| 구간 | 유효 촬영/저장/PLC 완료 | 판정 | 원본/전체 자산 | 구간 경과 |
+|---|---:|---|---:|---:|
+| 사전 계획 첫30 | 30/30/30 | FAIL24, REVIEW6, PASS0, ERROR0 | 90/120 | 543.651초 |
+| 이후 포함 전체37 | 37/37/37 | FAIL29, REVIEW8, PASS0, ERROR0 | 111/148 | 672.751초 |
+
+첫30 요청→C거래 완료: 최소6.946초·중앙10.852초·p95최근접순위11.498초·최대11.547초. 전체37 중앙10.799초·최대11.552초. 모델 추론만의 시간과 구분한다. Health 누적 최대갱신248.376ms는 서비스 시작 이후 값이며 이번 구간 p95/p99가 아니다.
+
+각 ID의 SQLite COMPLETE·최종영속화1회·PLC완료1회, 동일 boot/connection/request token, C Result→후속sequence Done→RequestLOW→출력0→다음대기 순서를 검증했다. 새3장/고유frameID·PTS증가·요청후source시각·촬영3초·안정0.6초·처리15초·같은epoch/generation과 원본 파일/디코딩픽셀SHA를 대조했다. 모든37건 유효 촬영이며 `PRAGMA quick_check=ok`. 첫30 GET-only 수집기와 원장이 일치한다. 30건에서 수집기가 종료된 뒤에도 운영은 이어졌다. 이후 C 기록에는 사용자 STOP의 PLC_CONTROL_INHIBIT·STOPPED_BASELINE만 있으며, 완료된74번을 취소된 검사로 다시 세지 않는다. 회수시 실제 STOP·RequestLOW·출력0·저장유휴다.
+
+### REVIEW의 직접적인 근거
+
+- 4·6·10·20·24·36회(6건): `PART_ASSIGNMENT_UNCERTAIN`. 카메라/제품 자체 미검출이 아니라 `pipe_left`에 대응하는 `gray_pipe` 검출점수0.323–0.494가 부품 기준0.5보다 낮은 프레임이 있었다.
+- 30·34회(2건): `INCONSISTENT_THREE_FRAME_RESULT`. `pipe_left`가 세 장 중 일부 PRESENT, 일부 MISSING으로 바뀌었다.
+- 이8건의 각3장에서는 문양 슬롯이 MISSING으로 기록돼 있다. 현행 `jetson/src/decision/engine_dynamic.py:aggregate_three`는 다른 슬롯의 불확실/프레임불일치를 우선하여 전체 REVIEW로 남긴다. 따라서 ‘문양 결품을 못 봄’ 또는 ‘오조립 때문에 FAIL’로 설명하지 않는다. 최종 정책은 계속 `BASIC_PRESENCE_ASSEMBLY_REFERENCE_V2`, `assembly_affects_final=false`다.
+- 4회2번째·30회3번째 실제 원본 및 2회 비교 원본을 열었다. 해당 화면 아래쪽 곡선 파이프는 보인다. 점수 흔들림은 저장된 추론 증거로 확인되지만 조명·반사·형상·자세 중 원인 하나를 확정하지 않는다. 임계값 하향, REVIEW→FAIL 변경, 재학습은 하지 않았다.
+
+현재 **30회 이상의 검사·저장·PLC 연속처리는 검증**, **결품30건 모두 확정FAIL은 미달**이다. REVIEW를 실패0 성과에 숨기지 않는다. 표시/처분상 불량 경로로 이동했는지는 사용자 관측과 구분한다. 검출/판정 정확도는 두 모형 반복이며 전체결품 일반화가 아니다. 사용자가 교대 순서를 확인했으므로 배기구결품19건은 FAIL19, 문양결품18건은 FAIL10/REVIEW8로 대조한다. 사용자 준비·순서 확인을 기대정답 근거로 쓰며 모델 결과로 정답을 만들지 않는다. 매개체별 독립 표식·각 투입의 별도 사람 영상검토는 없으므로 두 실물 반복에 대한 평가다. 다음 정상·오른쪽파이프결품 혼합30은 별도 attempt14에서 진행 중이며 결과 미확정이다. 이전37건 뒤 준비key 문제는 이번 구간에서 재발하지 않았을 뿐 수정·해결 증거가 아니다.
+
+근거: `runs/mixed_stability_20261017/fail_AUDIT.json`, `fail_NATIVE.json`, `fail_REVIEW_SUMMARY.json`, `fail_OPERATOR_AFTER.json`, `fail_EVIDENCE.zip` SHA `27c8b6fa08f189ec2af9fc6aba00c847714e3ed04ad6a7c9d9ab75451dd9a67b`(241파일/163870934bytes). 검사 원본·DB·모델은 GitHub에 올리지 않는다. 원본 파일은 그대로 유지하고 노트북에서 읽기 전용 분석만 수행했다. 배포 변경이 없어 재부팅은 반복하지 않는다.
+
+---
+
 ## Attempt11 — 실제 단독 30회 검증 통과, 혼합 구간 후속 문제 분리
 
 2026-10-17 실제 재부팅한 `engine-integrated-555c3a43053ce4ce`, boot `c8d72e3f-d5cf-423a-b832-774394ba8243`에서 한 번 START 후 노트북 LAN을 분리했다. 사용자 정상 조립 준비·연속 투입 및 “대충 30번 넘게…잘 되고” 관측과 Jetson 원기록을 대조했다. 노트북 전원 OFF 시험은 아니다. 같은 Main1161·CameraWorker2741, 서비스 재시작0. 첫30건 동안 새 START·STOP·재접속·C abort 없이 이어졌고, 별도 수집기는 30건 저장 후 정상 종료했다. 수집기가 종료된 뒤에도 운영 서비스는 계속 검사했다.

@@ -1,3 +1,27 @@
+ATTEMPT14 FIRST NORMAL CANCELLED BEFORE INFERENCE / PRODUCT OBSERVATION BELOW THRESHOLD / STOPPED
+2026-10-17 사용자 지정 정상→오른쪽파이프결품 혼합30은 첫정상에서 중단됐다. 실제request75/검사9c3882c3a53b4420b7e905c5be732d9c: CANCELLED/ERROR, REQUEST_STORAGE_DEADLINE_EXCEEDED, 새검사원본0·부품추론0·통합최종0·PLC완료0. 취소사실의SQLite저장은정상이고 이전74완료는보존. 사용자는계속정지관측→실제STOP/LAN재연결→현재네부품정상모형확인. 모형이있는상태/STOP을유지하며서비스재시작·기준변경·추가START없음.
+PLC접수후첫제품track확보22.605초. 요청저장236.238ms/error없음(실제admit commit포함6.659ms) 뒤 ADMISSION_WAIT_CURRENT_FRAME/NO_FOREGROUND, 원admission3초기한만료로촬영Worker dispatch전취소. 오류명STORAGE만보고SQLite실패로해석하지않음. 같은모형STOP후진단12서로다른새프레임 제품전체점수0.381–0.490<0.5,전부NO_FOREGROUND. 실제진단프리뷰에모형이보임; 현재위치/모형의제품인식약함은확인됐지만물리원인·과거전체요청프레임 점수는미확정. 실패원본은없고현재프리뷰를실패입력으로사용하지않음. request75전체프레임링은미회수(runtime/status는최근4개만포함);이한계를명시함.
+이전attempt12 결품37(FAIL29/REVIEW8)과분리하며혼합30은미달성,오른쪽결품은아직미검사. 현운영555c3a43053ce4ce/같은boot/Main1161/Worker2741/NRestarts0. 새기준을임의적용하지않으며후속은제품전체검출의안정화범위결정. 증거 runs/mixed_stability_20261017/{right_FAILURE_AUDIT,right_FAULT,right_STOPPED_PRODUCT_SAMPLES,right_OBSERVATION_LIMIT,right_OPERATOR_AFTER}.json 및정지후진단프리뷰/사용자스크린샷. 원본/Journal/운영코드보존.
+
+Previous checkpoint:
+ATTEMPT12 HUMAN/RECORDS RECONCILED / ATTEMPT14 NORMAL–RIGHT-PIPE MIXED30 IN PROGRESS
+2026-10-17 사용자 “순서를 지켰고, 추가 START 없이 계속 배출·재가동” 확인. attempt12 실제37건(첫30 FAIL24/REVIEW6,전체 FAIL29/REVIEW8)은 순서대로 배기구결품19건 전부FAIL·문양결품18건 FAIL10/REVIEW8. PASS0/ERROR0, 유효3장/저장/PLC완료37과 물리연속운전 관측을 대조했다. 문양결품의8REVIEW는 왼쪽파이프의 저점수/프레임불일치이며 확정FAIL 성공으로 세지 않는다. 상태확인은 사용자준비/순서 근거, 모델판정에서 역산하지 않음.
+사용자가 다음 시험을 “정상→오른쪽 파이프 반복”으로 변경했다. 아직 START/새검사0건인 3상태 attempt13 GET-only기록기6574만 식별종료,파일보존. 실제운영서비스/카메라/PLC 변경없음. 사용자 정상·오른쪽파이프만미결합 준비확인 후 attempt14_normal_right 별도수집기6708/기준 request=result=done=completed=74/Worker2741 준비. 실제START(Mc_Runtrue/Requestfalse/IDLE/새요청0)→노트북LAN분리/SSH3초timeout 확인. 정상→오른쪽파이프결품 15쌍/30회 연속투입 안내; 실제결과는 대기이며 이전시험과 합산하지 않음.
+운영555c3a43053ce4ce/bootc8d72e3f·모델·400ms·임계값·PLC·촬영조건 유지,추가재부팅없음. 노트북터널 복원HTTP200 확인 뒤 단독시험을 위해 다시LAN분리; 렌더링은미확인. 증거 runs/mixed_stability_20261017/{fail_OPERATOR_CONFIRMED,mixed_SUPERSEDED_BEFORE_START,right_OPERATOR,right_READY,right_PLAN,right_START,right_NOTEBOOK_DISCONNECTED}.json. 다음: 사용자완료/중단→STOP→LAN재연결→이번요청75이후 원장·원본·C거래 대조. 상태/판정은원기록을따르며 REVIEW를 FAIL로변경하지않는다.
+
+Previous checkpoint:
+ATTEMPT12 FAIL-ONLY TRANSPORT 37 COMPLETE / REVIEW8 / MIXED TEST PENDING
+2026-10-17 운영555c3a43053ce4ce를 변경·재시작하지 않고 사용자 한START·노트북LAN분리 결품시험을 수행했다. 실제 새요청38–74 총37건: FAIL29/REVIEW8/PASS0/ERROR0, 유효3장37·SQLite저장37·같은token PLC거래37 완료. 첫30건은 FAIL24/REVIEW6, 새원본90PNG,543.651초. 전체37은111원본/148자산SHA·디코딩픽셀SHA·SQLite quick_check ok,672.751초. 같은bootc8d72e3f/Main1161/Worker2741/NRestarts0. 구간내 C 중단·재접속없음, 종료후 실제STOP만 기록. 회수시Mc_Runfalse/RequestLOW/출력0/유휴.
+REVIEW8 원시이유:6건 PART_ASSIGNMENT_UNCERTAIN(왼쪽파이프 gray_pipe 점수0.323–0.494<0.5),2건 INCONSISTENT_THREE_FRAME_RESULT(왼쪽파이프 PRESENT/MISSING 혼재). 문양 슬롯은각3장MISSING이나 다른슬롯불확실을 우선하는 현행집계에 따라 REVIEW. 원본4회2장/30회3장을 열어보면 해당파이프는 보이며 점수불안정의 물리원인은 미확정. 오조립보조판정은 최종에 영향없음. 첫30 거래연속성 확인과30건결품확정FAIL은 구분(후자는미달). 배기구→문양 교대 및 실제무개입배출 관측은 사용자확인대기,모델결과로정답을역산하지않음.
+증거 runs/mixed_stability_20261017/{fail_AUDIT,fail_NATIVE,fail_REVIEW_SUMMARY,fail_OPERATOR_AFTER}.json 및 fail_EVIDENCE.zip SHA27c8b6fa08f189ec2af9fc6aba00c847714e3ed04ad6a7c9d9ab75451dd9a67b. 원본보존/모델·임계값·PLC·400ms변경없음. 다음: 사용자투입순서/물리동작확인→정상·결품혼합30 별도준비. 이전준비key후속문제는 이번미재현이며 해결됐다고하지않는다.
+
+Previous checkpoint:
+ATTEMPT12 FAIL-ONLY FIELD TEST IN PROGRESS / CURRENT RUNTIME UNCHANGED
+2026-10-17 후속 목표는 결품만30회→정상·결품 혼합30회. 사용자가 현재 운영본으로 먼저 시험하고 이후 수정하도록 선택했으므로 새로운 운영 변경은 하지 않는다. 정상 첫30 통과는 아래 증거로 보존하고 새 시험과 합산하지 않는다. tracking session 교체만으로 저장준비가 해제되는 격리 재현 POST37_READINESS_REPRO.json은 개선 후보의 근거이며 운영 수정/실물 PASS가 아니다.
+현재 사용자가 배기구만 빠진 모형과 가운데 문양만 빠진 모형을 각각 준비했다. A/B/C 대신 실제 상태 이름으로만 안내한다. 실제STOP·빈벨트→기록기5851→START/IDLE/기준37·새요청0→노트북LAN 분리 확인 후 두 결품을 번갈아30회 투입하도록 안내했다. FAIL 후 배출/재가동하면 계속하고 오류·재가동불가이면 추가START 없이 알리도록 했다. 운영555c3a43053ce4ce/같은boot/Worker2741 유지. 기대정답은 수집기 평가 목록에만 저장되며 Detector에 전달하지 않는다. 정확한 순서·실제 횟수·완료/유효사진/정확도는 재연결 후 감사 대기. 정상·결품 혼합30은 아직 미실행이다.
+증거 runs/mixed_stability_20261017/{fail_OPERATOR,fail_READY,fail_START,fail_PLAN,fail_NOTEBOOK_DISCONNECTED}.json; Jetson data/engine_dynamic_pose_002/acceptance/continuous30_20261017_attempt12_fail. 수집기 기준파일 읽기 경합은 PREPARATION_ISSUE.json으로 보존하고 동일 실행 PID로 복구, 장치 프로그램 변경 없음. 다음 행동은 사용자 완료/멈춤 응답 뒤 STOP·LAN재연결을 한 번에 하나씩 안내한다.
+
+Previous checkpoint:
 ATTEMPT11 ACTUAL STANDALONE 30 VERIFIED / POST-37 READINESS FOLLOW-UP OPEN
 2026-10-17 운영555c3a43053ce4ce·bootc8d72e3f·Worker2741 유지, NRestarts0. 실제 한 START·노트북 LAN 분리 상태에서 첫30건: PASS30/유효3장30/PLC거래30, 새원본90PNG·120자산 검증, 545.150초(9분5초). 전체37건은 PASS36/FAIL1/ERROR0/REVIEW0, 모두 유효3장·같은ID Result→laterDone→RequestLOW→다음대기 확인. 111원본·148자산 파일/픽셀SHA·SQLite ok, 수집기407관측 무장애·30건 정상 종료. 요청→C완료 첫30 중앙10.676초/p95 14.219초/최대14.325초. HEALTH_UPDATE 저장최대248.376ms(400ms 미만; p95/p99 미측정). 정확한 정상/불량 전환 번호·결품 종류는 사용자 기억 불명; 37번 RIGHT_PIPE_MISSING은 모델 판정이며 정답 확정 아님.
 37번 완료 뒤 8.89초에 REQUEST_STORAGE_OWNER_CHANGED/WAIT_REQUEST_STORAGE_CHECK로 Ready 해제·C DISARMED 기록. 0.33초 뒤 Ready는 회복했지만 약5.21초 뒤 실제STOP 기준으로 복귀; 38번째 수락/검사/취소 행은 없음. 마지막 사용자 '요청 후STOP인 것 같음'은 관측으로만 보존하며 오류를 STOP 탓으로 단정하지 않음. 첫30 통과와 별도 후속 문제, 장시간/불량혼합 안정성 완료 아님. 현재 실제 STOP/RequestLOW/출력0/저장유휴 확인. 재시작·추가START·판정/임계값 변경 없음.
