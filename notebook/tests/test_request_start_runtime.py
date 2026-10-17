@@ -119,6 +119,91 @@ class RequestStartRuntimeTests(unittest.TestCase):
     def test_1000ms_storage_delay_keeps_live_checks_without_early_dispatch(self):
         self.delay_admission(1.)
 
+    def wait_for_admission_receipt_with_preview_miss(self):
+        """An actual SQLite receipt may arrive during one missing preview."""
+        self.controller.begin(self.binding, time.monotonic())
+        original_deadline = self.controller.pending['deadline']
+        self.saved_trigger_deadline = self.controller.pending['reservation'].payload()['trigger']['deadline_monotonic']
+        self.r.latest_packet['provider'] = dict(status='NO_FOREGROUND', observations=[])
+        deadline = time.monotonic() + 2
+        while not self.controller.pending.get('activation_receipt'):
+            self.assertLess(time.monotonic(), deadline)
+            self.tick()
+            self.assertIsNone(self.r.error)
+            self.assertTrue(self.service.commands.empty())
+            time.sleep(.005)
+        self.assertEqual(self.controller.pending['deadline'], original_deadline)
+        return original_deadline
+
+    def test_saved_admission_waits_for_current_frame_without_second_SQL_or_dispatch(self):
+        original_deadline = self.wait_for_admission_receipt_with_preview_miss()
+        row = self.journal.db.execute('SELECT inspection_id,state FROM inspections').fetchone()
+        self.assertEqual(row['state'], 'ACCEPTED')
+        with patch.object(self.journal, 'admit', side_effect=AssertionError('duplicate SQL')):
+            for _ in range(3):
+                self.tick()
+                self.assertEqual(self.controller.pending['deadline'], original_deadline)
+                self.assertIsNone(self.r.error)
+                self.assertTrue(self.health_updates[-1][1])
+                self.assertTrue(self.service.commands.empty())
+            self.r.latest_packet = dict(packet(2, time.monotonic()-.001),
+                                       camera_epoch='camera', generation='worker')
+            self.drain_pending()
+        command = self.service.commands.get_nowait()
+        self.assertEqual(command['inspection_id'], row['inspection_id'])
+        self.assertEqual(command['deadline'], self.saved_trigger_deadline)
+        self.assertTrue(self.service.commands.empty())
+        self.r.handshake.bind.assert_called_once()
+
+    def test_STOP_while_saved_admission_waits_cancels_once_without_capture(self):
+        self.wait_for_admission_receipt_with_preview_miss()
+        self.controls['Mc_Run'] = False
+        with patch.object(self.journal, 'cancel', wraps=self.journal.cancel) as cancel:
+            self.drain_pending()
+            cancel.assert_called_once()
+        self.assertTrue(self.service.commands.empty())
+        self.r.handshake.bind.assert_not_called()
+        self.assertEqual(self.journal.db.execute('SELECT state FROM inspections').fetchone()[0], 'CANCELLED')
+
+    def test_saved_admission_wait_never_restarts_deadline(self):
+        self.wait_for_admission_receipt_with_preview_miss()
+        self.controller.pending['deadline'] = time.monotonic()-1
+        self.drain_pending()
+        self.assertIn('REQUEST_STORAGE_DEADLINE_EXCEEDED', self.r.error)
+        self.assertTrue(self.service.commands.empty())
+        self.r.handshake.bind.assert_not_called()
+
+    def test_changed_track_while_saved_admission_waits_remains_a_fault(self):
+        self.wait_for_admission_receipt_with_preview_miss()
+        self.r.coordinator._tracker._track_id += 1
+        self.drain_pending()
+        self.assertEqual(self.r.error, 'ADMISSION_CURRENT_TRACK_OR_REQUEST_CHANGED')
+        self.assertTrue(self.service.commands.empty())
+        self.r.handshake.bind.assert_not_called()
+
+    def test_saved_admission_wait_keeps_live_owner_fault_checks(self):
+        mutations = {
+            'request_changed': lambda case: setattr(case, 'request_id', 2),
+            'PLC_disconnected': lambda case: setattr(case, 'connected', False),
+            'E_STOP': lambda case: case.controls.update(EStop_OK=False),
+            'camera_lost': lambda case: setattr(case.service, 'preview_received', 0),
+            'worker_changed': lambda case: setattr(case.service, 'generation', 'replacement'),
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                case = RequestStartRuntimeTests()
+                case.setUp()
+                try:
+                    case.wait_for_admission_receipt_with_preview_miss()
+                    mutate(case)
+                    case.drain_pending()
+                    self.assertIsNotNone(case.r.error)
+                    self.assertTrue(case.service.commands.empty())
+                    case.r.handshake.bind.assert_not_called()
+                    self.assertEqual(case.journal.db.execute('SELECT state FROM inspections').fetchone()[0], 'CANCELLED')
+                finally:
+                    case.doCleanups()
+
     def test_STOP_during_admit_cancels_one_late_row_and_never_dispatches(self):
         original, entered, release = self.journal.admit, threading.Event(), threading.Event()
         def blocked(*args,**kwargs):

@@ -298,17 +298,19 @@ class RequestStart:
                      and r.operating and r._profile_ready())
         r.gateway.ready_reason = error or ('REQUEST_STORAGE_PENDING' if ready else 'WAIT_REQUEST_STORAGE_CHECK')
         r.gateway.health_update(ready, False, time.monotonic())
-        try:
-            saved = r.service.storage.request_completed.get_nowait()
-        except queue.Empty:
-            return
-        if saved.get('context') is not context['completion_owner']:
-            self._block(context, 'REQUEST_STORAGE_COMPLETION_IDENTITY_MISMATCH')
-            return  # Do not release another pending job's reservation.
+        saved = context.get('activation_receipt')
+        if saved is None:
+            try:
+                saved = r.service.storage.request_completed.get_nowait()
+            except queue.Empty:
+                return
+            if saved.get('context') is not context['completion_owner']:
+                self._block(context, 'REQUEST_STORAGE_COMPLETION_IDENTITY_MISMATCH')
+                return  # Do not release another pending job's reservation.
+            r.service.health_diagnostics.record('REQUEST_STORAGE_COMPLETED', kind=context['kind'],
+                request_token=context['token'], duration_ms=saved.get('duration_ms'),
+                timings=saved.get('timings'), error=saved.get('error'), aborted=context['aborted'])
         self.pending = None
-        r.service.health_diagnostics.record('REQUEST_STORAGE_COMPLETED', kind=context['kind'],
-            request_token=context['token'], duration_ms=saved.get('duration_ms'),
-            timings=saved.get('timings'), error=saved.get('error'), aborted=context['aborted'])
         if context['kind'] == 'cancel':
             if saved.get('error'):
                 self.pending = context  # Reservation remains held until recovery.
@@ -340,10 +342,25 @@ class RequestStart:
                 if (not cycle or cycle.cycle_id != binding['cycle_id']
                         or r.coordinator._tracker._track_id != binding['track_id']
                         or r.handshake.state != 'REQUEST_LATCHED' or r.handshake.inspection_id
-                        or r.cycle_issue or r.automatic_identity_block
-                        or not tracked_frame_evidence(r.latest_packet, r.handshake.accepted_at,
-                            binding['camera_epoch'], binding['worker_generation'], time.monotonic())):
+                        or r.cycle_issue or r.automatic_identity_block):
                     raise ValueError('ADMISSION_CURRENT_TRACK_OR_REQUEST_CHANGED')
+                if not tracked_frame_evidence(r.latest_packet, r.handshake.accepted_at,
+                        binding['camera_epoch'], binding['worker_generation'], time.monotonic()):
+                    # One preview miss does not change the durable request owner.
+                    # Stay ADMITTING, reuse this exact receipt, and keep checking
+                    # controls/owners/deadline each tick. No camera job is sent
+                    # until a current qualifying frame arrives; neither clock
+                    # restarts and no second Journal admission is created.
+                    if 'activation_receipt' not in context:
+                        packet = r.latest_packet or {}
+                        r.service.health_diagnostics.record('ADMISSION_WAIT_CURRENT_FRAME',
+                            request_token=context['token'], inspection_id=saved['result']['row']['inspection_id'],
+                            frame_id=packet.get('frame_id'),
+                            provider_status=packet.get('provider', {}).get('status'),
+                            deadline_monotonic=context['deadline'])
+                    context['activation_receipt'] = saved
+                    self.pending = context
+                    return
                 row, _ = r.service.activate_production_admission(context['reservation'], saved)
                 self._bind(row, binding, time.monotonic())
                 self.readiness = None

@@ -95,7 +95,10 @@ class RequestStartNativeTests(unittest.TestCase):
     def test_single_START_twelve_cycles_delay_matrix_has_no_accumulating_pending_work(self):
         self._exercise_native(delay_matrix=True)
 
-    def _exercise_native(self, *, stop_during_admit=False, delay_matrix=False):
+    def test_admitted_request_waits_for_current_frame_without_duplicate_dispatch(self):
+        self._exercise_native(frame_wait=True)
+
+    def _exercise_native(self, *, stop_during_admit=False, delay_matrix=False, frame_wait=False):
         import cv2
         import numpy as np
         service, journal = make_service(self)
@@ -138,15 +141,31 @@ class RequestStartNativeTests(unittest.TestCase):
                 runtime._poll_result = lambda now: None
                 sequence = 0
                 feed = False
+                cycle_number = 0
+                frame_wait_injected = False
+                qualification_misses = 0
+                frame_wait_receipts = []
 
                 def step():
-                    nonlocal sequence
+                    nonlocal sequence, frame_wait_injected, qualification_misses
                     now = time.monotonic()
                     service.heartbeat.value = now
                     service.preview_received = now
                     service.preview = dict(generation='g', freshness={'camera_epoch': 'e'})
                     sequence += 1
-                    observation = packet(sequence, now - .002, count=int(feed))
+                    pending = runtime.request_start.pending
+                    if (frame_wait and cycle_number == 3 and not frame_wait_injected
+                            and pending and pending['kind'] == 'admit'
+                            and not service.storage.request_completed.empty()):
+                        # The real writer has committed. Only the next few
+                        # preview observations miss the product; owners and the
+                        # PLC request stay unchanged. Do not inject health.
+                        frame_wait_injected = True
+                        qualification_misses = 3
+                    observation = packet(sequence, now - .002,
+                        count=0 if qualification_misses else int(feed))
+                    if qualification_misses:
+                        qualification_misses -= 1
                     observation['processed_monotonic'] = now
                     service.products.put_nowait(observation)
                     with runtime.lock, service.lock:
@@ -154,6 +173,14 @@ class RequestStartNativeTests(unittest.TestCase):
                         if runtime._poll_completion_audit(time.monotonic()):
                             return
                         if runtime.request_start.tick(time.monotonic()):
+                            pending = runtime.request_start.pending
+                            if frame_wait and pending and pending.get('activation_receipt'):
+                                receipt = pending['activation_receipt']
+                                frame_wait_receipts.append(receipt)
+                                self.assertIs(receipt, frame_wait_receipts[0])
+                                self.assertEqual(service.state, 'ADMITTING')
+                                self.assertTrue(service.commands.empty())
+                                self.assertIsNone(runtime.handshake.inspection_id)
                             return
                         if not journal.lock.acquire(blocking=False):
                             runtime._storage_wait_health(time.monotonic())
@@ -205,7 +232,6 @@ class RequestStartNativeTests(unittest.TestCase):
                 original_finish, original_final = journal.finish, journal.commit_integrated
                 original_transaction = journal_start.transaction
                 delayed = []
-                cycle_number = 0
                 cases = [(stage, delay) for stage in ('admit', 'raw', 'final')
                          for delay in (.350, .450, .600, 1.)] if delay_matrix else []
                 stage_times = []
@@ -366,6 +392,11 @@ class RequestStartNativeTests(unittest.TestCase):
                     if not delay_matrix:
                         self.assertEqual(delayed, ['event', 'counter', 'admit'])
                     self.assertEqual(journal.db.execute('SELECT count(*) FROM inspections').fetchone()[0], len(decisions))
+                if frame_wait:
+                    self.assertTrue(frame_wait_injected)
+                    self.assertGreaterEqual(len(frame_wait_receipts), 2)
+                    self.assertEqual(journal.db.execute(
+                        "SELECT count(*) FROM inspections WHERE state='COMPLETE'").fetchone()[0], 3)
                 gaps = [current[0]-previous[0] for previous, current in zip(renewals, renewals[1:])]
                 self.assertLess(max(gaps), .4, dict(max_renewal_gap=max(gaps),
                     diagnostics=gateway.diagnostics.snapshot()))
@@ -380,6 +411,7 @@ class RequestStartNativeTests(unittest.TestCase):
                     renewal_gap_p95_ms=float(np.percentile(gaps,95))*1000,
                     renewal_gap_p99_ms=float(np.percentile(gaps,99))*1000,
                     stage_delays=stage_times,
+                    admission_frame_wait_ticks=len(frame_wait_receipts),
                     completed_cycles=0 if stop_during_admit else len(decisions))
             finally:
                 failure_in_progress = sys.exc_info()[0] is not None

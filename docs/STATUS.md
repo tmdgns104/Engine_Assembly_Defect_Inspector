@@ -1,3 +1,23 @@
+STANDALONE30 ATTEMPT10 AUDITED / CAPTURE STABILITY ERROR / 30 NOT MET
+2026-10-17 a8afabe667e881ed 실제 재부팅 후 한 START·노트북 LAN 분리로 5요청/5PLC거래 완료. 순서 PASS→PASS→ERROR→PASS→PASS, 최대연속유효PASS2. 사용자의 오류 후 추가검사 관측과 일치하며 실제로는 오류 뒤 새요청2건이 있었다. 3번째 e14586d0…는 촬영3초 내 안정연속3장 부족(DEADLINE_EXCEEDED), 후보11/거부10/안정1장폐기. 진단3장의 각 부품검사는PASS지만 유효촬영 성공으로 세지 않는다. 20자산SHA·SQLite·같은ID Result→laterDone→LOW→다음대기 검증. 요청→C완료 9.498–13.345초(중앙10.795), 첫요청→5완료84.194초. 동일boot/Main1079/Worker2725, 서비스재시작0. 요청수락·Ready/통신 중단 없음.
+사용자 STOP·LAN재연결 완료, 모형은 그대로 유지 요청. 실제Mc_Runfalse/RequestLOW/출력0·유휴 확인. 별도GET-only수집기는 첫결과의 지연import 누락(replay_basic_part_presence)으로중단; 운영원장·20원본은보존되고 직접회수했다. 준비완료 검증이 부족했던 수집기 오류를 숨기지 않는다. 해당의존성전송과 다음준비시사전import검사를보완하며 새수집기/검사재실행없음.
+오류원본3장을실제확인하고 Jetson OpenCV5에서 마지막두변화량1.533%/1.977%를원기록과정확재현(기준0.8%). 변한픽셀의91.5%/83.4%가검출제품bbox밖. 전체영상 움직임검사의주변민감성증거이며 실제진동/조명/엔진정지여부는미확정. 사용자에게오류검사당시정지/움직임관측만질문중. 모델·임계값·촬영기한·운영코드추가변경없음. runs/admission_frame_wait_20261017/ATTEMPT10_AUDIT.json 및 SAVED_MOTION_ANALYSIS.json, docs/CONTINUOUS_RUNTIME_AUDIT.md. 다음: 실제정지관측과기존안정판정의적용범위를대조. 30성공/장시간안정성미달성.
+
+Previous checkpoint:
+ADMISSION WAIT DEPLOYED / ACTUAL REBOOT VERIFIED / STANDALONE30 ATTEMPT10 IN PROGRESS
+2026-10-17 사용자 STOP·빈 벨트·sudo 실행 후 174파일/SQLite 백업 f54556de… 노트북 검증, a8afabe667e881ed의 요청 수락 대기 1파일 적용 및 189운영해시 확인. 이전17요청·사진·판정 보존, 미전송17번은 append-only 취소 정리만 수행(새결과/전송0). 실제 재부팅 boot081d4e63…, enabled/active Main1079 NRestarts0, 단일 cameraWorker2725, 모델·PLC·health ready/WAIT_START. 추가31.054초 새프레임7개 확인. 재부팅 후 Jetson 수동 재시작/전원·USB 조작 없음. 노트북 터널만 재연결; 브라우저 도구 정책으로 실제 화면 렌더링은 미확인, 서버 상태는 확인.
+새 attempt10 Jetson GET-only 기록기4696 준비. 사용자 실제 START 후 Mc_Run=true/RequestLOW/IDLE/카운터0/카메라준비 확인(05:08:29 UTC). 사용자 노트북 LAN 분리 및 SSH timeout 관측(05:09:27 UTC) 후 정상 모형30회 연속 투입 안내. 현재 실제 횟수·결과는 재연결 후 원장/C trace 대조 대기. 이전14PASS/16거래를 합산하지 않는다. 검증 PC73/ARM6473/native격리8과 실물30을 구분하며 기존 촬영ERROR 원인은 미해결 상태로 유지한다. 증거 runs/admission_frame_wait_20261017/DEPLOYMENT.json, AFTER_REBOOT_PROOF.json, FIELD30_START_CONFIRMED.json, FIELD30_NOTEBOOK_DISCONNECTED.json. GitHub 갱신 준비 중.
+
+Previous checkpoint:
+ATTEMPT09 AUDITED / ONE-FILE ADMISSION WAIT VERIFIED / SUDO TRANSITION PENDING
+2026-10-17 노트북 LAN 재연결 후 실제 요청17/PLC완료16 확인: PASS14, 촬영ERROR2(1·15회), 촬영전취소ERROR1(17회). 최대연속유효PASS13,30미달성. 16건 Result→later Done→LOW→다음대기/64자산SHA/SQLite 검증. 17회는 수락SQL253.908ms 정상 뒤 영상eligible해제; 같은owner/track이나 정확한실패provider는미보존. 기존촬영3초 부족 두건과분리. 운영f03d3f570a172c5f/bootc050e0e3 유지.
+동일수락의 순간영상부적격을 원기한내대기로 처리하는 request_start.py 1파일 후보a8afabe667e881ed 검증: PC73/ARM6473PASS,C격리8개검증(최초시험초기화실패보존,수정후5재실행PASS). 요청변경/STOP/실장애/기한/400ms/모델·임계값유지. 사용자가현재STOP·빈벨트확인.17기록보존·취소원장읽기전용preflight통과. 임시배치만완료,백업/적용/재부팅/새실물30미실행. sudo시작명령 질문,백업감시기실행. docs/CONTINUOUS_RUNTIME_AUDIT.md, runs/runtime_audit_20261017/ATTEMPT09_AUDIT.json, runs/admission_frame_wait_20261017/FINAL_CANDIDATE.json. GitHub01cf5ff까지push확인;현재후보미push. 다음: 사용자sudo→백업검증→1파일적용→정지상태취소정리→재부팅자동기동→별도실물30.
+
+Previous checkpoint:
+STANDALONE30 ATTEMPT09 STOPPED / RECONNECT AND FIRST-FAULT AUDIT PENDING
+2026-10-17 실제 START/IDLE/오류없음/카운터0을 확인한 뒤 사용자 노트북 LAN 분리와 SSH 단절을 관측했다. 정상 모형 연속 투입 중 사용자가 횟수는 불확실하나 약14회이며 검사 후 멈췄다고 확인했다. 실제 STOP 버튼도 눌렀다고 확인했다. 정확한 완료 수·최초 오류는 미확인이고 30회 완료로 집계하지 않는다. 모형은 그대로 유지하며 노트북 LAN 재연결 질문 대기. 재시작·복구·새 START·임계값 변경 없음. GitHub master에 검증된 관련56파일 커밋01cf5ffc3217fc13b1dba4bfbad6f85226429967 push 및 원격SHA 일치 확인. 원본·DB·모델 업로드 없음; 무관한 사용자 변경 보존.
+
+Previous checkpoint:
 RUNTIME AUDIT FIX DEPLOYED / ACTUAL REBOOT AUTOSTART VERIFIED / STANDALONE30 PREPARING
 2026-10-17 사용자sudo 실행 후174파일/SQLite 백업590779f37fa69ad8d98a6b60d2be23bf0669c68254e138bae35313722df7e48d 노트북검증. 후보 f03d3f570a172c5f 적용·189운영해시확인. c7f…미전송rawPASS는기존검증된append-only ABORTED만기록,870c…완료제품유지보수종료;원본8자산/두검사행/이전final 보존,새grant·재전송0. 실제재부팅 boot c050e0e3-9cd9-4b69-80de-76932fd6616d, enabled/active Main1078 NRestarts0,단일cameraWorker2758,모델·PLC·health ready·WAIT_START. 재부팅후수동복구없음. 추가31.36초7개새프레임/같은Worker/STOP대기확인.
 정상모형준비 사용자확인 후기존GET-only 수집기를Jetson내부 PID4503으로실행, data/engine_dynamic_pose_002/acceptance/continuous30_20261017_attempt09. 노트북과분리해도서비스·필수Journal은Jetson소유. 실제START 후Mc_Run=true/RequestLOW/IDLE/오류없음/카운터0 확인. 사용자노트북LAN분리확인·SSH접속단절 관측 후정상모형30회연속투입안내. 단독운전결과는재연결후검증대기. GitHub코드반영준비중(아직push안함). 상세 docs/CONTINUOUS_RUNTIME_AUDIT.md; AFTER_REBOOT_PROOF.json/POSTBOOT_SUMMARY.json/FIELD30_READY.json.
