@@ -1,5 +1,33 @@
 # 실제 운영 중단 조건 감사 — 2026-10-17
 
+## Attempt15 — 기존 취소 복구 후 정상·오른쪽 파이프 결품 재시험 중
+
+사용자가 STOP·빈 벨트를 확인한 뒤 같은 서비스를 재시작했다. 운영555c3a43053ce4ce·OS boot c8d72e3f는 유지되고 Main8165/CameraWorker8208/NRestarts0이다. 코드·모델·임계값·PLC 계약 변경은 없다. 새 어댑터와 정지 증거를 기존 취소 복구 API로 검증(check)한 뒤 apply했다. request75 원래 CANCELLED/ERROR와 검사행322개·자산행1204개·저장최종201개는 그대로이며 재전송불가 종료 영수증667c0ba10b5b430e8e305b0f8bf5bb4f만 추가했다. 새 원본·판정·허가·PLC쓰기0. 복구후 오류없음, 새영상3개와 현장START대기 화면상태를 확인했다. OS 재부팅이나 제품인식 개선 검증으로 표시하지 않는다.
+
+별도 `continuous30_20261017_attempt15_normal_right_retry`의 기존 GET-only 기록기8522/Worker8208/새카운터0 준비 후 실제 START를 대조했다. 사용자 노트북LAN분리와 SSH3초timeout을 확인하고 정상→오른쪽파이프만결품 15쌍을 안내했다. 앞 모형 완전배출 후 다음 투입, ERROR/재가동불가시 추가START금지 원칙을 유지한다. 현재 횟수·정확도·PLC완료는 미확정이며 이전 실패를 성공으로 합산하지 않는다. 위치 민감성의 근본 수정 없이 사용자가 선택한 현재운영본 시험을 이어가는 것이다.
+
+근거: `runs/mixed_stability_20261017/CANCELLED_ABORT_CHECK.json`, `CANCELLED_ABORT_APPLY.json`, `right_AFTER_RECOVERY.json`, `right_retry_READY.json`, `right_retry_START.json`, `right_retry_PLAN.json`, `right_retry_NOTEBOOK_DISCONNECTED.json`. 원본·모델·DB는 GitHub에 올리지 않는다.
+
+
+## Attempt14 후속 — STOP 상태에서 위치만 바꾼 대조
+
+사용자는 같은 정상 모형의 방향을 유지하며 진행 방향으로 약2cm 이동했다고 확인했다. 운영 모델·0.5 기준·카메라 Worker2741을 그대로 두고 각 위치에서 서로 다른 12프레임을 기존 GET 프리뷰 메타데이터로 관측했다.
+
+| 위치 | 전체 엔진 점수 범위 | 중앙값 | 기준0.5 이상 |
+|---|---:|---:|---:|
+| 오류 후 원래 자리 | 0.381231–0.489778 | 0.422677 | 0/12 |
+| 이동 후 자리 | 0.767626–0.804196 | 0.784943 | 12/12 |
+| 손으로 되돌린 자리 | 0.718430–0.748063 | 0.741304 | 12/12 |
+
+원본 방향 유지·이동 거리는 사용자 조작이며 기계적으로 계측하지 않았다. 첫 이동의 bbox 중심 평균은 x−156.697px/y−14.677px 변했다. 사용자는 복귀 후 ‘되돌렸는데 손으로 해서 맞는지 모르겠다’고 밝혔다. 세 번째 실제 프리뷰에서는 최초 대비 위치와 각도가 조금 다르고 검출 bbox 중심은 x+53.333px/y−20.602px였다. 낮은 점수는 이 수동 복귀 위치에서 재현되지 않았다. 따라서 정확히 같은 위치로 돌아온 A-B-A 재현으로 인정하지 않으며, 추가 수동 맞춤은 요구하지 않는다. 배치 변화와 점수 변화는 관측했지만 위치·각도·반사·배경·시간을 독립적으로 분리한 실험은 아니다.
+
+진단은 새 촬영 요청이나 모델 실행 명령 없이 기존 Worker 결과를 읽었다. 36개 frame ID는 서로 다르며 현재 PLC request75/completed74와 기존 ERROR는 유지됐다. 연속 프레임을 독립적인 정확도 시험으로 세지 않는다. 검사 원본3장·부품 판정·PLC 완료가 새로 생긴 것은 아니며 혼합30/복구 완료도 아니다. 프리뷰 JPEG에는 표시가 포함되므로 모델 입력으로 사용하지 않는다.
+
+근거: `runs/mixed_stability_20261017/right_POSITION_COMPARISON.json`, `right_STOPPED_PRODUCT_SAMPLES.json`, `right_MOVED_PRODUCT_SAMPLES.json`, `right_POSTSTOP_DIAGNOSTIC_PREVIEW.jpg`, `right_MOVED_DIAGNOSTIC_PREVIEW.jpg`. 기존 실패 원장과 아래 분석을 보존한다.
+복귀 대조 근거는 `right_RETURN_POSITION_COMPARISON.json`, `right_RETURNED_PRODUCT_SAMPLES.json`, `right_RETURNED_DIAGNOSTIC_PREVIEW.jpg`다.
+
+취소 복구 전에는 사용자 STOP·빈 벨트 확인과 실제 영상/PLC정지/출력0·저장유휴를 대조했다. 일반 제품 종료 경로는 `OWNER_ERROR_BLOCKS_CONTEXT_RECOVERY`로 사전 거부돼 POST하지 않았다. 촬영 전 취소 건은 기존 전용 `aborted_recovery.record_cancelled_abort` 계약을 사용했다. 원기록322건·자산행1204건·저장최종201건의 보존 지문과 SQLite 일관 백업77119488byte/SHA `aa39545e8f3bf6f4130ef7e735d4fcea3a2e497e2717efccf98d37c7ec457063`를 노트북으로 회수하여 quick_check/해시 일치를 확인했다. sudo 원격인증이 없어 사용자 서비스재시작 후 위 Attempt15 준비로 이어졌다. 원본사진을 다시 복제하거나 PLC결과를 재발행하지 않았다. 증거 `right_RECOVERY_PREFLIGHT.json`, `right_BACKUP_MANIFEST.json`, `NOTEBOOK_BACKUP_RECEIPT.json`.
+
 ## Attempt14 — 첫 정상 모형이 부품검사 전에 취소됨
 
 정상→오른쪽 파이프만 결품 교대30회는 완료하지 못했다. 실제 첫 요청75, 검사 `9c3882c3a53b4420b7e905c5be732d9c`만 접수됐으며 SQLite `CANCELLED/ERROR`, 이유 `REQUEST_STORAGE_DEADLINE_EXCEEDED`다. 원본 자산0·유효3장0·부품 검사0·통합 최종0·PLC 완료0. 취소 사실은 `storage_success=true`로 영속화했고 SQLite quick_check는ok다. 이를 저장 성공한 제품검사로 세지 않는다. 앞서 완료한74개 거래와 별도이며 추가Result/Done은 발행되지 않았다.
