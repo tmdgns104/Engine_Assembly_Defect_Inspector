@@ -71,6 +71,30 @@ def close_resources(runtime, assembly, gateway, adapter, lock):
             lock.close()
 
 
+def close_adapter_on_shutdown(app, adapter):
+    """Release owned IPC before Uvicorn restores and re-raises SIGTERM.
+
+    The outer finally remains a fallback for startup failures. On normal
+    systemd shutdown it may never run, so the adapter must join its child
+    within ASGI lifespan, after the runtime stops publishing results.
+    """
+    if adapter is None:
+        return
+    import asyncio
+    from contextlib import asynccontextmanager
+    original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def lifespan(application):
+        try:
+            async with original_lifespan(application) as state:
+                yield state
+        finally:
+            await asyncio.to_thread(adapter.close)
+
+    app.router.lifespan_context = lifespan
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
@@ -123,6 +147,7 @@ def main():
             if not binary.is_relative_to(ROOT):
                 raise ValueError('RELEASE_LOCAL_OPENER_BINARY_REQUIRED')
             adapter = OpenerProcess(binary, config['opener_binary_sha256'], config['opener_ipc_path'],
+                owner_lock=lock,
                 approved=config.get('cyclic_transport_activation_approved', False),
                 admission=(profile['cycle_admission'] if profile.get('cycle_admission') in
                     ('SUPERVISED_REPEAT_TEST', 'PLC_AUTOMATIC_REPEAT') else 'FIRST_PRODUCT_ONLY'))
@@ -139,6 +164,7 @@ def main():
             boot_id=Path('/proc/sys/kernel/random/boot_id').read_text().strip())
         runtime._event(dict(event='STANDALONE_SERVICE_STARTED', identity=identity))
         app = create_integrated_app(runtime, {config['package'].name: config['package']})
+        close_adapter_on_shutdown(app, adapter)
         configure_line_web(app, runtime, identity)
         uvicorn.run(app, host=config['listen_host'], port=config['port'], log_level='warning', access_log=False)
     finally:

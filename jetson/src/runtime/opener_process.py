@@ -4,6 +4,8 @@ Transport recovery starts with fresh IPC/PLC sessions; it does not restore an
 inspection permission. No sudo, network reconfiguration or PLC commands here.
 """
 import hashlib
+import errno
+import logging
 import os
 from pathlib import Path
 import signal
@@ -12,10 +14,73 @@ import stat
 import subprocess
 import threading
 import time
+import uuid
+
+
+def opener_owners(proc=Path('/proc')):
+    """Read only same-user process command names; never expose their environment."""
+    owners = []
+    for path in proc.iterdir():
+        if not path.name.isdecimal():
+            continue
+        try:
+            if path.stat().st_uid != os.getuid():
+                continue
+            args = (path/'cmdline').read_bytes().split(b'\0')
+            if any(arg == b'OpENer' or arg.endswith(b'/OpENer') for arg in args):
+                owners.append(int(path.name))
+        except FileNotFoundError:
+            continue  # Process exited during the read. Other failures are fatal.
+    return sorted(owners)
+
+
+def preserve_stale_ipc(ipc, owner_lock):
+    """Preserve a proved dead local socket before automatic service startup.
+
+    The existing supervisor lock, private directory, absence of competing C
+    processes and ECONNREFUSED are all required. No journal/request is reset.
+    """
+    if owner_lock is None or owner_lock.closed:
+        raise ValueError('OWNER_LOCK_REQUIRED')
+    import fcntl
+    expected_lock = ipc.parent.parent/'standalone-owner.lock'
+    if Path(owner_lock.name).resolve() != expected_lock.resolve():
+        raise ValueError('OWNER_LOCK_REQUIRED')
+    lock_stat = expected_lock.lstat()
+    if (not stat.S_ISREG(lock_stat.st_mode) or lock_stat.st_uid != os.getuid()
+            or (lock_stat.st_dev, lock_stat.st_ino) !=
+               (os.fstat(owner_lock.fileno()).st_dev, os.fstat(owner_lock.fileno()).st_ino)):
+        raise ValueError('OWNER_LOCK_REQUIRED')
+    fcntl.flock(owner_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    parent = ipc.parent.lstat()
+    if not stat.S_ISDIR(parent.st_mode) or parent.st_uid != os.getuid() or parent.st_mode & 0o077:
+        raise ValueError('PRIVATE_IPC_DIRECTORY_REQUIRED')
+    before = ipc.lstat()
+    if not stat.S_ISSOCK(before.st_mode) or before.st_uid != os.getuid():
+        raise ValueError('OWNED_SOCKET_REQUIRED')
+    if opener_owners():
+        raise ValueError('COMPETING_OPENER_PROCESS')
+    with socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET) as probe:
+        probe.settimeout(.5)
+        try:
+            probe.connect(str(ipc))
+        except OSError as error:
+            if error.errno != errno.ECONNREFUSED:
+                raise ValueError('IPC_OWNERSHIP_UNPROVEN') from error
+        else:
+            raise ValueError('LIVE_IPC_LISTENER')
+    after = ipc.lstat()
+    if (before.st_dev, before.st_ino, before.st_mode, before.st_uid) != (
+            after.st_dev, after.st_ino, after.st_mode, after.st_uid):
+        raise ValueError('IPC_CHANGED_DURING_STARTUP')
+    preserved = ipc.with_name(ipc.name+'.stale-'+uuid.uuid4().hex)
+    ipc.rename(preserved)
+    logging.getLogger(__name__).warning('Preserved verified unowned IPC socket: %s', preserved)
+    return str(preserved)
 
 class OpenerProcess:
     def __init__(self, binary, expected_sha, ipc_path, *, approved=False, interface='enP8p1s0',
-                 admission='FIRST_PRODUCT_ONLY'):
+                 admission='FIRST_PRODUCT_ONLY', owner_lock=None):
         if approved is not True: raise ValueError('FIELD_TRANSPORT_ACTIVATION_NOT_APPROVED')
         if admission not in ('FIRST_PRODUCT_ONLY', 'SUPERVISED_REPEAT_TEST', 'PLC_AUTOMATIC_REPEAT'):
             raise ValueError('UNKNOWN_OPENER_ADMISSION_POLICY')
@@ -32,9 +97,10 @@ class OpenerProcess:
         if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077:
             raise ValueError('PRIVATE_IPC_DIRECTORY_REQUIRED')
         # The entrypoint's exclusive standalone-owner.lock is already held.
-        # Still refuse unknown socket remnants on the first start: explicit
-        # stopped maintenance can verify and remove these after a hard crash.
-        if self.ipc.exists(): raise ValueError('STALE_OR_COMPETING_IPC_SOCKET_REQUIRES_REVIEW')
+        # A hard crash may leave a filesystem socket with no live owner. Keep
+        # it as evidence; competing/unknown ownership still blocks startup.
+        if self.ipc.exists() or self.ipc.is_symlink():
+            preserve_stale_ipc(self.ipc, owner_lock)
         self.stop=threading.Event(); self.child=None; self.error=None; self.restarts=0
         self.interface=interface; self.thread=threading.Thread(target=self._run,name='opener-supervisor',daemon=True)
         self.thread.start()

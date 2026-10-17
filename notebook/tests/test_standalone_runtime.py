@@ -77,7 +77,8 @@ class FinalBoundaryTests(unittest.TestCase):
         self.r._commit_and_publish.assert_not_called()
         result[0] = assembly_result('FAIL_CANDIDATE')
         self.r._poll_result(5)
-        self.assertEqual(self.r._commit_and_publish.call_args.args[1]['decision'], 'FAIL')
+        self.assertEqual(self.r._commit_and_publish.call_args.args[1]['decision'], 'PASS')
+        self.assertFalse(self.r._commit_and_publish.call_args.args[1]['assembly_affects_final'])
         self.r.assembly.submit.assert_called_once()
     def test_cancellation_blocks_late_assembly_result(self):
         self.h.bind('a'*32)

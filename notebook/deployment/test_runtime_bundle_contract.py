@@ -14,6 +14,12 @@ from build_bundle import collect_release
 
 
 class RuntimeBundleContractTests(unittest.TestCase):
+    def test_completed_evidence_import_is_allowlisted(self):
+        spec=json.loads((ROOT/'jetson/runtime_allowlist.json').read_text(encoding='utf-8'))
+        relative='src/runtime/completed_evidence.py'
+        self.assertIn(relative,spec['runtime_files'])
+        compile((ROOT/'jetson'/relative).read_text(encoding='utf-8'),relative,'exec')
+
     def fixture(self, root):
         (root/'jetson').mkdir()
         (root/'jetson/runtime_allowlist.json').write_text(json.dumps(dict(
@@ -59,6 +65,7 @@ class RuntimeBundleContractTests(unittest.TestCase):
         self.assertFalse(release['field_automatic_operation_verified'])
         self.assertFalse(any('/conveyor_references/' in name for name in files))
         for name in ('src/runtime/aborted_recovery.py', 'src/runtime/health_diagnostics.py',
+                     'src/runtime/completed_evidence.py',
                      'src/runtime/product_passage.py', 'src/vision/assembly_evidence.py',
                      'src/vision/assembly_inspection.py', 'apps/edge_service/result_storage.py',
                      'apps/edge_service/line_hmi.html', 'apps/edge_service/inspection_details.js',

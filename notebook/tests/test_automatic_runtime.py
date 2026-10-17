@@ -40,7 +40,18 @@ class AutomaticRuntimeTests(unittest.TestCase):
         at=self.now+self.at+.03
         self.g.s.update(generated=at,received=at)
         with patch('src.runtime.standalone.time.monotonic',return_value=at):
+            # This fixture drives steps instead of running the Runtime thread.
+            # Join the actual bounded audit worker at both step boundaries.
+            if getattr(self.r,'audit_pending',None):
+                saved=self.service.storage.audit_completed.get(timeout=2)
+                self.service.storage.audit_completed.put_nowait(saved)
+                self.assertFalse(self.r._poll_completion_audit(at))
             self.r._poll_cyclic_plc(at)
+            if getattr(self.r,'audit_pending',None):
+                saved=self.service.storage.audit_completed.get(timeout=2)
+                self.service.storage.audit_completed.put_nowait(saved)
+                self.assertFalse(self.r._poll_completion_audit(at))
+                self.r._poll_cyclic_plc(at)
 
     def request_and_complete(self, number, decision):
         self.poll()
@@ -178,10 +189,10 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.g.s['controls']['Inspection_Request']=True
         self.poll()
 
-    def test_ambiguous_second_request_gets_one_durable_ERROR_no_old_AI(self):
+    def test_second_request_without_new_observation_gets_one_durable_ERROR_no_old_AI(self):
         first=self.request_and_complete(1,'PASS')
         self.next_request()
-        self.assertEqual(self.r.automatic_identity_block,'PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN')
+        self.assertIsNone(self.r.automatic_identity_block)
         self.trigger(self.at+1)
         self.assertEqual(len(self.submitted),1)
         with patch('src.runtime.standalone.time.monotonic',return_value=self.now+self.at+8.2):
@@ -195,7 +206,8 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.assertEqual(self.j.detail(last['inspection_id'])['state'],'COMPLETE')
         self.assertEqual(self.g.result.call_count,2)
         self.assertEqual(len(self.submitted),1)
-        self.assertIsNotNone(self.r.product_passage)
+        self.assertIsNone(self.r.product_passage)
+        self.assertIsNotNone(self.r.previous_tracking_diagnostic['passage'])
 
     def test_STOP_blocks_late_ambiguous_result(self):
         self.request_and_complete(1,'PASS')
@@ -246,7 +258,7 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.assertEqual(self.g.automatic_arm.call_count, 0)
         self.assertFalse(self.r._supervised_settlement()['clean'])
 
-    def test_same_product_reversal_cannot_submit_second_AI_inspection(self):
+    def test_prior_reversal_is_diagnostic_new_cycle_requires_new_observation(self):
         self.request_and_complete(1, 'PASS')
         boxes=((.2,.8),(.3,.9),(.4,1.),(.5,1.),(.6,1.),(.7,1.),(.8,1.),(.9,1.),
                (.8,1.),(.7,1.),(.6,1.),(.5,1.),(.4,1.),(.3,.9),(.2,.8),(.1,.7))
@@ -262,7 +274,12 @@ class AutomaticRuntimeTests(unittest.TestCase):
         self.trigger(self.at+1)
         self.assertEqual(len(self.submitted),1)
         self.assertEqual(self.g.result.call_count,1)
-        self.assertEqual(self.r.automatic_identity_block,'PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN')
+        self.assertIsNone(self.r.automatic_identity_block)
+        self.assertTrue(self.r.previous_tracking_diagnostic['passage']['invalid'])
+        self.frame()
+        self.trigger(self.at+.1)
+        self.assertEqual(len(self.submitted),2)
+        self.assertIsNone(self.r.request_product_separation)
 
     def test_restart_does_not_erase_unproven_product_identity(self):
         self.request_and_complete(1,'REVIEW')

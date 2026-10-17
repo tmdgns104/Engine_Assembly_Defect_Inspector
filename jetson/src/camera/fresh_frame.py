@@ -55,10 +55,16 @@ class FreshFrameSelector:
     an unbounded wait for a later product. They do not prove product identity.
     """
 
-    def __init__(self, trigger, config, max_age_seconds, spacing_seconds=0):
+    def __init__(self, trigger, config, max_age_seconds, spacing_seconds=0, *, source_not_before=None):
         self.trigger = trigger
         self.max_age_seconds = max_age_seconds
         self.spacing_seconds = spacing_seconds
+        if source_not_before is not None and (
+                not finite_number(source_not_before) or source_not_before < 0):
+            raise ValueError('SOURCE_NOT_BEFORE_INVALID')
+        self.source_not_before = source_not_before
+        self.effective_source_not_before = max(trigger.trigger_received_monotonic,
+            source_not_before if source_not_before is not None else trigger.trigger_received_monotonic)
         epsilon_ms = config['boundary_epsilon_ms']
         windows = [config['max_trigger_to_frame_ms'], config['inspection_window_ms']]
         if (any(not finite_number(v) or v <= 0 for v in windows)
@@ -103,6 +109,23 @@ class FreshFrameSelector:
             raise FreshFrameError(reason)
         return None
 
+    def check_processing(self, now, cancelled=False):
+        """Already selected originals may finish within the original total cap.
+
+        This never authorizes another capture. consider/check_active still use
+        the shorter selection window, and a terminal selection error stays fatal.
+        """
+        if self.terminal_reason:
+            raise FreshFrameError(self.terminal_reason)
+        if cancelled:
+            self.terminal_reason = 'CANCELLED'
+        elif not finite_number(now) or now < self.trigger.trigger_received_monotonic:
+            self.terminal_reason = 'FRAME_METADATA_INVALID'
+        elif now >= self.trigger.deadline_monotonic:
+            self.terminal_reason = 'PROCESSING_DEADLINE_EXCEEDED'
+        if self.terminal_reason:
+            raise FreshFrameError(self.terminal_reason)
+
     def consider(self, metadata, now, cancelled=False):
         try:
             self.check_active(now, cancelled)
@@ -133,6 +156,11 @@ class FreshFrameSelector:
         self.last_frame_id = metadata['frame_id']
         if source <= self.trigger.trigger_received_monotonic + self.epsilon_seconds:
             return self.reject('PRE_TRIGGER', metadata, now)
+        # Admission may finish long after the request. A buffered frame captured
+        # during its commit is not fresh evidence for the newly dispatched job.
+        # This additional boundary never moves the original selection deadline.
+        if source <= self.effective_source_not_before + self.epsilon_seconds:
+            return self.reject('PRE_SOURCE_NOT_BEFORE', metadata, now)
         if now - source > self.max_age_seconds:
             return self.reject('STALE', metadata, now)
         if self.last_selected_source is not None and source - self.last_selected_source < self.spacing_seconds:
@@ -148,8 +176,12 @@ class FreshFrameSelector:
         return decision
 
     def evidence(self):
-        return {'trigger': self.trigger.to_dict(), 'selected_frames': list(self.selected),
+        evidence = {'trigger': self.trigger.to_dict(), 'selected_frames': list(self.selected),
                 'rejected_frames': list(self.rejected), 'rejection_counts': dict(self.rejection_counts),
                 'rejection_metadata_truncated': max(0, sum(self.rejection_counts.values()) - len(self.rejected)),
                 'selection_deadline_monotonic': self.deadline, 'terminal_reason': self.terminal_reason,
                 'exposure_time_verified': False}
+        if self.source_not_before is not None:
+            evidence.update(source_not_before_monotonic=self.source_not_before,
+                effective_source_not_before_monotonic=self.effective_source_not_before)
+        return evidence

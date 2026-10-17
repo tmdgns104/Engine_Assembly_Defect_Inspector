@@ -24,7 +24,8 @@ from src.vision.inspection_worker import worker_main
 class StationaryCaptureTests(unittest.TestCase):
     def run_worker(self, *, settle=True, timeout=2.5, binding=True, missing=False,
                    stable_pattern=None, cancel_at=None, epoch_change_at=None,
-                   invalid_quality=False):
+                   invalid_quality=False, processing_timeout=None,
+                   inference_delay=0, encoding_delay=0, cancel_after_inference=False):
         stop, cancel = threading.Event(), threading.Event()
         commands, results, previews = queue.Queue(), queue.Queue(128), queue.Queue(1)
         camera_counts = dict(opened=0, closed=0)
@@ -70,6 +71,10 @@ class StationaryCaptureTests(unittest.TestCase):
             def detect(self, frame, detected, parts_detector=None):
                 changed, stable = self.motion(frame.image)
                 sequence = detected['freshness']['sequence']
+                if sequence == 5 and inference_delay:
+                    time.sleep(inference_delay)
+                    if cancel_after_inference:
+                        cancel.set()
                 if stable_pattern is not None:
                     stable = stable_pattern.get(sequence, False)
                 product = dict(class_name='product_envelope', confidence=.99,
@@ -99,13 +104,16 @@ class StationaryCaptureTests(unittest.TestCase):
             fresh_frame=dict(boundary_epsilon_ms=0, max_trigger_to_frame_ms=timeout * 1000,
                              inspection_window_ms=timeout * 1000))
         start = time.monotonic()
-        job = dict(inspection_id='synthetic-inspection', accepted_monotonic=start, deadline=start + timeout,
+        total = processing_timeout if processing_timeout is not None else timeout
+        job = dict(inspection_id='synthetic-inspection', accepted_monotonic=start, deadline=start + total,
             request=dict(kind='inspect', view_assessment={}), calibration={'confirmed': True},
             experiment_policy=dict(source_mode='PRODUCTION_AUTO', session_id='s',
                 inspection_motion_mode='STATIONARY', physical_output_enabled=False, human_acceptance='PENDING'),
             trigger=dict(trigger_id='trigger', cell_id='cell', plc_session_id=1, cycle_id=1, request_id=1,
                 trigger_received_monotonic=start, trigger_source='LOCAL_TEST', capture_epoch='e',
-                deadline_monotonic=start + timeout))
+                deadline_monotonic=start + total))
+        if processing_timeout is not None:
+            job['capture_deadline'] = start + timeout
         if binding:
             job['production_binding'] = dict(plc_contract='OPENER_CYCLIC',
                 inspection_start_policy=FULL_FRAME, inspection_motion_mode='STATIONARY',
@@ -113,7 +121,12 @@ class StationaryCaptureTests(unittest.TestCase):
                 sequence=0, monotonic_s=start, product_box=None,
                 inspection_zone={'polygon_normalized': [[0,0], [1,0], [1,1], [0,1]]})
         commands.put(job)
+        from src.vision.inspection_worker import encode_evidence
+        def delayed_encoding(*args, **kwargs):
+            time.sleep(encoding_delay)
+            return encode_evidence(*args, **kwargs)
         with patch('src.vision.inspection_worker.load_package', return_value=package), \
+             patch('src.vision.inspection_worker.encode_evidence', side_effect=delayed_encoding), \
              patch('src.camera.gstreamer_camera.GStreamerCamera', Camera), \
              patch('src.vision.detector_factory.create_detector', return_value=Parts()), \
              patch('src.vision.engine_inspector.EngineInspector', Engine), \
@@ -139,6 +152,31 @@ class StationaryCaptureTests(unittest.TestCase):
         self.assertIsNotNone(final, messages)
         self.assertEqual(final['type'], 'result', final)
         return final
+
+    def test_last_valid_capture_survives_inference_crossing_capture_deadline(self):
+        result = self.run_worker(timeout=.6, processing_timeout=2., inference_delay=.65,
+            stable_pattern={3: True, 4: True, 5: True})['result']
+        self.assertEqual(result['decision'], 'PASS', result.get('reason_code'))
+        evidence = result['fresh_frame']
+        self.assertTrue(all(f['selected_at_monotonic'] < evidence['selection_deadline_monotonic']
+                            for f in evidence['selected_frames']))
+
+    def test_encoding_crossing_capture_deadline_preserves_three_originals(self):
+        message = self.run_worker(timeout=.6, processing_timeout=2., encoding_delay=.65,
+            stable_pattern={3: True, 4: True, 5: True})
+        self.assertEqual(message['result']['decision'], 'PASS', message['result'].get('reason_code'))
+        self.assertEqual(len([i for i in message['images'] if i['kind'] == 'raw']), 3)
+
+    def test_processing_cannot_extend_original_total_deadline(self):
+        result = self.run_worker(timeout=.6, processing_timeout=.8, inference_delay=.9,
+            stable_pattern={3: True, 4: True, 5: True})['result']
+        self.assertEqual(result['decision'], 'ERROR')
+
+    def test_stop_during_last_inference_still_rejects_result(self):
+        result = self.run_worker(timeout=.6, processing_timeout=2., inference_delay=.65,
+            cancel_after_inference=True, stable_pattern={3: True, 4: True, 5: True})['result']
+        self.assertEqual(result['decision'], 'ERROR')
+        self.assertEqual(result['reason_code'], 'CANCELLED')
 
     def test_coasting_frames_are_not_final_three_stationary_frames(self):
         message = self.run_worker()

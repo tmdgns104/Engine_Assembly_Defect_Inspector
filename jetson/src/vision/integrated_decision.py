@@ -1,4 +1,4 @@
-"""V1 uses basic presence and only evidence-confirmed assembly defects.
+"""Basic presence decides PASS/FAIL; assembly classification is reference only.
 
 This consumes the assembly owner's durable record, not model confidence alone.
 Uncertain geometry is optional analysis; lost/invalid original evidence is a
@@ -7,7 +7,7 @@ system failure and cannot authorize publication, even when basic returned FAIL.
 import math
 import re
 
-POLICY = 'BASIC_WITH_CONFIRMED_ASSEMBLY_FAIL_V1'
+POLICY = 'BASIC_PRESENCE_ASSEMBLY_REFERENCE_V2'
 ASSEMBLY_STATES = {'PASS_CANDIDATE': 'PASS', 'FAIL_CANDIDATE': 'FAIL',
                    'REVIEW': 'REVIEW', 'ERROR': 'ERROR'}
 PARTS = ('pipe_left', 'pipe_right', 'exhaust', 'symbol')
@@ -106,7 +106,7 @@ def combine_decisions(existing, assembly):
     if not raw_valid:
         result = 'FAIL' if existing == 'FAIL' else 'ERROR'
         assembly_reason = assembly_reason or 'ASSEMBLY_RAW_EVIDENCE_UNVERIFIED'
-    elif existing == 'FAIL' or (confirmed and part_decision == 'FAIL'):
+    elif existing == 'FAIL':
         result = 'FAIL'
     elif existing == 'PASS' and not quality_valid:
         result, assembly_reason = 'REVIEW', 'RAW_IMAGE_QUALITY_INVALID'
@@ -119,5 +119,8 @@ def combine_decisions(existing, assembly):
             'assembly_reported': reported, 'assembly_reason': assembly_reason,
             'assembly_frame_reasons': frame_reasons,
             'assembly_confirmed_fail': bool(confirmed and part_decision == 'FAIL'),
+            # Preserve the verified reference classification without using it
+            # to override presence, uncertainty, or a system error.
+            'assembly_affects_final': False,
             'publication_allowed': raw_valid,
             'reason': f'EXISTING_{existing}_ASSEMBLY_{part_decision}'}

@@ -20,10 +20,10 @@ int main(int argc,char **argv){
   }
   double start=clock_now();CommInit(&s,&c,start,NULL,NULL);CommOpen(&s,start);
   if(EngineIpcInit(argv[1]))return 3;
-  fcntl(0,F_SETFL,O_NONBLOCK);unsigned request=0,run=0,seq=0;double tx=0;
+  fcntl(0,F_SETFL,O_NONBLOCK);unsigned request=0,run=0,stop_ok=1,seq=0;double tx=0;
   while(clock_now()-start<30){
-    char command;while(read(0,&command,1)>0){if(command=='S')run=1;if(command=='R')request=1;if(command=='Q')goto end;}
-    double now=clock_now();uint8_t b[8]={request,0,1,0,run,0,1,0};
+    char command;while(read(0,&command,1)>0){if(command=='S'){run=1;stop_ok=1;}if(command=='T'){run=0;stop_ok=0;}if(command=='R')request=1;if(command=='Q')goto end;}
+    double now=clock_now();uint8_t b[8]={request,0,1,0,run,0,stop_ok,0};
     CommReceive(&s,b,1,false,now);EngineIpcPoll(&s,now);CommTick(&s,now);
     if(now-tx>=.05){CommPrepareOutput(&s,now);CommTxComplete(&s,s.raw100,true,++seq,now);tx=now;}
     if(s.phase==DONE_SENT||s.phase==WAIT_REQUEST_OFF)request=0;

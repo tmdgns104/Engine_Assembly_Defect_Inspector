@@ -169,7 +169,7 @@ def line_view(status, identity):
         automatic=automatic, recent_results=[{k:row.get(k) for k in
             ('inspection_id','decision','reason','completed_at','plc_result_value','publication_status')}
             for row in list(status.get('history', []))[:30]],
-        motor_feedback='UNVERIFIED', final_policy='기본 부품 판정 사용 · 근거가 확인된 오조립 FAIL 우선')
+        motor_feedback='UNVERIFIED', final_policy='필수 부품 결합 유무만 PASS/FAIL · 오조립은 참고용(최종 판정에 미반영)')
 
 
 def configure_line_web(app, runtime, identity):

@@ -101,12 +101,12 @@ class FinalDecisionTests(unittest.TestCase):
         for a in ('PASS', 'FAIL', 'REVIEW', 'ERROR'):
             for b in ('PASS_CANDIDATE', 'FAIL_CANDIDATE', 'REVIEW', 'ERROR'):
                 result = combine_decisions(a, assembly_result(b))
-                self.assertEqual(result['decision'] == 'PASS', a == 'PASS' and b != 'FAIL_CANDIDATE')
+                self.assertEqual(result['decision'] == 'PASS', a == 'PASS')
     def test_missing_or_failed_assembly_cannot_default_pass(self):
         for value in ({}, {'state': 'NOT_RUN'}, {'state': 'ERROR'}, {'state': 'COMPLETE'}):
             self.assertIn(combine_decisions('PASS', value)['decision'], ('ERROR', 'REVIEW'))
-    def test_confident_defect_not_overridden_by_other_normal_result(self):
+    def test_only_basic_defect_changes_final_pass_fail(self):
         self.assertEqual(combine_decisions('FAIL', assembly_result('PASS_CANDIDATE'))['decision'], 'FAIL')
-        self.assertEqual(combine_decisions('PASS', assembly_result('FAIL_CANDIDATE'))['decision'], 'FAIL')
+        self.assertEqual(combine_decisions('PASS', assembly_result('FAIL_CANDIDATE'))['decision'], 'PASS')
 
 if __name__ == '__main__': unittest.main()

@@ -1,8 +1,8 @@
 """Continuous line owner: existing vision + frozen assembly, then one PLC result.
 
 Software acquisition starts without a browser. Physical Run remains PLC-owned.
-The upstream sensor opens a serial arrival window; only its first unambiguous
-new track can be bound. No previous-product pose or prediction is inherited.
+Each accepted PLC cycle opens a fresh observation window. Its first unambiguous
+track can be bound; no previous-product pose or prediction is inherited.
 """
 import json
 import queue
@@ -17,6 +17,7 @@ from src.runtime.production import ProductionRuntime
 from src.runtime.inspection_bridge import InspectionBridge
 from src.runtime.production_profile import calibration_sha
 from src.runtime.inspection_start import FULL_FRAME, start_policy, tracked_frame_evidence
+from src.runtime.completed_evidence import validate_completed_evidence
 from src.vision.integrated_decision import combine_decisions, POLICY as FINAL_POLICY
 from src.runtime.initial_approval import InitialApproval, JournalAdmissionGuard, count_unfinished_inspections, POLICY as INITIAL_POLICY
 from src.runtime.supervised_approval import SupervisedApproval, POLICY as REPEAT_POLICY
@@ -61,6 +62,9 @@ class StandaloneRuntime(ProductionRuntime):
         self.initial_approval = None
         self.plc_cycle = None
         self._automatic_previous = None
+        self._automatic_cycle_evidence = None
+        self._automatic_started_at = time.monotonic()
+        self.previous_tracking_diagnostic = None
         self.prior_product_identity_block = None
         self._journal_readiness = JournalAdmissionGuard()
         self._unaccepted_request_at = None
@@ -79,6 +83,9 @@ class StandaloneRuntime(ProductionRuntime):
         self.issue = None
         self.aborted_inspection = None
         self.final_pending = None
+        self.audit_pending = None
+        self.audit_error = None
+        self.request_start = None
         self.cycle_issue = None
         self.line_wait = 'INITIALIZING'
         super().__init__(*args, **kwargs)
@@ -90,6 +97,8 @@ class StandaloneRuntime(ProductionRuntime):
             self.plc_cycle = dict(policy=AUTO_POLICY, reason='WAIT_STOPPED_BASELINE',
                 software_permission_required=False, per_product_manual_approval=False, browser_required=False)
             self._restore_previous_product_identity()
+            from src.runtime.request_start import RequestStart
+            self.request_start = RequestStart(self)
         if self._initial_policy() or self._supervised_policy():
             approval_type = SupervisedApproval if self._supervised_policy() else InitialApproval
             self.initial_approval = approval_type(self.service.journal.root/'first-product-approval',
@@ -115,30 +124,133 @@ class StandaloneRuntime(ProductionRuntime):
                 runtime_session_id=self.session_id,
                 worker_generation=self.service.generation, **payload)
             return
+        start = getattr(self, 'request_start', None)
+        if start and start.event(value):
+            return
         return super()._event(value)
+
+    def _completion_event(self, value):
+        """Persist completion audits on the existing storage owner, never omit them."""
+        if not self._automatic_policy():
+            return self._event(value)
+        if getattr(self, 'audit_pending', None):
+            raise ValueError('COMPLETION_AUDIT_ALREADY_PENDING')
+        now = time.monotonic()
+        payload = dict(runtime_session_id=self.session_id, monotonic_s=now,
+            worker_generation=self.service.generation, physical_output_enabled=False)
+        payload.update(value)
+        context = dict(inspection_id=value['inspection_id'], request_token=value['request_token'],
+            generation=self.service.generation, camera_epoch=self.epoch, started=now,
+            deadline=now+self.line_profile['arrival_deadline_s'],
+            start_counters=dict((self._automatic_cycle_evidence or {}).get('start_counters') or {}))
+        self.service.storage.submit_audit(context, payload)
+        self.audit_pending = context
+        self.audit_error = None
+
+    def _completion_audit_health(self, now):
+        """Validate live owners/controls while a known completion commit is pending.
+
+        This cannot admit a request or publish a result. C keeps its existing
+        lease and request deadline; a subsequent edge waits for the audit.
+        """
+        context = self.audit_pending
+        health = self.service.health()
+        snapshot = self.gateway.read_snapshot(now)
+        identity_ok = False
+        if snapshot:
+            now = snapshot.get('observed_at', now)
+            boot, connection, request = context['request_token'].split(':')
+            same_session = snapshot['boot'] == int(boot, 16) and snapshot['connection'] == int(connection)
+            counters = context['start_counters']
+            completed = all(key in counters and snapshot.get(key) == counters[key]+1
+                for key in ('result_count', 'done_count', 'completed_count'))
+            same_request = snapshot['request_id'] == int(request)
+            next_request = (snapshot['request_id'] == int(request)+1 and completed
+                and snapshot['phase'] == 'REQUEST_RECEIVED' and snapshot['raw100'] == '00000000'
+                and snapshot['controls']['Inspection_Request'])
+            active = snapshot['phase'] in ('REQUEST_RECEIVED', 'TEST_RESULT_READY', 'RESULT_SENT',
+                'DONE_SENT', 'WAIT_REQUEST_OFF', 'CLEARING_DONE')
+            settled = (snapshot['phase'] in ('READY_NEXT', 'IDLE') and completed
+                and snapshot['raw100'] == '00000000' and not snapshot['controls']['Inspection_Request'])
+            identity_ok = same_session and ((same_request and (active or settled)) or next_request)
+        ready = bool(identity_ok and not self.audit_error
+            and context['inspection_id'] in self.published_ids
+            and context['request_token'] == self.handshake.token and not self.handshake.cancelled
+            and self.operating and not self.error and self._profile_ready() and self.assembly.ready
+            and snapshot['connected'] and snapshot['fresh'] and snapshot['run_idle'] and snapshot['bool_valid']
+            and 0 <= now-snapshot['generated'] <= .5 and 0 <= now-snapshot['received'] <= .2
+            and all(snapshot['controls'][key] for key in ('Mc_Run', 'EStop_OK', 'Stop_PB'))
+            and not health['error'] and health['camera_ready'] and health['state'] in ('BUSY', 'IDLE')
+            and context['generation'] == self.service.generation and context['camera_epoch'] == health['camera_epoch']
+            and self.service.storage.thread.is_alive() and context['started'] <= now <= context['deadline'])
+        self.gateway.ready_reason = 'COMPLETION_AUDIT_IN_PROGRESS' if ready else 'COMPLETION_AUDIT_CONTROL_INVALID'
+        self.gateway.health_update(ready, False, time.monotonic())
+
+    def _poll_completion_audit(self, now):
+        """Return True while admission/observation handling must wait for storage."""
+        pending = getattr(self, 'audit_pending', None)
+        if pending is None:
+            return False
+        if not self.audit_error:
+            try:
+                saved = self.service.storage.audit_completed.get_nowait()
+            except queue.Empty:
+                saved = None
+            if saved:
+                if saved['context'] is not pending or saved['error']:
+                    self.audit_error = 'COMPLETION_AUDIT_FAILED:'+str(saved['error'] or 'CONTEXT_CHANGED')
+                else:
+                    self.service.health_diagnostics.record('COMPLETION_AUDIT_DURABLE',
+                        inspection_id=pending['inspection_id'], duration_ms=saved.get('duration_ms', 0))
+                    self.audit_pending = None
+                    return False
+            elif now > pending['deadline'] or not self.service.storage.thread.is_alive():
+                self.audit_error = 'COMPLETION_AUDIT_TIMEOUT_OR_OWNER_LOST'
+            if self.audit_error:
+                self.error = self.audit_error
+                self.gateway.cancel()
+                self.service.health_diagnostics.record('COMPLETION_AUDIT_FAILED', reason=self.audit_error,
+                    inspection_id=pending['inspection_id'])
+        try:
+            self._completion_audit_health(now)
+        except Exception as error:
+            self.audit_error = 'COMPLETION_AUDIT_HEALTH_CHECK:'+type(error).__name__+':'+str(error)
+            self.error = self.audit_error
+            self.gateway.cancel()
+            self.gateway.ready_reason = self.audit_error
+            self.gateway.health_update(False, False, time.monotonic())
+            self.service.health_diagnostics.record('COMPLETION_AUDIT_FAILED', reason=self.audit_error,
+                inspection_id=pending['inspection_id'])
+        return True
 
     def _restore_aborted_inspection(self):
         """Restore a recorded blocked cycle for display; never restore a grant."""
+        from src.runtime.aborted_recovery import valid_abort
         journal = self.service.journal
         with journal.lock:
             # Journal append order remains meaningful across boots and producer
             # sessions. Apply settlement filters before selecting the latest row.
-            row = journal.db.execute("""
+            rows = journal.db.execute("""
                 SELECT e.payload_json, i.request_json
                 FROM events e JOIN inspections i
                   ON i.inspection_id=json_extract(e.payload_json,'$.payload.inspection_id')
                 WHERE e.event_type='LINE_CANCELLED_RESULT_BLOCKED'
                   AND json_extract(i.request_json,'$.runtime_binding.plc_contract')='OPENER_CYCLIC'
-                  AND NOT EXISTS(SELECT 1 FROM service_state s WHERE s.key IN
-                      ('integrated_decision:' || i.inspection_id, 'aborted_cycle:' || i.inspection_id))
-                ORDER BY e.rowid DESC LIMIT 1
-            """).fetchone()
-            if row:
+                  AND NOT EXISTS(SELECT 1 FROM service_state s
+                      WHERE s.key='integrated_decision:' || i.inspection_id)
+                ORDER BY e.rowid DESC
+            """).fetchall()
+            for row in rows:
                 event = json.loads(row[0])['payload']
+                # A bare state key is not a maintenance receipt. Validate its
+                # immutable event and original request before retiring the block.
+                if valid_abort(journal.db, event['inspection_id']):
+                    continue
                 binding = json.loads(row[1])['runtime_binding']
                 self.aborted_inspection = dict(inspection_id=event['inspection_id'], reason=event['reason'],
                     request_token=binding.get('plc_request_token'), plc_publication='BLOCKED',
                     restored_from_journal=True)
+                break
 
     def _fault(self, reason):
         if (getattr(self.gateway, 'contract_version', None) in ('LEGACY_THREE_BOOL', 'OPENER_CYCLIC')
@@ -151,8 +263,20 @@ class StandaloneRuntime(ProductionRuntime):
 
     def _observation_issue(self, reason):
         """Keep acquisition alive; never recycle an accepted product's identity."""
+        if self._completed_preview_issue(reason):
+            return
         if self._automatic_policy() and self.product_passage:
             self.product_passage._fail('PRODUCT_PASSAGE_INTERRUPTED:'+reason)
+            # This diagnostic belongs to an already published inspection. It
+            # cannot cancel that result or become a fault of the next token.
+            previous = self._automatic_previous or {}
+            if self.product_passage.identity.get('inspection_id') == previous.get('inspection_id'):
+                if not self.issue or self.issue.get('reason') != reason:
+                    self.issue = dict(reason=reason, scope='COMPLETED_CYCLE_TRACKING',
+                        request_token=previous.get('request_token'), active=False,
+                        action='REASSESS_ON_NEXT_VALID_PLC_CYCLE')
+                    self._event(dict(event='COMPLETED_CYCLE_TRACKING_UNCERTAIN', **self.issue))
+                return
         if self.cycle_issue:
             return
         now = time.monotonic()
@@ -171,9 +295,35 @@ class StandaloneRuntime(ProductionRuntime):
         # Preserve the raw worker record. A late PASS can only become ERROR for
         # this token; it cannot enter the next request or be sent to the PLC.
         if self.service.active:
-            self.service.cancel(self.service.active['inspection_id'])
+            self._cancel_active_inspection(reason)
         elif self.handshake.state == 'REQUEST_LATCHED':
             self._finish_without_frames('ERROR', reason, now)
+
+    def _completed_preview_issue(self, reason):
+        """Only post-durability detection gaps become publication diagnostics.
+
+        A changed owner, raw acquisition failure, stale camera, or cancelled
+        control request still follows the existing fault path.
+        """
+        if (reason not in ('PRODUCT_OBSERVATION_GAP', 'TRACK_ASSOCIATION_OR_GAP_LOST')
+                or not self._automatic_policy() or self.bridge.phase != 'INSPECTION_DURABLE'
+                or not self.bridge.inspection_id or self.cycle_issue
+                or self.bridge.inspection_id in self.published_ids):
+            return False
+        row = self.service.journal.detail(self.bridge.inspection_id)
+        if not row or row.get('decision') not in ('PASS', 'FAIL'):
+            return False
+        try:
+            self._validate_cyclic_final(row['request']['runtime_binding'],
+                dict(inspection_id=row['inspection_id'], decision=row['decision']), time.monotonic(), row)
+        except ValueError:
+            return False
+        self.issue = dict(reason=reason, scope='COMPLETED_INSPECTION_PREVIEW', active=False,
+            inspection_id=row['inspection_id'], request_token=self.handshake.token,
+            action='RETAIN_DURABLE_REQUEST_BOUND_RESULT')
+        # The existing completion audit persists this with publication. No extra
+        # synchronous Journal commit is added to the cyclic health path.
+        return True
 
     def _reset_unbound_observation(self, now):
         self._replace_tracking_session(uuid.uuid4().hex)
@@ -297,10 +447,9 @@ class StandaloneRuntime(ProductionRuntime):
     def _restore_previous_product_identity(self):
         """A service restart is not evidence that the last product has left.
 
-        Use the existing append-only separation event, never an approval row or
-        a synthesized CLEAR. If proof is absent, keep the identity uncertainty;
-        a fresh valid PLC request may report ERROR, but cannot re-inspect it as
-        a different product. Exceptional physical recovery remains maintenance.
+        Keep unproven departure as diagnostic history, never synthesize CLEAR.
+        New-cycle admission separately verifies C transaction and Journal
+        readiness, and cannot claim that it identifies a different physical item.
         """
         journal = self.service.journal
         with journal.lock:
@@ -394,8 +543,8 @@ class StandaloneRuntime(ProductionRuntime):
         """Check actual owners/storage, not an application-issued right to inspect.
 
         No ID, file, ledger or arm command is created. A C request is identified
-        solely by adapter boot/connection/request counter. Product separation is
-        independently required before binding the next physical product.
+        solely by adapter boot/connection/request counter. Visual departure is
+        diagnostic; each accepted cycle requires a new observation window.
         """
         self.plc_cycle['reason'] = 'WAIT_AUTO_QUALIFICATION_OR_HEALTH'
         if not healthy:
@@ -423,6 +572,15 @@ class StandaloneRuntime(ProductionRuntime):
         active = (self.service.active or self.final_pending
             or self.handshake.state in ('REQUEST_LATCHED','INSPECTING','WAIT_REQUEST_OFF'))
         if not active:
+            if getattr(self, 'request_start', None):
+                ready = self.request_start.ready(snapshot)
+                if not ready:
+                    self.plc_cycle['reason'] = 'WAIT_DURABLE_REQUEST_READINESS'
+                    return False
+                self.plc_cycle['reason'] = ('WAIT_NEW_PHYSICAL_START' if snapshot['phase']=='SYNC_LOW'
+                    else 'WAIT_PLC_REQUEST' if snapshot['phase']=='IDLE'
+                    else snapshot['reason'] if snapshot['phase']=='DISARMED' else 'CURRENT_CYCLE_ACTIVE')
+                return True
             try:
                 journal = self.service.journal
                 with journal.lock:
@@ -442,6 +600,82 @@ class StandaloneRuntime(ProductionRuntime):
             else snapshot['reason'] if snapshot['phase']=='DISARMED'
             else 'CURRENT_CYCLE_ACTIVE')
         return True
+
+    def _automatic_request_evidence(self, snapshot, ready, now):
+        """Validate a new C transaction, never claim a distinct physical item.
+
+        C increments completed_count only after Result, later cyclic Done,
+        Request LOW and Done reset. Counters survive the brief LOW-to-new-edge
+        race that a Python poll may miss; boot/connection must remain identical.
+        """
+        if (not ready or self.error or self.aborted_inspection or self.service.error
+                or self.service.active or self.final_pending
+                or getattr(self, 'audit_pending', None)
+                or getattr(self.service, 'storage_pending', None)):
+            raise ValueError('CURRENT_SYSTEM_OR_STORAGE_NOT_READY')
+        if (not snapshot or snapshot['phase'] != 'REQUEST_RECEIVED'
+                or not all(snapshot[k] for k in ('connected','fresh','bool_valid','run_idle'))
+                or not 0 <= now-snapshot['generated'] <= .5
+                or not 0 <= now-snapshot['received'] <= .2
+                or not 0 <= now-snapshot['accepted_at'] < self.line_profile['arrival_deadline_s']
+                or snapshot['accepted_at'] < self._automatic_started_at
+                or snapshot['raw100'] != '00000000'
+                or not all(snapshot['controls'].get(k) for k in
+                           ('Inspection_Request','Mc_Run','EStop_OK','Stop_PB'))):
+            raise ValueError('NEW_CYCLIC_REQUEST_CONTEXT_INVALID')
+        counters = {key: snapshot.get(key) for key in ('result_count','done_count','completed_count')}
+        if any(type(value) is not int or value < 0 for value in counters.values()):
+            raise ValueError('CYCLIC_COMPLETION_COUNTERS_REQUIRED')
+        if getattr(self, 'request_start', None):
+            if not self.request_start.ready(snapshot):
+                raise ValueError('REQUEST_READINESS_EVIDENCE_NOT_CURRENT')
+        else:
+            journal = self.service.journal
+            with journal.lock:
+                if self._journal_readiness.count(journal.db):
+                    raise ValueError('JOURNAL_UNFINISHED_INSPECTION')
+                journal.capacity()
+        settlement = self._supervised_settlement()
+        if not settlement['clean']:
+            raise ValueError(settlement['reason'])
+        previous = self._automatic_previous
+        if self.cyclic_admissions and not previous:
+            raise ValueError('PREVIOUS_REQUEST_NOT_SETTLED')
+        if previous:
+            prefix = f"{snapshot['boot']:016x}:{snapshot['connection']}:"
+            token = previous['request_token']
+            if (not token.startswith(prefix)
+                    or snapshot['request_id'] != int(token.rsplit(':',1)[1])+1):
+                raise ValueError('CYCLIC_SESSION_OR_REQUEST_SEQUENCE_CHANGED')
+            baseline = previous.get('start_counters') or {}
+            if any(key not in baseline or counters[key] != baseline[key]+1 for key in counters):
+                raise ValueError('PREVIOUS_RESULT_DONE_RESET_NOT_CONFIRMED')
+            if (settlement.get('previous') or {}).get('inspection_id') != previous['inspection_id']:
+                raise ValueError('PREVIOUS_DURABLE_RESULT_MISMATCH')
+        return dict(policy='PLC_CYCLE_FRESH_OBSERVATION_V1',
+            request_token=f"{snapshot['boot']:016x}:{snapshot['connection']}:{snapshot['request_id']}",
+            accepted_at=snapshot['accepted_at'], start_counters=counters,
+            previous_transaction=settlement.get('previous'),
+            physical_product_identity_proven=False, product_exit_claimed=False)
+
+    def _start_automatic_observation_window(self, evidence):
+        diagnostic = dict(passage=self.product_passage.status() if self.product_passage else None,
+            restored_identity_reason=self.prior_product_identity_block, issue=self.issue)
+        self._event(dict(event='PLC_CYCLE_OBSERVATION_WINDOW_STARTED', evidence=evidence,
+                         prior_tracking=diagnostic))
+        self.previous_tracking_diagnostic = diagnostic
+        self._automatic_cycle_evidence = evidence
+        self.request_product_separation = self.product_separation  # Optional real proof only.
+        self.product_passage = self.product_separation = None
+        self.automatic_identity_block = self.prior_product_identity_block = None
+        self.cycle_issue = self.issue = None
+        self._passage_history.clear()
+        # Only validated new cycles retire preview identity. Keep epoch,
+        # generation and source sequence guards; never adopt queued old frames.
+        self._reset_unbound_observation(evidence['accepted_at'])
+        self.latest_packet = None
+        self.observation_started_at = evidence['accepted_at']
+        self.absent.clear()
 
     def _automatic_transaction_settled(self):
         now = time.monotonic()
@@ -511,6 +745,8 @@ class StandaloneRuntime(ProductionRuntime):
 
     def _supervised_settlement(self):
         """Durable previous result and idle owners; never infer physical clearance."""
+        if getattr(self, 'request_start', None):
+            return self.request_start.settlement()
         if self.error or self.service.error or self.service.active:
             return dict(clean=False, reason='WAIT_HEALTHY_IDLE_INSPECTION_OWNER', previous=None)
         assembly = self.assembly.status()
@@ -712,6 +948,11 @@ class StandaloneRuntime(ProductionRuntime):
         return None
 
     def _cancel_pending(self, reason):
+        start = getattr(self, 'request_start', None)
+        if start and start.pending and start.pending.get('reservation'):
+            start._block(start.pending, reason)
+            self.arrival = None
+            return
         if self.bridge.inspection_id and self.bridge.inspection_id not in self.published_ids:
             self.bridge.phase = 'INSPECTION_ABORTED'
             self.phase = 'INSPECTION_ABORTED'
@@ -720,8 +961,21 @@ class StandaloneRuntime(ProductionRuntime):
             self.published_ids.add(self.bridge.inspection_id)
             self._event(dict(event='LINE_CANCELLED_RESULT_BLOCKED', inspection_id=self.bridge.inspection_id, reason=reason))
         if self.service.active:
-            self.service.cancel(self.service.active['inspection_id'])
+            self._cancel_active_inspection(reason)
         self.arrival = None
+
+    def _cancel_active_inspection(self, reason):
+        start = getattr(self, 'request_start', None)
+        if start and start.capture_events:
+            # The request event writer may own Journal. Withdraw authority and
+            # signal the Worker immediately; its cancelled completion follows
+            # the existing durable failure path after that writer releases it.
+            self.service.cancellation.set()
+            self.service.state = 'CANCELLING'
+            self.gateway.health_update(False, False, time.monotonic())
+            self.handshake.fault(reason)
+            return
+        self.service.cancel(self.service.active['inspection_id'])
 
     def _poll_plc(self, now):
         if now < self.next_plc_poll_at: return
@@ -779,6 +1033,8 @@ class StandaloneRuntime(ProductionRuntime):
             else self.handshake.state))
 
     def _poll_cyclic_plc(self, now):
+        if self._poll_completion_audit(now):
+            return
         health = self.service.health()
         # BUSY is a healthy inspector, not a reason to revoke an active request.
         ready = bool(self.operating and not self.error and self._profile_ready()
@@ -813,7 +1069,7 @@ class StandaloneRuntime(ProductionRuntime):
                             and snapshot.get('transaction_settled') is True
                             and snapshot['raw100'] == '00000000'
                             and not snapshot['controls']['Inspection_Request']):
-                        self._event(dict(event='PLC_CYCLIC_COMPLETION_OBSERVED',
+                        self._completion_event(dict(event='PLC_CYCLIC_COMPLETION_OBSERVED',
                             inspection_id=entry['inspection_id'], request_token=token))
                         entry['cyclic_done_reset_observed'] = True
                         entry['publication_status'] = 'CYCLIC_DONE_AND_REQUEST_RESET'
@@ -828,7 +1084,20 @@ class StandaloneRuntime(ProductionRuntime):
              else self.plc_cycle['reason'] if self.plc_cycle and not ready
              else 'READY' if ready else 'PROFILE_MODEL_OR_OPERATING_NOT_READY'))
         self.gateway.health_update(ready, clear, time.monotonic())
+        if getattr(self, 'audit_pending', None):
+            return  # Preserve pending C edge; no new admission before audit durability.
         previous = self.handshake.token
+        admission, admission_error = None, None
+        if self._automatic_policy():
+            incoming = self.gateway.read_snapshot(now)
+            key = (f"{incoming['boot']:016x}:{incoming['connection']}:{incoming['request_id']}"
+                   if incoming else None)
+            if incoming and incoming['phase'] == 'REQUEST_RECEIVED' and key != self.handshake.seen_token:
+                try:
+                    admission = self._automatic_request_evidence(
+                        incoming, ready, incoming.get('observed_at', now))
+                except Exception as error:
+                    admission_error = str(error) if isinstance(error, ValueError) else type(error).__name__
         self.handshake.poll(now)
         if self.handshake.cancelled:
             self._cancel_pending(self.handshake.reason)
@@ -851,19 +1120,16 @@ class StandaloneRuntime(ProductionRuntime):
                     self.line_wait = self.handshake.reason
                     return
                 if self._automatic_policy():
-                    self.automatic_identity_block = self.prior_product_identity_block
-                    self.request_product_separation = None
-                    if self.cyclic_admissions and (self.product_passage or not self.product_separation):
-                        self.automatic_identity_block = 'PREVIOUS_PRODUCT_IDENTITY_OR_EXIT_UNPROVEN'
-                        self.consumed_frames.checkpoint('REQUEST_WAITING_FOR_PRODUCT_IDENTITY',
-                            dict(request_token=self.handshake.token, accepted_at=self.handshake.accepted_at,
-                                 passage=self.product_passage.status() if self.product_passage else None))
-                    # A physical STOP does not prove product removal. Evidence
-                    # remains necessary even after a new START or a fault.
-                    if not self.automatic_identity_block:
-                        self.cycle_issue = self.issue = None
-                        self.request_product_separation = self.product_separation
-                        self.product_separation = None  # Proof is spent by this request, even on ERROR.
+                    if (admission_error or not admission
+                            or admission['request_token'] != self.handshake.token):
+                        reason = admission_error or 'CYCLIC_ADMISSION_CONTEXT_CHANGED'
+                        self._event(dict(event='PLC_CYCLE_ADMISSION_REJECTED', reason=reason,
+                                         request_token=self.handshake.token))
+                        self.handshake.fault(reason)
+                        self._cancel_pending(reason)
+                        self.line_wait = reason
+                        return
+                    self._start_automatic_observation_window(admission)
                 self.cyclic_admissions += 1
                 self.cyclic_rearm_evidence = None
             # This PLC raises Request AFTER transfer and its stop command.
@@ -1062,7 +1328,14 @@ class StandaloneRuntime(ProductionRuntime):
         self.request_wait_seconds = self.line_profile['arrival_deadline_s']
         super()._trigger(now)
 
+    def _begin_inspection(self, binding, now):
+        if getattr(self, 'request_start', None):
+            return self.request_start.begin(binding, now)
+        return super()._begin_inspection(binding, now)
+
     def _finish_without_frames(self, decision, reason, now):
+        if getattr(self, 'request_start', None):
+            return self.request_start.no_input(decision, reason, now)
         binding = dict(runtime_session_id=self.session_id, cycle_id=None, track_id=None,
             plc_request_token=self.handshake.token,
             plc_contract=getattr(self.gateway, 'contract_version', 'STANDALONE_V3'),
@@ -1081,7 +1354,7 @@ class StandaloneRuntime(ProductionRuntime):
                      policy='NO_INPUT_IS_NEVER_PASS', reason=reason)
         self._commit_and_publish(identifier, final, now)
 
-    def _validate_cyclic_final(self, binding, final, now):
+    def _validate_cyclic_final(self, binding, final, now, row=None):
         if (binding.get('runtime_session_id') != self.session_id or
                 binding.get('worker_generation') != self.service.generation or
                 binding.get('camera_epoch') != self.epoch):
@@ -1092,6 +1365,33 @@ class StandaloneRuntime(ProductionRuntime):
                     self.coordinator._tracker._track_id != binding['track_id']):
                 raise ValueError('CYCLIC_FINAL_PRODUCT_CHANGED')
         if self._full_frame_policy() and final['decision'] in ('PASS', 'FAIL'):
+            if self._automatic_policy():
+                # The completed request owns its originals and decision. A later
+                # preview miss cannot turn that stored inspection into a fault.
+                # Real identity/stream/control failures remain publication gates.
+                health = self.service.health()
+                if (health.get('error') or health.get('camera_ready') is not True
+                        or health.get('worker_alive') is not True
+                        or health.get('camera_epoch') != binding['camera_epoch']):
+                    raise ValueError('CYCLIC_FINAL_CAMERA_UNAVAILABLE')
+                snapshot = self.gateway.read_snapshot(now)
+                token = (f"{snapshot['boot']:016x}:{snapshot['connection']}:{snapshot['request_id']}"
+                         if snapshot else None)
+                if (not snapshot or not all(snapshot.get(key) is True
+                        for key in ('connected', 'fresh', 'bool_valid', 'run_idle'))
+                        or not all(snapshot['controls'].get(key) is True
+                            for key in ('Mc_Run', 'EStop_OK', 'Stop_PB', 'Inspection_Request'))
+                        or snapshot['phase'] != 'REQUEST_RECEIVED'
+                        or token != binding.get('plc_request_token') or token != self.handshake.token
+                        or self.handshake.cancelled or not self.operating or self.error):
+                    raise ValueError('CYCLIC_FINAL_CONTROL_CONTEXT_INVALID')
+                if self.cycle_issue:
+                    raise ValueError('CYCLIC_FINAL_TRACK_EVIDENCE_INVALID')
+                if row is None:
+                    row = self.service.journal.detail(final['inspection_id'])
+                validate_completed_evidence(row, binding, final['inspection_id'],
+                    self.handshake.accepted_at, now, self.service.package.manifest_hash)
+                return
             from src.tracking.contracts import TrackState
             tracker = self.coordinator._tracker
             if (tracker._state in (TrackState.LOST, TrackState.WAIT_AREA_CLEAR)
@@ -1099,12 +1399,12 @@ class StandaloneRuntime(ProductionRuntime):
                         self.handshake.accepted_at, self.epoch, self.service.generation, now)):
                 raise ValueError('CYCLIC_FINAL_TRACK_EVIDENCE_INVALID')
 
-    def _commit_and_publish(self, identifier, final, now):
+    def _commit_and_publish(self, identifier, final, now, durable_row=None):
         if getattr(self, 'final_pending', None):
             if self.final_pending['inspection_id'] != identifier:
                 raise ValueError('FINAL_COMMIT_OWNER_CONFLICT')
             return
-        row = self.service.journal.detail(identifier)
+        row = durable_row if durable_row is not None else self.service.journal.detail(identifier)
         binding = ((row or {}).get('request') or {}).get('runtime_binding', {})
         cancelled_error = bool(row and row['state'] == 'CANCELLED'
                                and row['decision'] == final['decision'] == 'ERROR')
@@ -1125,10 +1425,13 @@ class StandaloneRuntime(ProductionRuntime):
                            if binding.get('track_id') is not None else None))
         if self._automatic_policy():
             final.update(cycle_policy=AUTO_POLICY, software_permission_required=False,
+                         cycle_admission_evidence=self._automatic_cycle_evidence,
                          product_separation=self.request_product_separation,
                          sensor_cycle_source='QUALIFIED_PLC_REQUEST_LATCH_NOT_RAW_SENSOR')
         if getattr(self.gateway, 'contract_version', None) == 'OPENER_CYCLIC':
-            self._validate_cyclic_final(binding, final, now)
+            self._validate_cyclic_final(binding, final, now, row)
+            if self._automatic_policy() and final['decision'] in ('PASS', 'FAIL'):
+                final['publication_basis'] = 'DURABLE_BOUND_THREE_FRAME_INSPECTION_V1'
             from src.control.opener_cyclic import PLC_RESULT_POLICY
             final.update(plc_result_policy=PLC_RESULT_POLICY,
                 plc_decision='PASS' if final['decision']=='PASS' else 'FAIL',
@@ -1179,13 +1482,20 @@ class StandaloneRuntime(ProductionRuntime):
         entry = dict(final, vision_decision=final['decision'],
             publication_status=self.handshake.publication,
             request_to_publication_ms=(time.monotonic()-self.handshake.accepted_at)*1000)
+        if self._automatic_policy():
+            packet = self.latest_packet or {}
+            entry['publication_preview_diagnostic'] = dict(frame_id=packet.get('frame_id'),
+                provider_status=packet.get('provider', {}).get('status'),
+                issue=self.issue if (self.issue or {}).get('scope') == 'COMPLETED_INSPECTION_PREVIEW' else None,
+                affects_completed_decision=False)
         self.history.appendleft(entry)
         self.assembly_submitted.pop(identifier, None)
         if len(self.published_ids) > 512:
             self.published_ids = {item['inspection_id'] for item in self.history} | {identifier}
-        self._event(dict(event='INTEGRATED_INSPECTION_COMPLETED', **entry))
+        self._completion_event(dict(event='INTEGRATED_INSPECTION_COMPLETED', **entry))
         if self._automatic_policy():
-            self._automatic_previous = dict(inspection_id=identifier, request_token=final['request_token'])
+            self._automatic_previous = dict(inspection_id=identifier, request_token=final['request_token'],
+                start_counters=(self._automatic_cycle_evidence or {}).get('start_counters'))
         if self._automatic_policy() and binding.get('track_id') is not None:
             # Retain the last actual product identity through ambiguous requests
             # whose ERROR has no Track. A timeout is never an exit observation.
@@ -1351,6 +1661,7 @@ class StandaloneRuntime(ProductionRuntime):
         C independently enforces current STOP/E-STOP, Request, connection and
         deadlines. No admission, result or lease extension occurs here.
         """
+        from apps.edge_service.result_storage import raw_storage_within_deadline
         if getattr(self.gateway, 'contract_version', None) != 'OPENER_CYCLIC':
             return
         context = self.service.storage_pending or getattr(self, 'final_pending', None)
@@ -1379,7 +1690,7 @@ class StandaloneRuntime(ProductionRuntime):
             # the existing C request timeout/REQUEST_RECEIVED phase, so an
             # Assembly timeout may still produce its genuine ERROR result.
             and (getattr(self, 'final_pending', None) is not None
-                 or now <= context.get('active', {}).get('deadline', 0))
+                 or raw_storage_within_deadline(context))
             and not self.handshake.cancelled
             and (not self.initial_approval or (not self.initial_approval.failed
                  and self.initial_approval.state != 'REVOKED')))
@@ -1394,6 +1705,22 @@ class StandaloneRuntime(ProductionRuntime):
             with self.lock, self.service.lock:
                 self.service.health_diagnostics.record('SERVICE_LOCK_RUNTIME', retain=time.monotonic()-waited>.02, wait_ms=(time.monotonic()-waited)*1000)
                 if self.closing: continue
+                if self._poll_completion_audit(time.monotonic()):
+                    continue
+                if self.request_start:
+                    try:
+                        if self.request_start.tick(time.monotonic()):
+                            continue
+                    except Exception as error:
+                        # Revoke output authority first. Persist the failure via
+                        # the storage owner, not a control-thread transaction.
+                        self.request_start.capture_events = True
+                        try:
+                            self._fault('REQUEST_START:'+type(error).__name__+':'+str(error))
+                            self.request_start._flush()
+                        finally:
+                            self.request_start.capture_events = False
+                        continue
                 # Commit/fsync owns Journal, not the cyclic health schedule.
                 if not self.service.journal.lock.acquire(blocking=False):
                     self._storage_wait_health(time.monotonic())
@@ -1402,12 +1729,16 @@ class StandaloneRuntime(ProductionRuntime):
                     now = time.monotonic()
                     self._acquisition(now)
                     self._poll_plc(now)
+                    if getattr(self, 'audit_pending', None):
+                        continue
                     while True:
                         try: packet = self.service.products.get_nowait()
                         except queue.Empty: break
                         self._packet(packet)
                     now = time.monotonic()
                     self._poll_final_commit(now)
+                    if getattr(self, 'audit_pending', None):
+                        continue
                     if self.operating and self.observation_started_at is not None:
                         since = self.latest_packet['processed_monotonic'] if self.latest_packet else self.observation_started_at
                         if now-since > self.observation_stale_seconds:
@@ -1440,14 +1771,16 @@ class StandaloneRuntime(ProductionRuntime):
         if self.plc_cycle:
             result['plc_cycle'].update(
                 readiness=self._automatic_readiness(),
-                product_identity_reason=self.automatic_identity_block or self.prior_product_identity_block or
-                    (self.product_passage.reason if self.product_passage else None),
+                product_identity_reason=self.automatic_identity_block,
+                prior_tracking_diagnostic=self.previous_tracking_diagnostic,
+                restored_tracking_diagnostic=self.prior_product_identity_block,
+                cycle_identity_policy='PLC_CYCLE_FRESH_OBSERVATION_V1',
                 request_identity_block=self.automatic_identity_block if self.handshake.state=='REQUEST_LATCHED' else None,
                 product_passage=self.product_passage.status() if self.product_passage else None,
                 product_separation=self.product_separation,
                 area_clearance_required=False, raw_photo_sensor_available=False,
                 blocked_request_deadline_s=self.line_profile['arrival_deadline_s'],
-                recovery='PHYSICAL_STOP_THEN_SUPERVISED_IDENTITY_RECOVERY_IF_UNPROVEN')
+                recovery='SYSTEM_FAULT_REQUIRES_RECOVERY; PAST_TRACKING_REASSESSED_ON_NEW_PLC_CYCLE')
         if self._full_frame_policy():
             result.update(inspection_start_policy=FULL_FRAME,
                 request_start_qualified=(False if self._initial_policy() or self._supervised_policy() else self._profile_ready()),
@@ -1463,7 +1796,12 @@ class StandaloneRuntime(ProductionRuntime):
                     request_start_qualified=self.line_profile.get('request_start_qualification',{}).get('verified') is True,
                     per_product_manual_controls=False)
         result['aborted_inspection'] = self._aborted_status()
-        result['final_commit_pending'] = self.final_pending is not None
+        result['final_commit_pending'] = self.final_pending is not None or getattr(self, 'audit_pending', None) is not None
+        result['completion_audit_pending'] = getattr(self, 'audit_pending', None) is not None
+        result['completion_audit_error'] = getattr(self, 'audit_error', None)
+        request_start = getattr(self, 'request_start', None)
+        result['request_start_pending'] = bool(request_start and (
+            request_start.pending or request_start.events or not request_start.deferred_events.empty()))
         result['ipc_health'] = self.gateway.diagnostics.snapshot() if hasattr(self.gateway, 'diagnostics') else None
         result['integrated_counts'] = dict.fromkeys(('PASS','FAIL','REVIEW','ERROR'), 0)
         result['integrated_counts'].update(dict(totals))

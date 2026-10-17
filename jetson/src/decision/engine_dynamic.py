@@ -65,7 +65,8 @@ def inspect_frame(frame,detections,estimator,*,pose=None):
         return result('ERROR',str(error))
     policy=estimator.cfg['decision_policy']
     products,selection=select_products(detections,policy['product_confidence'],frame.shape)
-    if not products:return result('FAIL','PRODUCT_ENVELOPE_NOT_FOUND',product_selection=selection)
+    # Without a reliable product, none of the part slots has been evaluated.
+    if not products:return result('REVIEW','PRODUCT_ENVELOPE_NOT_FOUND',product_selection=selection)
     if len(products)!=1:return result('REVIEW','MULTIPLE_PRODUCT_ENVELOPES',products=products,product_selection=selection)
     product=products[0]
     pose=pose if pose is not None else estimator.estimate(frame,box_of(product))
@@ -162,7 +163,7 @@ def aggregate_three(frames):
     if context_invalid or None in identifiers or len(set(identifiers))!=3 or any(type(p) is not int for p in pts) or not pts[0]<pts[1]<pts[2]:
         return outcome('ERROR','FRESH_FRAME_IDENTITY_INVALID')
     if any(f.get('reason_code')=='PRODUCT_ENVELOPE_NOT_FOUND' for f in frames):
-        return outcome('FAIL','PRODUCT_ENVELOPE_NOT_FOUND')
+        return outcome('REVIEW','PRODUCT_ENVELOPE_NOT_FOUND')
     if any(f.get('quality_valid') is not True for f in frames):return outcome('REVIEW','IMAGE_QUALITY_INSUFFICIENT')
     for code in ('MULTIPLE_PRODUCT_ENVELOPES','ENGINE_POSE_UNCERTAIN','SLOT_OUTSIDE_FRAME'):
         if any(f['reason_code']==code for f in frames):return outcome('REVIEW',code)

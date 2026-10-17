@@ -148,7 +148,7 @@ class ProcessAssemblyInspector:
                 pending=int(self.pending_identifier is not None and self.active_identifier is None),
                 outstanding=int(self.pending_identifier is not None), active_identifier=self.active_identifier,
                 error=self.load_error or ('ASSEMBLY_PROCESS_EXITED' if not alive and not self.stop.is_set() else None),
-                worker_pid=self.process.pid, worker_alive=alive, mode='REQUIRED_FINAL_COMPONENT',
+                worker_pid=self.process.pid, worker_alive=alive, mode='REFERENCE_ANALYSIS_WITH_DURABLE_EVIDENCE',
                 execution_owner='ASSEMBLY_PROCESS_NO_CAMERA')
 
     def close(self):

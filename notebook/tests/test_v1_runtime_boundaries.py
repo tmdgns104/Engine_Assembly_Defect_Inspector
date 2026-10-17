@@ -25,6 +25,14 @@ class AssemblyPublicationTests(unittest.TestCase):
         r=self.runtime(assembly_result('REVIEW'));r._poll_result(1)
         self.assertEqual(r._commit_and_publish.call_args.args[1]['decision'],'PASS')
 
+    def test_saved_assembly_fail_is_reference_and_publishes_basic_pass(self):
+        r = self.runtime(assembly_result('FAIL_CANDIDATE'))
+        r._poll_result(1)
+        final = r._commit_and_publish.call_args.args[1]
+        self.assertEqual(final['decision'], 'PASS')
+        self.assertEqual(final['assembly_inspector'], 'FAIL')
+        self.assertFalse(final['assembly_affects_final'])
+
     def test_raw_loss_storage_failure_and_dead_process_never_publish(self):
         for reason in ('RAW_FILE_HASH_MISMATCH','ASSEMBLY_RECORDING_FAILED','ASSEMBLY_PROCESS_EXITED'):
             r=self.runtime(dict(state='ERROR',reason=reason));r._poll_result(1)

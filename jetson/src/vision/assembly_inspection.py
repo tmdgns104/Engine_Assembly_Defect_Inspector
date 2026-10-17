@@ -1,4 +1,4 @@
-"""Frozen assembly inference as a required asynchronous decision component."""
+"""Assembly reference analysis with durable evidence before PLC publication."""
 import json
 import queue
 import os
@@ -14,8 +14,9 @@ class AssemblyInspector(ShadowObserver):
         super().__init__(*args, **kwargs)
 
     def _save(self, identifier, value):
-        value.update(source='ASSEMBLY_INSPECTOR', used_by_final_policy=True,
-                     timing_scope='REQUIRED_COMPONENT_BEFORE_PLC_PUBLICATION')
+        value.update(source='ASSEMBLY_INSPECTOR', used_by_final_policy=False,
+                     evidence_required_before_publication=True,
+                     timing_scope='REFERENCE_ANALYSIS_AWAITED_BEFORE_PLC_PUBLICATION')
         super()._save(identifier, value)
         folder = self.evidence_path(identifier).parent
         for path in folder.iterdir():
@@ -26,7 +27,8 @@ class AssemblyInspector(ShadowObserver):
             descriptor = os.open(folder, os.O_RDONLY | os.O_DIRECTORY)
             try: os.fsync(descriptor)
             finally: os.close(descriptor)
-        self.latest.update(source='ASSEMBLY_INSPECTOR', used_by_final_policy=True)
+        self.latest.update(source='ASSEMBLY_INSPECTOR', used_by_final_policy=False,
+                           evidence_required_before_publication=True)
 
     def _run(self):
         try:
@@ -65,4 +67,4 @@ class AssemblyInspector(ShadowObserver):
             outstanding = self.jobs.unfinished_tasks
         return dict(self.latest, pending=self.jobs.qsize(), ready=self.ready,
                     active_identifier=self.active_identifier, outstanding=outstanding,
-                    error=self.load_error, mode='REQUIRED_FINAL_COMPONENT')
+                    error=self.load_error, mode='REFERENCE_ANALYSIS_WITH_DURABLE_EVIDENCE')

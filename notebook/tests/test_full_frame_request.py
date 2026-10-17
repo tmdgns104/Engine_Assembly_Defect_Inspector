@@ -72,7 +72,8 @@ class RuntimeFixture(unittest.TestCase):
             lock=threading.RLock(), production_tracking=threading.Event(),active=None,
             error=None,state='IDLE', session=1,
             package=NS(manifest_hash='sha',snapshot=lambda:{'manifest':{'product_id':'fixture','release_id':'fixture'}}),
-            cancel=Mock(), health=lambda:dict(ready=True,camera_ready=True,state='IDLE'),
+            cancel=Mock(), health=lambda:dict(ready=True,camera_ready=True,state='IDLE',
+                worker_alive=True,camera_epoch='e'),
             status=lambda:dict(ready=True,camera_ready=True,state='IDLE'))
         def allocate():
             self.serial += 1
@@ -224,11 +225,24 @@ class RuntimeFixture(unittest.TestCase):
         import numpy as np
         identifier=self.r.bridge.inspection_id
         binding=self.r.bridge.request['runtime_binding']
-        raw=cv2.imencode('.png',np.full((8,8,3),120,np.uint8))[1].tobytes()
+        import hashlib
+        images=[]; observations=[]; checks=[]
+        for index in range(3):
+            pixels=np.full((8,8,3),120+index,np.uint8)
+            raw=cv2.imencode('.png',pixels)[1].tobytes()
+            frame_id=identifier+':'+str(index)
+            fresh=dict(camera_epoch=binding['camera_epoch'],frame_id=frame_id,
+                sequence=binding['sequence']+index+1,
+                estimated_source_monotonic=binding['monotonic_s']+.001*(index+1),
+                integrity={'valid':True})
+            images.append(dict(kind='raw',data=raw,width=8,height=8,frame_id=frame_id))
+            observations.append(dict(frame_id=frame_id,freshness=fresh,
+                input_pixel_sha256=hashlib.sha256(pixels.tobytes()).hexdigest()))
+            checks.append(dict(frame_id=frame_id,failed_conditions=[]))
         self.j.finish(identifier,dict(decision=decision,reason='SYNTHETIC_FIXTURE',
             execution={'source':'mock','worker_generation':'g'},
-            production_identity=dict(binding,inspection_id=identifier)),
-            [dict(kind='raw',data=raw,width=8,height=8)])
+            observations=observations,production_frame_checks=checks,
+            production_identity=dict(binding,inspection_id=identifier)),images)
         self.r.bridge.poll()
         self.r._commit_and_publish(identifier,{'decision':decision},self.now+offset)
         return identifier

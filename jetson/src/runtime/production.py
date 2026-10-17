@@ -693,6 +693,10 @@ class ProductionRuntime(IntegratedRuntime):
                     (min(binding['product_box'][:2]) <= 0 or max(binding['product_box'][2:]) >= 1)),
                 whole_product_visibility='NOT_PROVEN_BY_TRACKING',
                 motor_stop_feedback='NOT_AVAILABLE')
+        self._begin_inspection(binding, now)
+
+    def _begin_inspection(self, binding, now):
+        """Default synchronous path; automatic cyclic Runtime overrides admission."""
         self.bridge=InspectionBridge(self.service,self.coordinator)
         self.bridge.submit_production(binding)
         self.handshake.bind(self.bridge.inspection_id)

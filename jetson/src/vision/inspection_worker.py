@@ -322,7 +322,16 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                     evidence['acquisition_candidate_count'] = len(candidates)
                     evidence['acquisition_candidates'] = candidates[-32:]
                     evidence['selected_frames'] = [f for f in candidates if f['frame_id'] in selected_ids]
+                if len(selected) == package.recipe['observation_count'] and not selector.terminal_reason:
+                    evidence['capture_completed_monotonic'] = max(
+                        f['selected_at_monotonic'] for f in evidence['selected_frames'])
+                evidence['processing_deadline_monotonic'] = job['deadline']
                 return evidence
+
+            def check_processing():
+                if selector:
+                    check = selector.check_processing if 'capture_deadline' in job else selector.check_active
+                    check(time.monotonic(), stopping.is_set() or cancellation.is_set())
 
             conveyor_rejections=[]
             def progress(stage):
@@ -338,7 +347,8 @@ def worker_main(package_root, station, generation, commands, results, previews, 
             try:
                 if station.get('fresh_frame'):
                     selector = FreshFrameSelector(TriggerContext(**job['trigger']), station['fresh_frame'],
-                                                  station['max_frame_age_seconds'], station['frame_spacing_seconds'])
+                                                  station['max_frame_age_seconds'], station['frame_spacing_seconds'],
+                                                  source_not_before=job.get('durable_admission_monotonic'))
                 while len(frames) < package.recipe["observation_count"]:
                     if selector:
                         selector.check_active(time.monotonic(), stopping.is_set() or cancellation.is_set())
@@ -399,9 +409,10 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                         bound = validate_bound_frame(bound,packet,profile)
                         detected['automatic_coverage'] = automatic_coverage(detected,package,job.get('calibration'),bound['bbox'],profile)
                         detected['auto_frame_binding'] = dict(bound)
-                    # Inference may outlive the window or cancellation. Never publish that cycle.
-                    if selector:
-                        selector.check_active(time.monotonic(), stopping.is_set() or cancellation.is_set())
+                    # The source was selected before the capture deadline. Check
+                    # cancellation/total processing now; the next capture still
+                    # must pass the unchanged short selection window.
+                    check_processing()
                     frames.append(frame); observations.append(detected)
                     after = freshness["estimated_source_monotonic"] + station["frame_spacing_seconds"]
                 three_frames_ms=(time.monotonic()-job['accepted_monotonic'])*1000
@@ -459,7 +470,7 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 if any(hashlib.sha256(f.image.tobytes()).hexdigest() != o['input_pixel_sha256'] for f,o in zip(frames,observations)):
                     raise RuntimeError('EVIDENCE_INPUT_MUTATED')
                 if selector:
-                    selector.check_active(time.monotonic(), stopping.is_set() or cancellation.is_set())
+                    check_processing()
                     result['fresh_frame'] = fresh_evidence(observations)
                 results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],"result":result,"images":images},timeout=2)
             except Exception as error:

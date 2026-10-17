@@ -1,4 +1,4 @@
-"""A confirmed defect stays FAIL; uncertainty remains visible in its component."""
+"""Only basic presence decides PASS/FAIL; assembly classifications remain visible."""
 import copy
 import unittest
 from src.vision.integrated_decision import combine_decisions
@@ -9,10 +9,10 @@ class IntegratedDecisionTests(unittest.TestCase):
     def test_all_sixteen_completed_component_pairs(self):
         states = ('PASS', 'FAIL', 'REVIEW', 'ERROR')
         assembly_states = ('PASS_CANDIDATE', 'FAIL_CANDIDATE', 'REVIEW', 'ERROR')
-        expected = (('PASS', 'FAIL', 'PASS', 'PASS'),
+        expected = (('PASS', 'PASS', 'PASS', 'PASS'),
                     ('FAIL', 'FAIL', 'FAIL', 'FAIL'),
-                    ('REVIEW', 'FAIL', 'REVIEW', 'REVIEW'),
-                    ('ERROR', 'FAIL', 'ERROR', 'ERROR'))
+                    ('REVIEW', 'REVIEW', 'REVIEW', 'REVIEW'),
+                    ('ERROR', 'ERROR', 'ERROR', 'ERROR'))
         for i, existing in enumerate(states):
             for j, component in enumerate(assembly_states):
                 with self.subTest(existing=existing, assembly=component):
@@ -20,7 +20,19 @@ class IntegratedDecisionTests(unittest.TestCase):
                     self.assertEqual(value['decision'], expected[i][j])
                     self.assertEqual(value['existing_inspector'], existing)
                     self.assertEqual(value['assembly_inspector'], states[j])
-                    self.assertEqual(value['policy'], 'BASIC_WITH_CONFIRMED_ASSEMBLY_FAIL_V1')
+                    self.assertEqual(value['policy'], 'BASIC_PRESENCE_ASSEMBLY_REFERENCE_V2')
+                    self.assertFalse(value['assembly_affects_final'])
+
+    def test_agreed_assembly_defect_is_reported_without_overriding_presence(self):
+        assembly = assembly_result('FAIL_CANDIDATE')
+        original = copy.deepcopy(assembly)
+        result = combine_decisions('PASS', assembly)
+        self.assertEqual(result['decision'], 'PASS')
+        self.assertEqual(result['assembly_inspector'], 'FAIL')
+        self.assertTrue(result['assembly_confirmed_fail'])
+        self.assertFalse(result['assembly_affects_final'])
+        self.assertTrue(result['publication_allowed'])
+        self.assertEqual(assembly, original)
 
     def test_real_missing_failure_is_not_hidden_by_alignment_review(self):
         assembly = dict(state='COMPLETE', three_frames=dict(state='REVIEW'),

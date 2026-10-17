@@ -272,14 +272,14 @@ class IntegratedRuntime:
                         self.logger.exception('cycle 오류 기록 실패; NOT_READY 유지')
 
     def status(self):
+        # UI storage reads must not own the Runtime lock used by PLC health.
+        try:
+            service = self.service.status() if not self.closed else {'state':'CLOSED'}
+        except Exception as error:
+            service = {'state':'RECOVERY','ready':False,'error':f'STATUS_UNAVAILABLE: {error}',
+                'worker_pid':self.service.process.pid,'worker_alive':self.service.process.is_alive(),
+                'camera_ready':False}
         with self.lock:
-            try:
-                service = self.service.status() if not self.closed else {'state':'CLOSED'}
-            except Exception as error:
-                # 저장소 조회 자체가 실패해도 상태 endpoint는 남겨 둔다.
-                service = {'state':'RECOVERY','ready':False,'error':f'STATUS_UNAVAILABLE: {error}',
-                    'worker_pid':self.service.process.pid,'worker_alive':self.service.process.is_alive(),
-                    'camera_ready':False}
             tracking = self.snapshot.to_dict() if self.snapshot else {'coordinator_state':'NO_ACTIVE_CYCLE',
                 'track_id':None,'inspection_id':None,'cycle_id':None,'tracker_state_after':'IDLE'}
             return {'runtime_session_id':self.session_id,'mode':'mock','acceptance':'SOFTWARE_INTEGRATION_BASELINE',

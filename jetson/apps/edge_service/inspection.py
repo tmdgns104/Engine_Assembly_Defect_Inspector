@@ -18,6 +18,7 @@ from src.control.mock_cell import MockCell
 from src.decision.calibration import station_fingerprint
 from apps.edge_service.mock_port import ServiceMockPort
 from apps.edge_service.lab_port import ServiceLabPort
+from apps.edge_service.result_storage import raw_storage_within_deadline
 from src.control.lab_modes import LabController
 
 
@@ -57,6 +58,7 @@ class InspectionService:
         # Server-owned bounded queues survive a Worker killed during a large PNG transfer.
         self.manager = self.ctx.Manager()
         self.active = None
+        self.production_admission_pending = None
         self.progress = None
         self.state, self.error, self.backend = 'INIT', None, None
         self.preview, self.preview_received = None, 0
@@ -113,7 +115,11 @@ class InspectionService:
     def _launch(self):
         self.generation = uuid.uuid4().hex
         self.commands, self.results, self.previews = (self.manager.Queue(maxsize=n) for n in (1, 2, 1))
-        self.products = self.manager.Queue(maxsize=2) if (self.station.get('auto_profile') or self.production_enabled) else None
+        # These are small observation records, not images. Preserve intermediate
+        # observations through a short consumer/Journal stall; the preview queue
+        # remains latest-only. Passage source-gap and age limits still reject
+        # genuinely missing or stale evidence, including longer overflows.
+        self.products = self.manager.Queue(maxsize=16) if (self.station.get('auto_profile') or self.production_enabled) else None
         self.product_latest = None
         self.stopping, self.cancellation = ProcessFlag(self.ctx), ProcessFlag(self.ctx)
         self.production_tracking = ProcessFlag(self.ctx)
@@ -171,6 +177,8 @@ class InspectionService:
             self._fault('RESULT_STORAGE_ERROR:'+completed['error'])
         elif not matching:
             self._fault('STORAGE_COMPLETION_CONTEXT_CHANGED')
+        elif not raw_storage_within_deadline(context):
+            self._fault('STORAGE_DEADLINE_EXCEEDED')
         else:
             self.active = None
             if self.state not in ('RECOVERY', 'STOPPED'):
@@ -182,10 +190,14 @@ class InspectionService:
         This does not authorize a product or declare its result durable.
         """
         with self.lock:
+            # The child renews independently of this lock. Snapshot its pulse
+            # before sampling now, or a concurrent renewal looks like a future
+            # heartbeat and falsely revokes PLC readiness.
+            heartbeat_at = self.heartbeat.value
             now = time.monotonic()
             alive = bool(self.process and self.process.is_alive())
             camera = bool(alive and self.preview and 0 <= now-self.preview_received < 2)
-            worker_age = now-self.heartbeat.value
+            worker_age = now-heartbeat_at
             reason = self.error
             if not alive: reason = reason or 'WORKER_EXITED'
             elif not 0 <= worker_age <= 5: reason = reason or 'WORKER_HEARTBEAT_LOST'
@@ -195,21 +207,26 @@ class InspectionService:
                 if (context['generation'] != self.generation or self.active is not context['active']
                         or context['camera_epoch'] != (self.preview or {}).get('freshness', {}).get('camera_epoch')):
                     reason = reason or 'STORAGE_CONTEXT_CHANGED'
-                if now > context['active']['deadline']:
+                if not raw_storage_within_deadline(context):
                     reason = reason or 'STORAGE_DEADLINE_EXCEEDED'
                 if not self.storage.thread.is_alive(): reason = reason or 'STORAGE_WORKER_EXITED'
+            disk_started = time.monotonic()
             try:
                 if shutil.disk_usage(self.journal.root).free < self.journal.min_free_bytes:
                     reason = reason or 'DISK_SPACE_LOW'
             except OSError:
                 reason = reason or 'STORAGE_UNAVAILABLE'
+            finally:
+                duration_ms = (time.monotonic()-disk_started)*1000
+                self.health_diagnostics.record('HEALTH_DISK_CHECK',
+                    duration_ms=duration_ms, retain=duration_ms>20)
             identity = (self.state, alive, camera, self.generation,
                         (self.preview or {}).get('freshness', {}).get('camera_epoch'), reason)
             if identity != getattr(self, '_last_health_identity', None):
                 self._last_health_identity = identity
                 self.health_diagnostics.record('WORKER_CAMERA_STATE', state=self.state,
                     alive=alive, camera_ready=camera, generation=self.generation,
-                    camera_epoch=identity[4], reason=reason)
+                    camera_epoch=identity[4], reason=reason, worker_heartbeat_age_s=worker_age)
             return dict(state=self.state, error=reason, camera_ready=camera, worker_alive=alive,
                 worker_pid=self.process.pid if self.process else None, worker_heartbeat_age_s=worker_age,
                 ready=self.state == 'IDLE' and camera and bool(self.calibration) and not reason and not self.switching,
@@ -253,6 +270,15 @@ class InspectionService:
                 self._storage_completions()
                 try:
                     while True:
+                        start = getattr(self.production_owner, 'request_start', None)
+                        if start and start.deferred_events.full():
+                            # Keep messages in the bounded Worker queue. Revoke
+                            # authority without waiting on the busy Journal.
+                            self.error = 'LATE_RESULT_AUDIT_BACKPRESSURE'
+                            self.state = 'RECOVERY'
+                            self.cancellation.set()
+                            self.production_owner.gateway.health_update(False, False, time.monotonic())
+                            break
                         message = self.results.get_nowait()
                         if message['generation'] != self.generation:
                             continue
@@ -271,8 +297,7 @@ class InspectionService:
                                     message['inspection_id'],message['result'].get('reason'))
                             if not self.active or message['inspection_id'] != self.active['inspection_id']:
                                 if self.station.get('fresh_frame'):
-                                    with self.journal.lock, self.journal.db:
-                                        self.journal._event('LATE_RESULT_QUARANTINED', {'inspection_id':message['inspection_id'], 'reason':'NO_MATCHING_ACTIVE_TRIGGER'})
+                                    self._quarantine_late_result(message['inspection_id'])
                                 else:
                                     self.journal.finish(message['inspection_id'], message['result'], ())
                                 continue
@@ -282,6 +307,10 @@ class InspectionService:
                             elif time.monotonic() > self.active['deadline'] or self.cancellation.is_set():
                                 self._record_request_failure('CANCELLED_OR_EXPIRED')
                             else:
+                                if 'durable_admission_monotonic' in self.active:
+                                    # A Worker-provided claim is never authority. The
+                                    # active reservation supplies this after validation.
+                                    message['result']['durable_admission_monotonic'] = self.active['durable_admission_monotonic']
                                 message['result']['execution'] = {'source': 'mock' if self.backend.get('backend')=='mock' else 'live', 'control': self.active['request'].get('control_mode','manual'),
                                     'station_id': self.station['station_id'], 'worker_generation': self.generation}
                                 message['result']['worker_result_received_ms'] = (time.monotonic()-self.active['accepted_monotonic'])*1000
@@ -352,6 +381,17 @@ class InspectionService:
                     if self.lab.mode!='MANUAL': self.lab.fault('LAB_CONTROL_ERROR: '+str(error))
                     self.mock.transition('FAULT','CONTROL_ERROR: '+str(error))
 
+    def _quarantine_late_result(self, identifier):
+        payload = dict(inspection_id=identifier, reason='NO_MATCHING_ACTIVE_TRIGGER')
+        start = getattr(self.production_owner, 'request_start', None)
+        if start:
+            # This flag is constructed here, never copied from a Worker result.
+            start.defer_event(dict(payload, event='LATE_RESULT_QUARANTINED', event_only=True,
+                monotonic_s=time.monotonic(), runtime_session_id=self.production_owner.session_id))
+        else:
+            with self.journal.lock, self.journal.db:
+                self.journal._event('LATE_RESULT_QUARANTINED', payload)
+
     def preview_snapshot(self):
         """Read one immutable JPEG and its identity; no Journal or inference work.
 
@@ -377,33 +417,52 @@ class InspectionService:
                         received_age_ms=(now - self.preview_received) * 1000)
 
     def status(self):
+        # Snapshot camera/control memory first. A UI capacity/SQL read must not
+        # hold Service.lock while a slow Journal operation owns the disk.
         with self.lock:
-            # A UI poll cannot strand the control owner behind a DB fsync.
-            if not self.journal.lock.acquire(blocking=False):
-                return dict(self._status_cache, **self.health(), journal_status='COMMITTING')
-            try:
-                value = self._status_with_journal()
-                value['health_diagnostics'] = self.health_diagnostics.snapshot()
-                value['journal_timing'] = self.journal.diagnostics.snapshot()
-                value['storage_pending'] = self.storage_pending is not None
-                self._status_cache = value
-                return value
-            finally:
-                self.journal.lock.release()
-
-    def _status_with_journal(self):
-        with self.lock:
+            value = self._status_snapshot()
+        if not self.journal.lock.acquire(blocking=False):
+            value.update(ready=False, journal_status='COMMITTING')
+            return value
+        try:
             storage_error = None
             try:
                 self.journal.capacity()
             except OSError as error:
                 storage_error = str(error)
-            camera = bool(self.preview and time.monotonic()-self.preview_received < 2 and self.process.is_alive())
-            control_idle=self.mock.state in ('IDLE','RECOVERY')
-            with self.journal.lock:
-                pending_cycles=self.journal.db.execute("SELECT count(*) FROM inspections JOIN cycles USING(cell_id,plc_session_id,cycle_id) WHERE terminal IS NULL AND json_extract(request_json,'$.control_mode')='mock'").fetchone()[0]
-            return {'app_release': self.station.get('app_release', 'app_v007'), 'state': self.state, 'error': self.error or storage_error,
-                'ready': self.state == 'IDLE' and camera and bool(self.calibration) and not storage_error and not self.switching and control_idle and not pending_cycles,
+            pending_cycles=self.journal.db.execute("SELECT count(*) FROM inspections JOIN cycles USING(cell_id,plc_session_id,cycle_id) WHERE terminal IS NULL AND json_extract(request_json,'$.control_mode')='mock'").fetchone()[0]
+            reference=self.journal.db.execute(
+                "SELECT inspection_id FROM inspections WHERE cell_id=? "
+                "AND json_extract(package_json,'$.manifest_sha256')=? "
+                "AND json_extract(request_json,'$.kind')='calibrate' ORDER BY rowid DESC LIMIT 1",
+                (value['cell_id'], value['package']['manifest_sha256'])).fetchone()
+            value.update(error=value['error'] or storage_error,
+                ready=value['ready'] and not storage_error and not pending_cycles,
+                latest_reference_inspection_id=reference[0] if reference else None,
+                journal_status='AVAILABLE', journal_timing=self.journal.diagnostics.snapshot())
+        finally:
+            self.journal.lock.release()
+        # No Service lock acquisition while Journal is held.
+        with self.lock:
+            current = self._status_snapshot()
+            if (current['plc_session_id'] != value['plc_session_id']
+                    or current['package']['manifest_sha256'] != value['package']['manifest_sha256']):
+                current.update(ready=False, journal_status='CONTEXT_CHANGED')
+            else:
+                current.update(error=current['error'] or storage_error,
+                    ready=current['ready'] and not storage_error and not pending_cycles,
+                    latest_reference_inspection_id=value['latest_reference_inspection_id'],
+                    journal_status=value['journal_status'], journal_timing=value['journal_timing'])
+            current['health_diagnostics'] = self.health_diagnostics.snapshot()
+            self._status_cache = current
+            return current
+
+    def _status_snapshot(self):
+        """Caller holds Service.lock; process-local state only, no Journal I/O."""
+        camera = bool(self.preview and time.monotonic()-self.preview_received < 2 and self.process.is_alive())
+        control_idle=self.mock.state in ('IDLE','RECOVERY')
+        return {'app_release': self.station.get('app_release', 'app_v007'), 'state': self.state, 'error': self.error,
+                'ready': self.state == 'IDLE' and camera and bool(self.calibration) and not self.error and not self.switching and control_idle,
                   'camera_ready': camera, 'worker_pid': self.process.pid, 'worker_alive': self.process.is_alive(),
                   'progress':self.progress if self.active and self.progress and self.progress['inspection_id']==self.active['inspection_id'] else None,
                   'diagnostic_capture':dict(self.diagnostic_capture.value),
@@ -413,22 +472,45 @@ class InspectionService:
                 'backend': self.backend, 'package': self.package.snapshot(),
                 'calibration_confirmed': bool(self.calibration), 'recovery': self.recovery,
                 'calibration_source_inspection_id': self.calibration.get('source_inspection_id') if self.calibration else None,
-                'latest_reference_inspection_id': self._latest_reference_id(),
+                'latest_reference_inspection_id': None,
+                'storage_pending': self.storage_pending is not None,
+                'production_admission_pending': getattr(self, 'production_admission_pending', None) is not None,
+                'status_sampled_monotonic': time.monotonic(),
                 'production_enabled':self.production_enabled,'lab':self.lab.status(),
                 'performance':{'camera_fps':None,'camera_fps_status':'SENSOR_FPS_UNMEASURED',
                     'processed_preview_fps':(len(self.preview_times)-1)/(self.preview_times[-1][1]-self.preview_times[0][1]) if camera and len(self.preview_times)>1 and self.preview_times[-1][1]>self.preview_times[0][1] else None,
                     'processed_preview_samples':len(self.preview_times),'latest_inspection_timing':self.latest_timing},
                 'mock':self.mock.status(),'pc_sync':{'error':self.sender.error,'last_success':self.sender.last_success} if self.sender else {'state':'NOT_CONFIGURED'}}
 
+    def _camera_ready(self):
+        """Caller holds Service.lock; camera check must not query UI/Journal."""
+        return bool(self.preview and 0 <= time.monotonic()-self.preview_received < 2
+                    and self.process and self.process.is_alive())
+
     def allocate_request(self):
-        with self.lock,self.journal.lock,self.journal.db:
-            key='request_counter:'+str(self.session)
-            row=self.journal.db.execute('SELECT value FROM service_state WHERE key=?',(key,)).fetchone()
-            number=int(row[0])+1 if row else 1
-            if number>4294967295:raise ConflictError('REQUEST_COUNTER_EXHAUSTED_RESTART_SESSION_REQUIRED')
-            self.journal.db.execute('INSERT INTO service_state VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,str(number)))
-            return {'cell_id':self.station['cell_id'],'plc_session_id':self.session,'request_id':number,
-                'cycle_id':number,'attempt':1,'package_sha256':self.package.manifest_hash}
+        with self.lock:
+            if getattr(self, 'production_admission_pending', None) is not None:
+                raise ConflictError('ADMISSION_PENDING')
+            with self.journal.lock,self.journal.db:
+                key='request_counter:'+str(self.session)
+                row=self.journal.db.execute('SELECT value FROM service_state WHERE key=?',(key,)).fetchone()
+                number=int(row[0])+1 if row else 1
+                if number>4294967295:raise ConflictError('REQUEST_COUNTER_EXHAUSTED_RESTART_SESSION_REQUIRED')
+                self.journal.db.execute('INSERT INTO service_state VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(key,str(number)))
+                return {'cell_id':self.station['cell_id'],'plc_session_id':self.session,'request_id':number,
+                    'cycle_id':number,'attempt':1,'package_sha256':self.package.manifest_hash}
+
+    def prepare_production_admission(self, binding):
+        from apps.edge_service.production_admission import prepare
+        return prepare(self, binding)
+
+    def activate_production_admission(self, context, saved):
+        from apps.edge_service.production_admission import activate
+        return activate(self, context, saved)
+
+    def release_production_admission(self, context, reason):
+        from apps.edge_service.production_admission import release
+        return release(self, context, reason)
 
     def submit(self, request, *, _lab=False, _production=False):
         # Server receipt time is authoritative; clients cannot supply t0 or an epoch.
@@ -436,6 +518,8 @@ class InspectionService:
         from copy import deepcopy
         request = deepcopy(request)
         with self.lock:
+            if getattr(self, 'production_admission_pending', None) is not None:
+                raise ConflictError('ADMISSION_PENDING')
             # Check old keys before checking busy/session: transport retries return the original job.
             existing = self.journal.find_request(request)
             if existing:
@@ -467,7 +551,7 @@ class InspectionService:
                 raise ConflictError('CONTROL_AGENT_OWNS_MOCK_REQUESTS')
             if self.state != 'IDLE' or self.active:
                 raise ConflictError('BUSY_OR_RECOVERY')
-            if not self.status()['camera_ready']:
+            if not InspectionService._camera_ready(self):
                 raise ConflictError('CAMERA_NOT_READY')
             if request['kind'] == 'inspect' and not self.calibration:
                 raise ConflictError('CALIBRATION_REQUIRED')
@@ -508,11 +592,11 @@ class InspectionService:
                     'trigger_reason':request.get('lab_trigger_reason')}
             if trigger:
                 self.active['trigger']=trigger
-                if (_production and self.production_owner.inspection_motion_mode in
-                        ('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH')):
+                if _production:
                     # Frame selection still stops at this unchanged deadline. The service
                     # must remain alive long enough to store the resulting REVIEW.
                     self.active['capture_deadline']=selector.deadline
+                    self.active['deadline']=trigger['deadline_monotonic']
                 else:
                     self.active['deadline']=selector.deadline
             self.cancellation.clear()
@@ -531,6 +615,9 @@ class InspectionService:
         trigger = self.active.get('trigger')
         if trigger and result.get('fresh_frame', {}).get('trigger') != trigger:
             return 'TRIGGER_CONTEXT_MISMATCH'
+        if 'durable_admission_monotonic' in self.active:
+            from apps.edge_service.production_admission import result_context_error
+            return result_context_error(self.active, result, self.station['fresh_frame'])
         return None
 
     def lab_action(self, action, body):
@@ -538,21 +625,21 @@ class InspectionService:
             if action=='stop':
                 self.lab.stop()
             elif action=='mode':
-                if self.active or self.switching or self.mock.state not in ('IDLE','RECOVERY'):
+                if self.active or getattr(self, 'production_admission_pending', None) is not None or self.switching or self.mock.state not in ('IDLE','RECOVERY'):
                     raise ConflictError('IDLE_REQUIRED')
                 if not self.calibration: raise ConflictError('CALIBRATION_REQUIRED')
                 if self.production_enabled and body.get('mode')=='MOCK_PLC':
                     raise ConflictError('MOCK_MOVED_TO_PRODUCTION_AUTO_CURRENT_NG_POLARITY')
                 self.lab.select(body.get('mode'),body.get('confirmed'),time.monotonic())
             elif action=='reinspect':
-                if self.active: raise ConflictError('BUSY')
+                if self.active or getattr(self, 'production_admission_pending', None) is not None: raise ConflictError('BUSY')
                 self.lab.reinspect()
             elif action=='resync': self.lab.resync()
             elif action=='request':
                 if self.lab.mode!='MOCK_PLC' or type(body.get('value')) is not bool:
                     raise ValueError('MOCK_MODE_AND_BOOL_REQUIRED')
                 self.lab.gateway.request=body['value']
-                self.lab.tick(time.monotonic(),None,self.status()['camera_ready'])
+                self.lab.tick(time.monotonic(),None,InspectionService._camera_ready(self))
             elif action=='fault':
                 if self.lab.mode!='MOCK_PLC': raise ValueError('MOCK_MODE_REQUIRED')
                 fault=body.get('kind')
@@ -561,13 +648,13 @@ class InspectionService:
                     setattr(self.lab.gateway,'unknown_next' if fault=='done_unknown' else 'fail_next',
                             'Jetson_Result' if fault=='result_fail' else 'Jetson_Done')
                 else: raise ValueError('INVALID_MOCK_FAULT')
-                self.lab.tick(time.monotonic(),None,self.status()['camera_ready'])
+                self.lab.tick(time.monotonic(),None,InspectionService._camera_ready(self))
             else: raise ValueError('UNKNOWN_LAB_ACTION')
             return self.lab.status()
 
     def live_control(self, action):
         with self.lock:
-            if self.active: raise ConflictError('CANCEL_INSPECTION_AND_WAIT_FIRST')
+            if self.active or getattr(self, 'production_admission_pending', None) is not None: raise ConflictError('CANCEL_INSPECTION_AND_WAIT_FIRST')
             if action=='stop':
                 self.lab.stop()
                 self._stop_worker()
@@ -613,7 +700,7 @@ class InspectionService:
             from src.runtime.auto_profile import validate_profile
             validate_profile(auto_profile or self.station['auto_profile'],candidate)
         with self.lock:
-            if self.active or self.lab.mode!='MANUAL' or self.state not in ('IDLE', 'RECOVERY') or self.switching or self.mock.state not in ('IDLE','RECOVERY'):
+            if self.active or getattr(self, 'production_admission_pending', None) is not None or self.lab.mode!='MANUAL' or self.state not in ('IDLE', 'RECOVERY') or self.switching or self.mock.state not in ('IDLE','RECOVERY'):
                 raise ConflictError('IDLE_REQUIRED')
             with self.journal.lock:
                 pending=self.journal.db.execute("SELECT count(*) FROM inspections JOIN cycles USING(cell_id,plc_session_id,cycle_id) WHERE terminal IS NULL AND json_extract(request_json,'$.control_mode')='mock'").fetchone()[0]

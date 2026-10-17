@@ -234,6 +234,16 @@ class AbortDisplayRestoreTests(unittest.TestCase):
         self.runtime._restore_aborted_inspection()
         self.assertEqual(self.runtime.aborted_inspection['inspection_id'], identifier)
 
+    def test_bare_or_tampered_abort_key_cannot_hide_unresolved_request(self):
+        identifier, _ = self.blocked_inspection(1, 50)
+        with self.journal.db:
+            self.journal.db.execute('INSERT INTO service_state VALUES (?,?)',
+                ('aborted_cycle:'+identifier, '{}'))
+        before = self.journal.db.total_changes
+        self.runtime._restore_aborted_inspection()
+        self.assertEqual(self.runtime.aborted_inspection['inspection_id'], identifier)
+        self.assertEqual(self.journal.db.total_changes, before)
+
     def test_settled_recent_records_do_not_hide_an_unresolved_abort(self):
         identifier, _ = self.blocked_inspection(1, 1)
         for number in range(2, 35):
