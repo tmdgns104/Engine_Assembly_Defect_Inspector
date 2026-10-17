@@ -1,3 +1,9 @@
+ATTEMPT11 ACTUAL STANDALONE 30 VERIFIED / POST-37 READINESS FOLLOW-UP OPEN
+2026-10-17 운영555c3a43053ce4ce·bootc8d72e3f·Worker2741 유지, NRestarts0. 실제 한 START·노트북 LAN 분리 상태에서 첫30건: PASS30/유효3장30/PLC거래30, 새원본90PNG·120자산 검증, 545.150초(9분5초). 전체37건은 PASS36/FAIL1/ERROR0/REVIEW0, 모두 유효3장·같은ID Result→laterDone→RequestLOW→다음대기 확인. 111원본·148자산 파일/픽셀SHA·SQLite ok, 수집기407관측 무장애·30건 정상 종료. 요청→C완료 첫30 중앙10.676초/p95 14.219초/최대14.325초. HEALTH_UPDATE 저장최대248.376ms(400ms 미만; p95/p99 미측정). 정확한 정상/불량 전환 번호·결품 종류는 사용자 기억 불명; 37번 RIGHT_PIPE_MISSING은 모델 판정이며 정답 확정 아님.
+37번 완료 뒤 8.89초에 REQUEST_STORAGE_OWNER_CHANGED/WAIT_REQUEST_STORAGE_CHECK로 Ready 해제·C DISARMED 기록. 0.33초 뒤 Ready는 회복했지만 약5.21초 뒤 실제STOP 기준으로 복귀; 38번째 수락/검사/취소 행은 없음. 마지막 사용자 '요청 후STOP인 것 같음'은 관측으로만 보존하며 오류를 STOP 탓으로 단정하지 않음. 첫30 통과와 별도 후속 문제, 장시간/불량혼합 안정성 완료 아님. 현재 실제 STOP/RequestLOW/출력0/저장유휴 확인. 재시작·추가START·판정/임계값 변경 없음.
+증거 runs/capture_stability_20261017/{ATTEMPT11_AUDIT,FIELD30_NATIVE,FIELD30_CURRENT_STATUS,ATTEMPT11_TRANSFER}.json 및 ATTEMPT11_EVIDENCE.zip(19abbc51c88e7ee7cb2acf72e0a8322c2548ce7c8f527ea3815b33830815971b). 원기록/과거시도 보존. 배포소스 GitHub e5ea81f22789fab2ffffb5109c13c8edca39a6a6 반영 확인; 이번 결과 문서 반영 진행. 다음: 37완료 이후 준비저하 원인 확인 후 결품정답을 사전에 구분한 별도혼합시험. B04/E04·학습·모델변경 없음.
+
+Previous checkpoint:
 ATTEMPT11 PHYSICAL START VERIFIED / LAPTOP LAN DISCONNECTED / 30-CYCLE RESULT PENDING
 2026-10-17 새 운영555c3a43053ce4ce·bootc8d72e3f의 실제START신호(Mc_Run/EStop_OK/Stop_PB=true,Request=false),IDLE/오류없음/카운터0/Worker2741/수집4393 확인. 사용자노트북LAN분리와SSH타임아웃확인; PLC–Jetson연결유지·노트북전원OFF미시험. 정상모형30회 한개씩투입 안내, 매회승인없음. 정확한 완료/유효3장/판정분포는 재연결후Journal/C기록대조까지미확정. START확인스크립트최초Stop_PB=false 가정은기존계약true와불일치해거부됐으며도구만수정; PLC극성/운영코드변경없음. 증거 runs/capture_stability_20261017/FIELD30_START_CONFIRMED.json, FIELD30_NOTEBOOK_DISCONNECTED.json. 기존247검사보존·실제재부팅/수집preflight검증완료. GitHub현재변경반영중. 다음: 사용자30회완료/멈춤→필요시실제STOP→LAN재연결→원기록집계. 실패를성공으로합산하지않음.
 
