@@ -1,4 +1,5 @@
 """Explicit PLC request admission, independent of crop/pose and departure evidence."""
+from src import config as parameters
 import math
 
 FULL_FRAME = 'PLC_REQUEST_TRACKED_FULL_FRAME'
@@ -25,7 +26,7 @@ def start_policy(profile, contract):
     return policy
 
 
-def tracked_frame_evidence(packet, accepted_at, epoch, generation, now, max_age=2.0):
+def tracked_frame_evidence(packet, accepted_at, epoch, generation, now, max_age=parameters.ADMISSION_PREVIEW_MAX_AGE_SECONDS):
     """One current product and a source frame strictly newer than the PLC edge.
 
     This says nothing about motor feedback, whole-product visibility or AI quality.

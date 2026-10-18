@@ -97,9 +97,15 @@ class AutomaticAdmissionTests(unittest.TestCase):
             self.assertEqual(c.post('/api/v1/line/supervised/prepare',json={}).status_code,403)
 
 
-    def test_identity_error_keeps_ng_policy_and_reason(self):
+    def test_previous_product_reason_is_not_a_current_inspection_ng(self):
         view=line_view(dict(latest_frame={'frame_id':'x'},inspection_service={'camera_ready':True},
             plc={'available':True},plc_cycle=dict(product_identity_reason='UNPROVEN')), {})
-        self.assertIn('ERROR·PLC NG',view['detail'])
+        # A previous-product observation is not a saved inspection or PLC NG.
+        self.assertEqual(view['phase'],'WAIT_PRODUCT_MOVEMENT')
+        self.assertEqual(view['verdict'],'NOT_RUN')
+        self.assertIn('UNPROVEN',view['detail'])
+        self.assertIsNone(view['current_inspection_id'])
+        self.assertIsNone(view['last_result'])
+        self.assertEqual(view['plc']['publication_status'],'NOT_STARTED')
 
 if __name__=='__main__':unittest.main()

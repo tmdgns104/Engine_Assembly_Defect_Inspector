@@ -60,6 +60,59 @@ const LineDetails = (() => {
     add(fig,'figcaption',title);img.onerror=()=>{img.hidden=true;add(fig,'p','저장 이미지를 불러오지 못했습니다.')};
   }
 
+  function presenceLabel(state){
+    return {PRESENT:'미결합 없음 · 부품 확인',MISSING_CONFIRMED:'미결합 · 부품 없음',
+      MISSING:'미결합 의심 · 확인 필요',UNCERTAIN:'부품 확인 불확실',NOT_EVALUATED:'부품 미평가',
+      NOT_RUN:'부품 검사 미실행'}[state]||'부품 확인 불확실';
+  }
+
+  // Saved camera-coordinate slots only: this crop is a display, never a detector input.
+  function partCrop(raw,key){
+    if(!raw?.inspection_id||!Object.hasOwn(parts,key))return null;
+    const observations=raw.result?.observations||[],assets=raw.result?.assets||[];
+    const preferred=raw.result?.representative_frame_id;
+    const ordered=[...observations].sort((a,b)=>Number(b.frame_id===preferred)-Number(a.frame_id===preferred));
+    for(const o of ordered){
+      const e=o.engine_dynamic,poly=e?.slot_polygons?.[key],w=o.width,h=o.height;
+      if(e?.inspection_id!==raw.inspection_id||e?.frame_id!==o.frame_id||e?.pose?.reliable!==true)continue;
+      if(!Number.isInteger(w)||!Number.isInteger(h)||w<=0||h<=0||!Array.isArray(poly)||poly.length!==4)continue;
+      if(!poly.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite)&&p[0]>=0&&p[0]<=w&&p[1]>=0&&p[1]<=h))continue;
+      const area=Math.abs(poly.reduce((s,p,i)=>s+p[0]*poly[(i+1)%4][1]-poly[(i+1)%4][0]*p[1],0))/2;
+      if(area<=1)continue;
+      const x=Math.floor(Math.min(...poly.map(p=>p[0]))),y=Math.floor(Math.min(...poly.map(p=>p[1])));
+      const width=Math.ceil(Math.max(...poly.map(p=>p[0])))-x,height=Math.ceil(Math.max(...poly.map(p=>p[1])))-y;
+      const asset=assets.find(a=>a.kind==='raw'&&a.frame_id===o.frame_id&&/^[0-9a-f]{32}$/.test(a.asset_id));
+      if(!asset)continue;
+      return {url:'/api/v1/assets/'+asset.asset_id,frameId:o.frame_id,number:observations.indexOf(o)+1,
+        total:observations.length,x,y,width,height,imageWidth:w,imageHeight:h,polygon:poly};
+    }
+    return null;
+  }
+
+  function showPartCrop(parent,crop,name){
+    if(!crop){add(parent,'p','저장된 검사 위치 사진 없음 · 원본/위치 근거 확인 필요','part-crop-empty muted');return;}
+    const fig=add(parent,'figure',undefined,'part-crop'),canvas=add(fig,'canvas');
+    canvas.hidden=true;canvas.setAttribute('role','img');canvas.setAttribute('aria-label',name+' 저장 원본의 검사 위치');
+    const caption=add(fig,'figcaption','검사 위치 사진 불러오는 중');
+    const img=document.createElement('img');
+    const fail=()=>{canvas.hidden=true;caption.textContent='검사 위치 사진을 불러오지 못했습니다.'};
+    img.onerror=fail;
+    img.onload=()=>{
+      if(img.naturalWidth!==crop.imageWidth||img.naturalHeight!==crop.imageHeight){fail();return;}
+      // Fixed display size bounds browser memory; original pixels/records remain unchanged.
+      const scale=Math.min(1,360/Math.max(crop.width,crop.height));
+      canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));
+      const ctx=canvas.getContext('2d');if(!ctx){fail();return;}
+      ctx.drawImage(img,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);
+      ctx.strokeStyle='#71baff';ctx.lineWidth=2;ctx.beginPath();
+      crop.polygon.forEach((p,i)=>ctx[i?'lineTo':'moveTo']((p[0]-crop.x)*canvas.width/crop.width,(p[1]-crop.y)*canvas.height/crop.height));
+      ctx.closePath();ctx.stroke();canvas.hidden=false;
+      caption.textContent=`저장 원본 ${crop.number}/${crop.total} · 파란 선: 검사 위치`;
+      fig.title='원본 프레임: '+crop.frameId;
+    };
+    img.src=crop.url;
+  }
+
   function renderEvidence(raw,assembly,final){
     const host=byId('inspection-detail');host.replaceChildren();
     const data=summarize(raw,assembly,final);
@@ -91,11 +144,13 @@ const LineDetails = (() => {
     const cards=add(host,'div',undefined,'part-grid');
     for(const row of data.rows){
       const card=add(cards,'section',undefined,'part-card');add(card,'h3',row.name);
-      add(card,'p','존재: '+label(row.presence));
-      const bad=['MISSING','REVERSED','SIDEWAYS','UPSIDE_DOWN'].includes(row.assembly);
-      add(card,'strong','조립: '+label(row.assembly),bad?'FAIL':row.assembly==='CORRECT'?'PASS':'REVIEW');
-      add(card,'p',row.perFrame.length?'프레임별: '+row.perFrame.map(label).join(' / '):'분류 입력 없음','muted');
+      const tone=row.presence==='PRESENT'?'PASS':row.presence==='MISSING_CONFIRMED'?'FAIL':'REVIEW';
+      add(card,'strong',presenceLabel(row.presence),'presence-result '+tone);
+      showPartCrop(card,data.noCapture?null:partCrop(raw,row.key),row.name);
+      add(card,'p','오조립 참고: '+label(row.assembly),'assembly-reference muted');
+      add(card,'p',row.perFrame.length?'참고 분류: '+row.perFrame.map(label).join(' / '):'참고 분류 입력 없음','assembly-reference muted');
     }
+    add(host,'p','위 사진은 저장 원본에서 검사 위치만 확대한 대표 사진입니다. 미결합 판정은 저장된 전체 검사 결과이며, 사진 확대나 오조립 참고 표시는 판정에 영향을 주지 않습니다.','muted');
     add(host,'h3','실제 저장된 검사 과정');
     add(host,'p','몸체의 전체 자세를 기준 좌표에 맞춘 뒤 네 부품 영역을 잘라 분류합니다. 검사 부품을 각각 정상 방향으로 돌리지 않습니다. 정렬 실패 시 crop·분류는 미실행으로 남습니다.','muted');
     const ids=[...new Set([...data.observations.map(o=>o.frame_id),...data.frames.map(f=>f.frame_id)])];
@@ -197,5 +252,5 @@ const LineDetails = (() => {
     byId('evidence-retry').onclick=()=>{loadedKey=null;select(selectedId)};
     byId('evidence-latest').onclick=()=>{followLatest=true;loadedKey=null;updateLatest(window.lineLatestResult)};
   }
-  return {init,select,updateLatest,summarize,explain,label};
+  return {init,select,updateLatest,summarize,explain,label,partCrop,presenceLabel};
 })();

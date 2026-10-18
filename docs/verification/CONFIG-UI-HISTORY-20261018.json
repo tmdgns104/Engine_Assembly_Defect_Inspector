@@ -1,0 +1,333 @@
+{
+  "task": "PARAMETER-MANAGEMENT-CALIBRATION-001",
+  "updated_at": "2026-10-18T09:40:24.065600+00:00",
+  "release": "engine-integrated-32c484ac6aeb07f1",
+  "publication_branch": "master",
+  "status": "USER_ACCEPTED_CURRENT_VERSION_WITH_KNOWN_LIMITATIONS",
+  "settings_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+  "first_deployment_field": {
+    "release": "engine-integrated-4c4b935f8ab0404a",
+    "boot_id": "f1d09fb4-1a23-4b59-a6eb-7289248d8701",
+    "planned_count": 10,
+    "actual_count": 7,
+    "user_ended_trial": "이정도 확인했으면 됬어",
+    "scope": "USER_ENDED_AT_7_NOT_10_COMPLETE",
+    "decisions": {
+      "PASS": 4,
+      "FAIL": 3
+    },
+    "review": 0,
+    "error": 0,
+    "matching_expected": 7,
+    "stored": 7,
+    "raw_images": 21,
+    "asset_hashes_verified": 28,
+    "plc_result_done_complete": 7,
+    "same_release_boot_worker_plc_session": true,
+    "post_test_stop_idle": true,
+    "reboot_autostart_without_usb_replug": true,
+    "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+    "observation_limits": [
+      "Seven observed cycles; not ten or a long-duration reliability certification.",
+      "PLC Result/Done/request reset recorded; independent motor/PLC logic consumption feedback unavailable.",
+      "No calibration, threshold change, retraining, new diagnostic capture, or resolution of prior detection weaknesses."
+    ],
+    "records": [
+      {
+        "number": 1,
+        "inspection_id": "05f8aac3b2cb42c8a03b2d5c8ae32f86",
+        "request_id": 1,
+        "expected": "NORMAL",
+        "original_decision": "PASS",
+        "reason": "ALL_REQUIRED_PARTS_PRESENT_3_FRAMES",
+        "final_decision": "PASS",
+        "plc_value": 0,
+        "storage_success": true,
+        "raw_images": 3,
+        "asset_hashes_verified": 4,
+        "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+        "journal_elapsed_ms": 2404.575,
+        "request_to_three_frames_ms": 1929.708,
+        "integrated_elapsed_ms": 14323.69,
+        "assembly_reference": "REVIEW",
+        "plc_consumption_confirmed": false
+      },
+      {
+        "number": 2,
+        "inspection_id": "a8dc2303a68a4e6aa3611413d7f67df2",
+        "request_id": 2,
+        "expected": "MISSING_RIGHT_PIPE",
+        "original_decision": "FAIL",
+        "reason": "RIGHT_PIPE_MISSING",
+        "final_decision": "FAIL",
+        "plc_value": 1,
+        "storage_success": true,
+        "raw_images": 3,
+        "asset_hashes_verified": 4,
+        "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+        "journal_elapsed_ms": 2282.937,
+        "request_to_three_frames_ms": 1817.403,
+        "integrated_elapsed_ms": 10183.056,
+        "assembly_reference": "REVIEW",
+        "plc_consumption_confirmed": false
+      },
+      {
+        "number": 3,
+        "inspection_id": "62c1161f90064603b7ce9c3993af8f72",
+        "request_id": 3,
+        "expected": "NORMAL",
+        "original_decision": "PASS",
+        "reason": "ALL_REQUIRED_PARTS_PRESENT_3_FRAMES",
+        "final_decision": "PASS",
+        "plc_value": 0,
+        "storage_success": true,
+        "raw_images": 3,
+        "asset_hashes_verified": 4,
+        "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+        "journal_elapsed_ms": 2366.25,
+        "request_to_three_frames_ms": 1878.736,
+        "integrated_elapsed_ms": 10537.261,
+        "assembly_reference": "REVIEW",
+        "plc_consumption_confirmed": false
+      },
+      {
+        "number": 4,
+        "inspection_id": "05fc9abc7e894f7d9dda34c823336d1b",
+        "request_id": 4,
+        "expected": "MISSING_RIGHT_PIPE",
+        "original_decision": "FAIL",
+        "reason": "RIGHT_PIPE_MISSING",
+        "final_decision": "FAIL",
+        "plc_value": 1,
+        "storage_success": true,
+        "raw_images": 3,
+        "asset_hashes_verified": 4,
+        "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+        "journal_elapsed_ms": 3025.655,
+        "request_to_three_frames_ms": 1846.393,
+        "integrated_elapsed_ms": 11082.172,
+        "assembly_reference": "REVIEW",
+        "plc_consumption_confirmed": false
+      },
+      {
+        "number": 5,
+        "inspection_id": "51f92dcc3f7843f180b2a848cd63a5c3",
+        "request_id": 5,
+        "expected": "NORMAL",
+        "original_decision": "PASS",
+        "reason": "ALL_REQUIRED_PARTS_PRESENT_3_FRAMES",
+        "final_decision": "PASS",
+        "plc_value": 0,
+        "storage_success": true,
+        "raw_images": 3,
+        "asset_hashes_verified": 4,
+        "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+        "journal_elapsed_ms": 2831.402,
+        "request_to_three_frames_ms": 2360.921,
+        "integrated_elapsed_ms": 10862.281,
+        "assembly_reference": "REVIEW",
+        "plc_consumption_confirmed": false
+      },
+      {
+        "number": 6,
+        "inspection_id": "182c8e66347f43359d6b18e06519fd1d",
+        "request_id": 6,
+        "expected": "MISSING_RIGHT_PIPE",
+        "original_decision": "FAIL",
+        "reason": "RIGHT_PIPE_MISSING",
+        "final_decision": "FAIL",
+        "plc_value": 1,
+        "storage_success": true,
+        "raw_images": 3,
+        "asset_hashes_verified": 4,
+        "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+        "journal_elapsed_ms": 2320.201,
+        "request_to_three_frames_ms": 1854.432,
+        "integrated_elapsed_ms": 10783.556,
+        "assembly_reference": "REVIEW",
+        "plc_consumption_confirmed": false
+      },
+      {
+        "number": 7,
+        "inspection_id": "cd3833068e9842a68ece7922bbf2a09c",
+        "request_id": 7,
+        "expected": "NORMAL",
+        "original_decision": "PASS",
+        "reason": "ALL_REQUIRED_PARTS_PRESENT_3_FRAMES",
+        "final_decision": "PASS",
+        "plc_value": 0,
+        "storage_success": true,
+        "raw_images": 3,
+        "asset_hashes_verified": 4,
+        "configuration_sha256": "82673f9ea8914ea7ec2c96c4d15a98ee202fc6384a6c0974b6c8fa96e2ef0bdb",
+        "journal_elapsed_ms": 2320.146,
+        "request_to_three_frames_ms": 1815.198,
+        "integrated_elapsed_ms": 10282.98,
+        "assembly_reference": "REVIEW",
+        "plc_consumption_confirmed": false
+      }
+    ],
+    "journal_elapsed_ms": {
+      "min": 2282.937,
+      "max": 3025.655,
+      "mean": 2507.309
+    },
+    "request_to_three_frames_ms": {
+      "min": 1815.198,
+      "max": 2360.921,
+      "mean": 1928.97
+    },
+    "integrated_elapsed_ms": {
+      "min": 10183.056,
+      "max": 14323.69,
+      "mean": 11150.714
+    }
+  },
+  "ui_delta": {
+    "files": [
+      "apps/edge_service/line_details.js",
+      "apps/edge_service/line_hmi.html"
+    ],
+    "model_input_or_policy_changed": false,
+    "crops": "Saved raw camera coordinates and same-inspection/frame slot polygons; no inference recrop",
+    "checks": {
+      "cards": [
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 없음 · 부품 확인",
+          "visibleCrop": true
+        },
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 · 부품 없음",
+          "visibleCrop": true
+        },
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 없음 · 부품 확인",
+          "visibleCrop": true
+        },
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 없음 · 부품 확인",
+          "visibleCrop": true
+        }
+      ],
+      "overflow": false
+    },
+    "node_checks": [
+      "line evidence: missing / misassembly / conflicting frames / invalid evidence / no capture / unsafe rendering guards PASS",
+      "part crop: saved inspection/frame/slot identity, missing slot, invalid geometry, raw-only assets, presence emphasis PASS",
+      "reset UI: no page-load writes, physical-confirmation button, no code/token, single POST, no automatic retry PASS"
+    ],
+    "actual_jetson_browser": {
+      "cards": [
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 없음 · 부품 확인",
+          "visibleCrop": true
+        },
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 · 부품 없음",
+          "visibleCrop": true
+        },
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 없음 · 부품 확인",
+          "visibleCrop": true
+        },
+        {
+          "primary": "23px",
+          "reference": "12px",
+          "text": "미결합 없음 · 부품 확인",
+          "visibleCrop": true
+        }
+      ],
+      "overflow": false,
+      "state": "검사 준비됨 · 현장 START 대기"
+    }
+  },
+  "reboot": {
+    "boot_id": "c45d184a-3707-4703-995a-8fa89ec76a8e",
+    "service": "MainPID=1074\nNRestarts=0\nActiveState=active\n",
+    "enabled": "enabled",
+    "files_checked": 200,
+    "mismatches": [],
+    "new_frames_same_worker": [
+      "47370d46b7f04ba39663defe89e80ecd-214",
+      "47370d46b7f04ba39663defe89e80ecd-236",
+      "47370d46b7f04ba39663defe89e80ecd-244"
+    ],
+    "camera_owners": [
+      {
+        "pid": 2919,
+        "nodes": [
+          "/dev/video0"
+        ]
+      }
+    ],
+    "camera_ready": true,
+    "assembly_ready": true,
+    "health_ready": true,
+    "view": "검사 준비됨 · 현장 START 대기",
+    "preserved_inspections": 368,
+    "manual_usb_reconnect_after_this_reboot": false
+  },
+  "sqlite": {
+    "source": "Jetson operational SQLite",
+    "created_at": "2026-10-18T09:36:39.177595+00:00",
+    "sha256": "19d18d00ed41a54aec793ed298cbca8b0a42e11880def25642ec06d8bb308c8d",
+    "bytes": 94973952,
+    "integrity_check": "ok",
+    "inspections": 368,
+    "decisions": {
+      "ERROR": 31,
+      "FAIL": 88,
+      "PASS": 165,
+      "REVIEW": 84
+    },
+    "secret_named_state_keys": [],
+    "assets_referenced": 1388,
+    "photos_included": false,
+    "photo_scope": "DB references retained; raw inspection photos remain on Jetson/local evidence. Missing photo files are not hidden."
+  },
+  "limitations": [
+    "사용자가 실제 7회에서 시험 종료. 10회/30회/장시간 무오류 인증으로 표시하지 않음.",
+    "이번 7회 통합 요청→최종 결과 10.183~14.324초. 응답 지연 개선 완료 아님.",
+    "7회 종료 뒤 UI 준비 중 카메라 수신 불능이 발생해 사용자 USB 재연결·서비스 재시작 필요. 카메라 장애의 영구 해결 아님.",
+    "미결합만 최종 PASS/FAIL에 반영. 오조립은 참고이며 신뢰도/정렬 약점은 남아 있음.",
+    "기존 위치·각도·가림·카메라 진동에 대한 검출 약점은 이번 UI 작업으로 해결하지 않음.",
+    "PLC Result/Done/Request 해제 완료 관측과 독립적인 PLC 내부 소비·모터 피드백 확인은 구분.",
+    "현재 UI 변경 후 추가 실물시험은 사용자 지시에 따라 하지 않음. 검사/PLC/모델 코드는 7회 실행본과 동일."
+  ],
+  "verification": {
+    "windows_related_tests": 83,
+    "jetson_native_tests": 28,
+    "exported_source_tests": 72,
+    "scope": "Existing configuration/history/runtime evidence reused; final display-only delta has Node + browser checks.",
+    "evidence_directory": "runs/config_ui_history_20261018"
+  },
+  "publication_bundle": {
+    "sha256": "7ac2af02aaca8c3d035bbd6eaa258aad33f80ef8fdd6027e593b7450be530275",
+    "files": 191,
+    "scope": "INTEGRATED_AI_OFFLINE",
+    "source": "Clean HEAD export plus explicit publication paths; no ignored local assets required",
+    "hardware_execution": "NOT_RUN_ON_EXPORTED_INSTALLATION"
+  },
+  "git_normalized_package": {
+    "sha256": "5f786844e596bd2026615d8942f976d8382ab1425f79a4f736800a43669a4c01",
+    "files": 191,
+    "bundle_release": "engine-dev-d4668026f1190dae",
+    "tests": 72,
+    "formatting_notes": "Frozen CRLF preserved; two existing EOF-only blank lines retained.",
+    "scope": "Clean staged Git tree; includes actual models and consistent SQLite. Device release has device-specific configuration and is identified separately."
+  }
+}

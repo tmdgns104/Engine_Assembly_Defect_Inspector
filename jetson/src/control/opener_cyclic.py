@@ -4,6 +4,7 @@ The IO thread only exchanges atomic snapshots. Inference and SQLite stay on
 their existing owners. A live IO thread cannot conceal a stalled runtime:
 ready/clear permission expires unless the runtime renews its health lease.
 """
+from src import config as parameters
 import os
 from pathlib import Path
 import socket
@@ -24,7 +25,7 @@ def decode_snapshot(data, now):
         raise ValueError('IPC_SCHEMA_INVALID')
     boot, connection, request, generated, received, accepted = struct.unpack_from('<QIIddd', data,8)
     flags, phase, results, done, complete, ack, rejected = struct.unpack_from('<7I',data,48)
-    if not boot or phase>=len(PHASES) or not 0<=now-generated<=.5:
+    if not boot or phase>=len(PHASES) or not 0<=now-generated<=parameters.IPC_SNAPSHOT_MAX_AGE_SECONDS:
         raise ValueError('IPC_STALE_OR_INVALID_SNAPSHOT')
     return dict(boot=boot, connection=connection, request_id=request, generated=generated,
         received=received, accepted_at=accepted, connected=bool(flags&1), run_idle=bool(flags&2),
@@ -134,7 +135,7 @@ class OpenerGateway:
                 with self.lock:
                     self.error=type(error).__name__+':'+str(error)
                     self.snapshot=None; self.pending=None; self.initial_pending=None; self.health=(False,False,0)
-                self.stop.wait(.5)
+                self.stop.wait(parameters.IPC_RECONNECT_SECONDS)
 
     def _connected_loop(self):
         if not hasattr(socket,'SOCK_SEQPACKET'): raise OSError('LINUX_SEQPACKET_REQUIRED')
@@ -142,7 +143,7 @@ class OpenerGateway:
         if parent.st_uid!=os.geteuid() or parent.st_mode&0o077:
             raise ValueError('PRIVATE_IPC_DIRECTORY_REQUIRED')
         with socket.socket(socket.AF_UNIX,socket.SOCK_SEQPACKET) as client:
-            client.settimeout(.1); client.connect(self.path)
+            client.settimeout(parameters.IPC_SOCKET_POLL_SECONDS); client.connect(self.path)
             pid,uid,gid=struct.unpack('3i',client.getsockopt(socket.SOL_SOCKET,socket.SO_PEERCRED,12))
             if uid!=os.geteuid(): raise ValueError('IPC_PEER_UID_MISMATCH')
             last_valid_snapshot=time.monotonic()
@@ -153,7 +154,7 @@ class OpenerGateway:
                     # The 100 ms socket timeout is a stop-responsive poll, not
                     # the 500 ms snapshot lease. Do not renew health or send a
                     # result without a new snapshot. Send failures still escape.
-                    if not 0<=time.monotonic()-last_valid_snapshot<=.5:
+                    if not 0<=time.monotonic()-last_valid_snapshot<=parameters.IPC_SNAPSHOT_MAX_AGE_SECONDS:
                         raise ValueError('IPC_SNAPSHOT_TIMEOUT')
                     continue
                 snapshot=decode_snapshot(data,time.monotonic())
@@ -170,11 +171,11 @@ class OpenerGateway:
                     self.snapshot=snapshot; self.error=None
                     ready,clear,renewed=self.health; pending=self.pending; initial=self.initial_pending
                 now=time.monotonic()
-                healthy=ready and 0<=now-renewed<=.4 and self.writes_enabled
+                healthy=ready and 0<=now-renewed<=parameters.PLC_HEALTH_LEASE_SECONDS and self.writes_enabled
                 if hasattr(self, 'diagnostics'):
                     reason = ('PUBLICATION_DISABLED' if not self.writes_enabled else
                               'READY_FALSE:'+self.ready_reason if not ready else
-                              'HEALTH_LEASE_EXPIRED' if not 0<=now-renewed<=.4 else 'READY')
+                              'HEALTH_LEASE_EXPIRED' if not 0<=now-renewed<=parameters.PLC_HEALTH_LEASE_SECONDS else 'READY')
                     changed = reason != getattr(self, '_last_health_reason', None)
                     self._last_health_reason = reason
                     self.diagnostics.record('IPC_HEALTH_SENT', retain=changed, ready=bool(healthy), reason=reason,
@@ -187,7 +188,7 @@ class OpenerGateway:
                     # Reservation is queued before the owner renews health.
                     # Wait for that renewal; remove only before the first send
                     # or at expiration. Never retry an attempted/ambiguous send.
-                    if (boot,connection)!=(snapshot['boot'],snapshot['connection']) or not 0<=now-queued<=.4:
+                    if (boot,connection)!=(snapshot['boot'],snapshot['connection']) or not 0<=now-queued<=parameters.IPC_GRANT_LEASE_SECONDS:
                         with self.lock:
                             self.initial_pending=None
                             self.initial_error='INITIAL_GRANT_CONTEXT_OR_LEASE_EXPIRED'
@@ -202,17 +203,17 @@ class OpenerGateway:
                 if pending:
                     key,identifier,decision,queued=pending
                     current=(snapshot['boot'],snapshot['connection'],snapshot['request_id'])
-                    if key==current and healthy and now-queued<=.4 and snapshot['phase']=='REQUEST_RECEIVED':
+                    if key==current and healthy and now-queued<=parameters.IPC_RESULT_LEASE_SECONDS and snapshot['phase']=='REQUEST_RECEIVED':
                         client.sendall(command(snapshot,self.runtime_session,2,flags=7,
                             identifier=identifier,decision=DECISIONS[decision],approval_id=snapshot['approval_id']))
                         with self.lock:
                             self.sent.add(key)
-                            if len(self.sent)>512: self.sent={key}
+                            if len(self.sent)>parameters.IPC_SENT_CACHE_LIMIT: self.sent={key}
                     # An ambiguous socket send is never replayed after reconnect.
                     with self.lock: self.pending=None
 
     def close(self):
-        self.cancel(); self.stop.set(); self.thread.join(timeout=1)
+        self.cancel(); self.stop.set(); self.thread.join(timeout=parameters.IPC_CLOSE_SECONDS)
 
 class CyclicHandshake:
     """Runtime adapter: journaled AI outcome -> C; never fabricates PLC ACK."""

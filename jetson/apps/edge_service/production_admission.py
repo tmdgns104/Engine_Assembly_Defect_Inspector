@@ -14,6 +14,7 @@ import uuid
 
 from src.camera.fresh_frame import FreshFrameSelector, TriggerContext, finite_number
 from src.journal.sqlite import ConflictError
+from src.configuration import recorded_package
 
 
 def _json(value):
@@ -104,7 +105,7 @@ def prepare(service, binding):
             service.station['max_frame_age_seconds'], service.station['frame_spacing_seconds'])
         context = ProductionAdmission(uuid.uuid4().hex, service.generation, service.session,
             owner.session_id, epoch, service.package.manifest_hash, now, selector.deadline,
-            _json(dict(kind='admit', base=base, package=service.package.snapshot(),
+            _json(dict(kind='admit', base=base, package=recorded_package(service.package, getattr(service,'configuration',None)),
                        trigger=trigger.to_dict())), _json(service.calibration),
             _json(dict(source_mode='PRODUCTION_AUTO', session_id=owner.session_id,
                 human_acceptance='PENDING', physical_output_enabled=False,
@@ -143,7 +144,12 @@ def _receipt(context, saved, now):
     return request, row, trigger, durable
 
 
-def activate(service, context, saved):
+def unstarted_receipt(service, context, saved):
+    """Validate a reserved, unexecuted request, including after capture expiry.
+
+    This grants no camera or PLC authority. Runtime may use the receipt to
+    persist a nonexecuted ERROR; activation still enforces the capture clock.
+    """
     with service.lock:
         if getattr(service, 'production_admission_pending', None) is not context:
             raise ConflictError('ADMISSION_CONTEXT_MISMATCH')
@@ -157,9 +163,15 @@ def activate(service, context, saved):
             raise ConflictError('ADMISSION_CONTEXT_CHANGED')
         if service.cancellation.is_set():
             raise ConflictError('ADMISSION_CANCELLED')
+        return _receipt(context, saved, now)
+
+
+def activate(service, context, saved):
+    with service.lock:
+        request, row, trigger, durable = unstarted_receipt(service, context, saved)
+        now = time.monotonic()
         if now >= context.deadline_monotonic:
             raise ConflictError('ADMISSION_DEADLINE_EXCEEDED')
-        request, row, trigger, durable = _receipt(context, saved, now)
         selector = FreshFrameSelector(TriggerContext(**trigger), service.station['fresh_frame'],
             service.station['max_frame_age_seconds'], service.station['frame_spacing_seconds'])
         active = dict(inspection_id=row['inspection_id'], request=request, accepted_monotonic=now,

@@ -1,4 +1,5 @@
 """Single journal writer supervising an isolated GPU/camera process."""
+from src import config as parameters
 
 import multiprocessing as mp
 import queue
@@ -19,6 +20,7 @@ from src.decision.calibration import station_fingerprint
 from apps.edge_service.mock_port import ServiceMockPort
 from apps.edge_service.lab_port import ServiceLabPort
 from apps.edge_service.result_storage import raw_storage_within_deadline
+from src.configuration import snapshot, recorded_package, validate_package_settings, validate_worker_settings
 from src.control.lab_modes import LabController
 
 
@@ -39,12 +41,19 @@ class InspectionService:
     def __init__(self, package_root, station, data_root, worker_target=worker_main, production=False):
         self.production_enabled = production
         self.production_owner = None
+        self.configuration = snapshot()
         self.station = dict(station)
         self.package = load_package(package_root)
         self.journal = Journal(data_root, station['station_id'])
         selected=self.journal.db.execute("SELECT value FROM service_state WHERE key='active_package'").fetchone()
         if selected:
             self.package=load_package(selected[0])
+        if production:
+            try:
+                validate_package_settings(self.package)
+            except Exception:
+                self.journal.db.close()
+                raise
         if self.station.get('auto_profile'):
             profile=self.journal.db.execute("SELECT value FROM service_state WHERE key='active_auto_profile'").fetchone()
             if profile:
@@ -62,7 +71,7 @@ class InspectionService:
         self.progress = None
         self.state, self.error, self.backend = 'INIT', None, None
         self.preview, self.preview_received = None, 0
-        self.preview_times=deque(maxlen=30)
+        self.preview_times=deque(maxlen=parameters.PREVIEW_RATE_SAMPLE_COUNT)
         self.latest_timing=None
         from apps.edge_service.result_storage import ResultStorage
         from src.runtime.health_diagnostics import HealthDiagnostics
@@ -119,10 +128,14 @@ class InspectionService:
         # observations through a short consumer/Journal stall; the preview queue
         # remains latest-only. Passage source-gap and age limits still reject
         # genuinely missing or stale evidence, including longer overflows.
-        self.products = self.manager.Queue(maxsize=16) if (self.station.get('auto_profile') or self.production_enabled) else None
+        self.products = self.manager.Queue(maxsize=parameters.PRODUCT_OBSERVATION_QUEUE_SIZE) if (self.station.get('auto_profile') or self.production_enabled) else None
         self.product_latest = None
         self.stopping, self.cancellation = ProcessFlag(self.ctx), ProcessFlag(self.ctx)
         self.production_tracking = ProcessFlag(self.ctx)
+        # Only the native Worker implements this optional diagnostic protocol.
+        # Custom/test worker call signatures remain unchanged.
+        from src.vision.run_capture import RunCaptureSignals
+        self.run_capture_signals = RunCaptureSignals(self.ctx) if self.worker_target is worker_main else None
         self.heartbeat = self.ctx.RawValue('d', time.monotonic())
         self.started = time.monotonic()
         self.preview, self.backend = None, None
@@ -130,7 +143,8 @@ class InspectionService:
         self.state, self.error = 'INIT', None
         self.process = self.ctx.Process(target=self.worker_target, args=(str(self.package.root), self.station,
             self.generation, self.commands, self.results, self.previews, self.stopping,
-            self.cancellation, self.heartbeat) + ((self.products,) if self.products is not None else ()) + ((self.production_tracking,) if self.production_enabled else ()), daemon=True)
+            self.cancellation, self.heartbeat) + ((self.products,) if self.products is not None else ()) + ((self.production_tracking,) if self.production_enabled else ()),
+            kwargs=({'run_capture_signals':self.run_capture_signals} if self.run_capture_signals is not None else {}), daemon=True)
         self.process.start()
 
     def _stop_worker(self):
@@ -263,7 +277,7 @@ class InspectionService:
                 self.closed.wait(.1)
 
     def _monitor_loop(self):
-        while not self.closed.wait(.03):
+        while not self.closed.wait(parameters.SERVICE_POLL_SECONDS):
             waited = time.monotonic()
             with self.lock:
                 self.health_diagnostics.record('SERVICE_LOCK_MONITOR', retain=time.monotonic()-waited>.02, wait_ms=(time.monotonic()-waited)*1000)
@@ -283,6 +297,12 @@ class InspectionService:
                         if message['generation'] != self.generation:
                             continue
                         if message['type'] == 'ready':
+                            if self.worker_target is worker_main:
+                                try:
+                                    validate_worker_settings(self.configuration, message['backend'])
+                                except ValueError as error:
+                                    self._fault(str(error))
+                                    continue
                             self.backend, self.state = message['backend'], 'IDLE'
                         elif message['type'] == 'diagnostic_capture':
                             self.diagnostic_capture.update(message['status'])
@@ -367,7 +387,7 @@ class InspectionService:
                         self._fault('WORKER_EXITED')
                 if self.state not in ('RECOVERY', 'INIT','STOPPED') and time.monotonic()-self.heartbeat.value > 5:
                     self._fault('WORKER_HEARTBEAT_LOST')
-                if self.state == 'INIT' and time.monotonic()-self.started > self.station.get('startup_timeout_seconds', 90):
+                if self.state == 'INIT' and time.monotonic()-self.started > self.station.get('startup_timeout_seconds', parameters.STARTUP_TIMEOUT_SECONDS):
                     self._fault('WORKER_STARTUP_TIMEOUT')
                 try:
                     camera=bool(self.preview and time.monotonic()-self.preview_received<2 and self.process.is_alive() and self.state!='RECOVERY')
@@ -574,7 +594,7 @@ class InspectionService:
                 selector = FreshFrameSelector(trigger, self.station['fresh_frame'],
                                                self.station['max_frame_age_seconds'], self.station['frame_spacing_seconds'])
                 trigger = trigger.to_dict()
-            identifier, created = self.journal.admit(request, self.package.snapshot(), trigger=trigger)
+            identifier, created = self.journal.admit(request, recorded_package(self.package, self.configuration), trigger=trigger)
             if request['kind'] == 'calibrate':
                 self.calibration = None
             accepted = time.monotonic()
@@ -696,6 +716,8 @@ class InspectionService:
 
     def activate(self, package_root, auto_profile=None):
         candidate = load_package(package_root)
+        if self.production_enabled:
+            validate_package_settings(candidate)
         if self.station.get('auto_profile'):
             from src.runtime.auto_profile import validate_profile
             validate_profile(auto_profile or self.station['auto_profile'],candidate)
@@ -715,7 +737,7 @@ class InspectionService:
             self.calibration = self._load_calibration()
             self.session = self.journal.new_session(self.station['cell_id'])
             self._launch()
-        deadline = time.monotonic() + self.station.get('startup_timeout_seconds',90)
+        deadline = time.monotonic() + self.station.get('startup_timeout_seconds',parameters.STARTUP_TIMEOUT_SECONDS)
         while time.monotonic() < deadline:
             with self.lock:
                 state = self.state
@@ -740,7 +762,7 @@ class InspectionService:
             self.calibration = self._load_calibration()
             self.session = self.journal.new_session(self.station['cell_id'])
             self._launch()
-        deadline = time.monotonic() + self.station.get('startup_timeout_seconds',90)
+        deadline = time.monotonic() + self.station.get('startup_timeout_seconds',parameters.STARTUP_TIMEOUT_SECONDS)
         while time.monotonic() < deadline and self.state == 'INIT':
             time.sleep(.05)
         with self.lock,self.journal.lock,self.journal.db:

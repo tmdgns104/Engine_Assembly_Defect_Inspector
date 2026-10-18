@@ -1,0 +1,18 @@
+{
+  "source": "Jetson operational SQLite",
+  "created_at": "2026-10-18T09:36:39.177595+00:00",
+  "sha256": "19d18d00ed41a54aec793ed298cbca8b0a42e11880def25642ec06d8bb308c8d",
+  "bytes": 94973952,
+  "integrity_check": "ok",
+  "inspections": 368,
+  "decisions": {
+    "ERROR": 31,
+    "FAIL": 88,
+    "PASS": 165,
+    "REVIEW": 84
+  },
+  "secret_named_state_keys": [],
+  "assets_referenced": 1388,
+  "photos_included": false,
+  "photo_scope": "DB references retained; raw inspection photos remain on Jetson/local evidence. Missing photo files are not hidden."
+}

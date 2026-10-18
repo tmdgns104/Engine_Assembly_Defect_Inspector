@@ -1,3 +1,101 @@
+STABILIZATION CLOSED WITH KNOWN LIMITATIONS / CONFIG + UI + HISTORY DEVELOPMENT
+2026-10-18 사용자 종료·운영본0ff4d41638d745ff 확정. 최종 실물8건(최초5: PASS/ERROR/PASS/FAIL/PASS, 추가3: FAIL/PASS/FAIL), 모두 저장·PLC완료8. 카메라 수동USB복구 필요/검출 편차 미해결. 추가 현장시험·진단·배포 중단. 다음은 값 보존 설정중앙화와 기존 UI·DB 검색 개발. 상세 docs/STABILIZATION_CLOSEOUT_20261018.md.
+
+Previous checkpoint:
+DIAGNOSTIC OWNER FIX APPLIED / REBOOT REQUIRED USB RECOVERY / CURRENTLY READY
+2026-10-18 0ff4d41638d745ff 한파일 진단추적ID 수정 적용, 실제 boot2f05f1cb-99b3-4553-a2dc-3b75cc45cecc. 서비스 자동시작은 확인했으나 CAMERA_FRAME_TIMEOUT으로 카메라 준비 실패; 사용자 USB재연결 뒤 현재 새영상/모델/PLC WAIT_START 복구. 무인자동복귀 합격 아님. 원watcher의 REBOOT_AUTOSTART_VERIFIED 문구는 사람USB조치를 관측하지 못하므로 AFTER_REBOOT_ASSESSED.json을 최종판정으로 사용. 193파일대조·기존347검사 보존, 이전 실패도 유지.
+다음은 기존20초 단일Worker 진단으로 실제 운전구간 확보. START 실제신호를 직접감시해 채팅답변지연 없이 모형투입 안내. 현재모델/임계값/PLC/검사시간 변경0. 검출약점개선과 혼합30은 미검증, config.py/케이스50은 후속별도. Evidence: runs/inspection_reliability_20261018/run_capture_owner_transition/AFTER_REBOOT_ASSESSED.json.
+
+Previous checkpoint:
+RUN POLARITY DEPLOYED / REAL PASS1 / EMPTY RUN CLIP220 / TRACKING-ID DIAGNOSTIC FIX STAGED
+2026-10-18 운영9488d93c4d69566e는 적용·실제 재부팅·자동준비 완료(boot873cac0c-b08e-4db1-89f0-4f142a35a2f7). 같은 전환 중복 실행 없음. 새 실검사31c25aaaeb6548299e62f3b512e600eb COMPLETE/PASS, PLC Result/Done/완료1. 진단은 별도220장/19.864초/RAW·pixel SHA 일치이나 전부 빈벨트·요청0이며 실제 검사는 창 종료 약14초 뒤; 전체운전구간 확보 성공 아님.
+RUN_CAPTURE_OWNER_CHANGED는 실제Worker/카메라/Service/PLC연결 변경 없이 정상 새요청의 제품추적ID 갱신을 진단owner변경으로 오인한 것. 후보0ff4d41638d745ff는 해당 비교 한 곳만 수정, 실제 장치owner/장애·STOP보호 유지. Windows28/ARM64 49/배포증거4 PASS, 구코드2실패재현. 운영미적용/새후보재부팅미실행; 최신STOP 사용자응답과 현재 빈벨트영상·요청LOW·출력0·저장유휴 확인, 임시전송검증 완료.
+다음: 후보 적용·실제 재부팅 → 빈벨트 START의 실제 신호를 즉시 감시해 정상1개 투입 안내 → 실제20초운전 원본·검출·안정·PLC 시간 확보. 엔진점수미달/추가부품후보 개선 채택·편차분포·혼합30은 아직 미검증, 모델/임계값 변경0. 신규기능·config.py·케이스별50회는 이번범위 아님.
+Evidence: runs/inspection_reliability_20261018/run_capture_polarity_transition/FIELD_v002_FINDINGS.md 및 FIELD_v002_COVERAGE.json; 후보 run_capture_owner_transition/. 원본/실패/원장 보존, GitHub반영 미실행.
+
+Previous checkpoint:
+RUN DIAGNOSTIC POLARITY FIX / APPLIED AND REBOOT VERIFIED / FIELD SEGMENT PENDING
+2026-10-18 진단 STOP 신호 해석 한 파일 수정9488d93c4d69566e 적용 및 실제 재부팅 완료. boot 873cac0c-b08e-4db1-89f0-4f142a35a2f7, systemd enabled/active(Main1173/NRestarts0), 전체193파일 해시·단일카메라Worker 새3프레임·모델/PLC 준비 확인. 이 부팅에서는 USB재연결/추가서비스재시작 없음. 검증백업5061b18f4ffd6bb95e3d227a27e66abba60f001733980af6ee33083deb6493e7/178파일/기존346검사 보존.
+실제 운영에 반영된 것은 진단 수집 극성 수정이다. v011 fixture가 실제 Stop_PB=true 운전 계약을 놓친 사실, 첫 진단0장 실패와 실제 원검사PASS1건을 그대로 보존한다. v012 관련회귀 통과는 실제 운전 원본수집 성공이나 엔진 검출 오류 감소의 증거가 아니다. 메모리/부하 경로·모델·임계값·400ms·촬영3초/안정0.6초/새3장 변경 없음.
+다음은 빈벨트 START 확인 후 정상 모형 한 개 투입, 승인된20초 진단 구간을 확보하고 STOP에서 저장한다. 엔진 점수 미달/저점수 추가부품 후보 문제의 원인별 채택판단, 정상편차 성능과 혼합30 최종수용은 아직 미완료. config.py 및 케이스별50회 보정은 별도 후속작업. 현재 추가 배포 차단 없음; 실제운전자료 확보가 다음 단계다.
+Evidence: runs/inspection_reliability_20261018/run_capture_polarity_transition/AFTER_REBOOT_PROOF.json. 이전시험은 run_capture_transition/FIELD_RUN_FINAL_RECEIPT_v001.json. GitHub반영 미실행.
+
+Previous checkpoint:
+RUN DIAGNOSTICS / REBOOT VERIFIED / FIRST FIELD CLIP FAILED / ONE-CONDITION FIX STAGED
+2026-10-18 engine-integrated-118ae17a9e77ae41 운영 적용, 실제 boot51c70212-8ce6-456d-9088-f22caac290fc에서 systemd enabled/active(Main1093/NRestarts0),193파일SHA·단일Worker2908·새3프레임·모델/PLC WAIT_START 통과. 이 재부팅은 USB재연결/추가서비스재시작 없이 자동복귀했다. 이전 재부팅 카메라 실패가 영구해결됐다는 의미는 아니다. 백업a122608c9643ba176dcba4dd2d74b7207cd3d7c8f5b58450cb59112e4f9c6b7e/176파일/SQLite/기존345건 보존.
+첫 실물 진단: START전 모형을 투입 위치에 놓으라는 안내는 기존 빈벨트START→모형투입 절차와 달랐고 사용자 지적을 반영해 재사용하지 않는다. 최초조회 요청0은 순간값이었다. 약11초 뒤 실제요청1 접수, 검사4e0bc5bb15d34ef3aa443cb191afee5a는 COMPLETE/PASS·3선정사진·저장성공,PLC Result/Done/Complete 각1. 현재 원검사346건. 다만 운전진단은 RUN_CAPTURE_START_BEFORE_READY/0장으로 실패; Worker의 SAVED는 종료영수증 저장이며 영상수집 성공이 아니다. 엔진검출/추가부품후보 문제 개선 성공으로 세지 않는다.
+실패 원인: 실제운전 Mc_Run=true/Stop_PB=true인데 신규 진단 controller만 Stop_PB=false를 기대했다. 기존 runtime/C 계약은 해제된 STOP회로=true를 요구한다. v01137시험 통과는 사실이나 fixture도 같은 잘못된 극성을 사용해 이 현장문제를 놓쳤다. 실제값으로 RED3실패 재현 뒤 진단 controller 한 파일만 수정했다. PLC/카메라/모델/threshold/400ms/촬영3초·안정0.6초·새3장/메모리경로 변경0. Windows관련25/ARM64v01246PASS·배포증거4PASS; 자원부하시험 재사용(변경경로아님). 후보9488d93c4d69566e/193파일/변경1소스,16입력파일SHA와STOP·유휴 확인; 운영미적용, 새재부팅/운전진단 재시험 미실행.
+현재 STOP·빈벨트는 최신 사용자 ‘비웟어’와 새영상으로 확인. 기존진단0장·최초조회·최종원장·실패로그 보존. 다음: 사용자sudo전환→검증백업/한파일통합적용/실제재부팅→빈벨트START 후 모형투입으로 실제20초구간 수집→STOP저장/원본·검출·안정·PLC시각 대조→제품점수미달과저점수추가부품후보 최소개선 채택판단. 새 기능 확장·config.py 통합·케이스별50회보정은 후속 별도 작업이며 이번 선행조건 아님. 사용자 지정 후속문서 C:/Users/user/Downloads/CODEX_CONFIG_PY_MANAGEMENT_KO.md는 미착수.
+사용자 제공 PLC 저장파일 SHA c0dff344cb815ae75cffe63c21454384393061abf4fa35e7d46405033c879137의23rung 직접읽음. Mc_Run+PhotoSensor+Sensor_Ready→Move_pending,Move_Timer T#4.5s,Inspecting·NOT Cv_Run 후 Inspect_Delay_Timer T#2s→Inspection_Request. 과거5초문서는 현재저장파일과 다름. 온라인전체동등성 미확인/PLC원본수정0.
+Evidence: runs/inspection_reliability_20261018/run_capture_transition/{AFTER_REBOOT_PROOF,FIELD_RUN_FINAL_RECEIPT_v001,PLC_SAVED_LADDER_v001}.json; 후보 run_capture_polarity_transition/ 및 ARM64_v012_RESULT.json. 실제엔진약점감소·위치허용분포·오류없는혼합30은 아직 입증되지 않음. GitHub반영 미실행.
+
+Previous checkpoint:
+RUN DIAGNOSTICS / QUALIFIED + STAGED / OPERATOR SUDO TRANSITION PENDING
+2026-10-18 사용자 ‘진단 수집 구현·검증 진행’ 승인 반영. STOP에서 준비 후 실제 START로 최대20초/240프레임/총768MiB, 기존 단일 Worker 원본과 이미 계산한 검출·자세·PLC 단계만 메모리 수집한다. RUN 중 이미지 인코딩/파일저장/추가추론 없음; fresh STOP·RequestLOW·출력0·검사/저장유휴의 갱신 lease에서만 저장한다. 기존 STOP≤5초 경로와 인증/오류보호는 유지. 모델·임계값·PLC·촬영3초/안정0.6초/새3장·400ms 변경 없음.
+후보 engine-integrated-118ae17a9e77ae41: 기존 통합 manifest191파일+신규2모듈, 소스8개 변경. 운영5fd0e2ab9559458e 유지/미적용. Windows180시험(179PASS/Linux1skip)+후속관련19/15PASS, ARM64전체186PASS+최종변경37PASS(각 중복 포함, 합산 금지). 최종8소스해시와 시험입력 대조, 배포 증거 변조 거부4시험PASS. 전체 개발 패키징은 기존 AREA_REFERENCE_NOT_ALLOWLISTED 오류1건 재현되어 별도 미완료; 운영 전체 manifest/자산을 보존하는 검증된 변경 묶음으로 전환한다.
+Jetson 저장원본 메모리부하시험 RUN_LOAD_v005:20초10fps 두번 각200/200픽셀정확일치, 수집 hook p95 1.925/1.875ms·최대4.015ms·probe RSS715.4MiB. 실제 IO health371샘플 모두READY·최대age113.1ms, 관측구간 reason-change unready0, 같은카메라Worker/PLC카운터 유지. 이는 저장사진 반복 부하이며 실물 운전/지연 성능 합격이 아니다. 50fps stress의5ms 초과 진단중단과 HTTP 거래 snapshot지연3건도 보존; 웹캐시와 실제 IO health를 혼동하지 않는다.
+사용자 최신 ‘비웠어’·STOP/빈벨트영상 확인. 최초 stage가 남아 있던 MULTIPLE_PRODUCT_AMBIGUITY로 거부되어 실패로그 보존. 기존 인증된 STOP 유지보수 API로 완료검사d7be65cc의 과거관계만 닫아 원검사345건/PLC카운터/판정불변 검증, 신규검사/결과전송/운전명령0. 27개 전송파일SHA와 fresh STOP/유휴 재확인, runtime_issue=null. 새 실제 재부팅·운전중진단·혼합30 미실행. 직전 부팅의 CAMERA_FRAME_TIMEOUT/사용자USB복구 이력도 미해결로 보존.
+증거: runs/inspection_reliability_20261018/run_capture_transition/{RUN_QUALIFICATION,DEPLOYMENT_VALIDATION,STOPPED_CONTEXT_CLOSURE}.json 및 TRANSITION_STAGE_VERIFIED.log. 다음: 기존 sudo 전환 시작→노트북 백업SHA/SQLite/원검사 검증→통합적용→실제 재부팅/단일Worker 새영상/PLC준비 검증. 이 단계까지 START 지시 없음. GitHub 반영 미실행.
+
+Previous checkpoint:
+INSPECTION RELIABILITY / VERIFIED BUNDLE APPLIED / REBOOT CAMERA FAILED / USB RECOVERY VERIFIED
+2026-10-18 사용자 sudo 전환 실행. 노트북 백업 SHA15cf61e18ed923ff2343387ab0d2bee9e7bb6aef86dde8bb1daf2636ceab4307·174파일·SQLite·기존345검사 보존 검증 후 engine-integrated-5fd0e2ab9559458e 적용. 기존 PC111(110PASS/Linux1skip)·ARM64_v006117PASS는 이 8소스 변경 묶음에만 적용한다. 모델·임계값·PLC·촬영3초/안정0.6초/새3장·400ms 변경 없음.
+실제 boot c8d72e3f→8ea9cafd-3fcb-4063-8b17-6051f41391dd, systemd enabled/active Main1084/NRestarts0 자동 시작. USB HCAM0 장치 경로는 존재했지만 CAMERA_FRAME_TIMEOUT 반복으로 360초 준비 검증 실패(TRANSITION_WATCH_ERROR/BOOT_OBSERVATIONS 보존). 따라서 무인 재부팅 준비 합격 아님. PLC IPC는 수신 중이었으며 카메라 복구 HOLD에서 공개 handshake snapshot이 null이었다. PLC 물리통신 단절로 단정하지 않는다.
+사용자 동일포트 USB 재연결 뒤 기존 서비스 자동복구. AFTER_USB_RECOVERY_PROOF: manifest191파일SHA일치, 단일 /dev/video0 소유Worker10257, 새frame3개·WAIT_START·fresh STOP/LOW·모델/health 준비, 기존345검사 보존. 별도 서비스 재시작/PLC 조작 없음. USB 수동복구와 재부팅 단독 성공 구분. 현재 STOP·빈벨트 유지, 승인된 STOP≤5초 진단 촬영 준비.
+최신 첨부 143bf342 추가지시 반영: 검출(A)·움직임(B)·부품검사 자세/가시성(C)의 최초 실패 단계 재현 후 최소 후보 하나 비교. 현재 STATIONARY 실제경로와 상대자세슬롯 재사용. product threshold와 pose-motion 분리는 동시에 변경하지 않는다. 이전bbox/pose를 새증거로 복사하거나 안정/새3장을 강제하지 않는다. 기준선117PASS를 향후 후보 통과로 재사용하지 않는다. 기본 PASS→최종PASS/OK, 기본 FAIL/REVIEW/ERROR→최종FAIL/NG(유효 거래만), 원상태·원인이 별도 보존되며 REVIEW/ERROR는 결품 검출 성공이 아니다. 참고오조립REVIEW로 PASS를 바꾸지 않는다.
+운전 중 새 보조수집은 미승인. 기존 단일Worker/비개입/부하제한/누락기록의 구체안 제시 후 한 번 확인하며 STOP 촬영 경로를 완화하지 않는다. 다음: STOP 빈벨트 원본 회수→기존 실패 원본 최초 실패 재현·위치분포 및 인접 기준 비교→별도 검증→실제 위치/카메라 대조→동일 실행본 한START 혼합30. 새 실물30·무인 재부팅 안정성·위치강건성 미완료, GitHub반영 미실행.
+
+후속 B 관측: FIRST_FAILURE_REPLAY_v001에서 오류 원본6장 중5장의 첫 실패는 제품0.5 기준(기존12장 단계출력 재현). 후보0.4에서6장 모두 pose/부품 진행, 정상3장 전부존재/오른쪽결품3장 해당누락 관측; 빈벨트52장 오선택0. 전체요청영상부재로 촬영유효3장/최종성공 미검증, 운영0.5 유지. STOP 빈벨트52원본 회수검증. 정상준비후 촬영도 실제빈벨트여서 정상자료 제외·현재화면 확인 대기. 상세 CONTINUOUS_RUNTIME_AUDIT 및 동일 runs 폴더.
+
+후속 STOP 정상 대조(사용자 실제정지·화면전체확인): STOP_NORMAL_v002 52원본/4.980초·109파일 및 픽셀SHA/PTS검증. 실제 제품점수0.683525–0.754110/기준0.5미만0. 원본시간·기존0.15초간격의 격리재생26장 모두 제품/자세/네부품확인; 초기화된 안정관찰에서21장stable, 최초3장확보 원본시간1.380초(실제PLC응답시간아님). 운영0.5와오프라인후보0.4 동일. NORMAL_SEQUENCE_v001_FINDINGS_v002는 순수3장부품집계PASS와 요청/가시성컨텍스트없이 호출한 진단함수REVIEW를 구분; 후자는실제운영오류아님. 실제PLC검사0/운영기준변경0/위치허용범위·운전중성능미검증. 다음: STOP정상모형제거확인→오른쪽파이프결품대조.
+
+후속 STOP 오른쪽파이프결품 재촬영: 사용자 ‘지금부터다시’ 이후 v002 51원본/4.948초/107파일 SHA·픽셀·PTS확인, 실제원본25/30/50번 시각확인. 제품점수0.805869–0.816665, 재생26장 제품/자세26·stable22, 오른쪽누락26. 첫안정3장 순수부품집계FAIL/RIGHT_PIPE_MISSING(원본시간1.180초, 실제PLC응답아님). 다만3장 배기구슬롯UNCERTAIN: 실제배기구0.909–0.937 정상배정에 별도낮은후보0.256–0.343이추가되어 LOW_CONFIDENCE가 해당슬롯을불확실처리. 제품기준0.5/후보0.4 결과동일; 제품문턱만으로이경로가해결되지않음. 운영기준/코드변경0. 다음은 같은결품모형 방향유지·화면중앙으로이동한 STOP위치대조(사용자배치대기).
+
+후속 동일결품모형 위치대조: STOP_RIGHT_CENTER_v001 52원본/4.984초 SHA/픽셀/PTS검증. 같은실행본·카메라Worker·PLC요청0 유지. 새위치 재생26장 모두제품/자세통과·오른쪽MISSING/나머지PRESENT, 배기구추가후보로인한불확실3/26→0/26 관측. 두위치첫안정3장 순수부품집계RIGHT_PIPE_MISSING/FAIL, 운영검사미실행·후보0.4추가효과없음. 검출중심/자세각의실제차이는 RIGHT_POSITION_COMPARISON_v001.json; 물리cm허용치·반복재현·조명단일원인으로단정하지않음. 다음: 같은모형 STOP작은회전 대조(사용자준비대기).
+
+후속 결품 모형 회전 대조: STOP_RIGHT_ROTATED_v001 52장과 STOP_RIGHT_OPPOSITE_v001 51장 원본/픽셀/PTS 회수 검증. 각 26장 격리 재생에서 제품·자세 26/26, 오른쪽 파이프 MISSING 26/26, 나머지 부품 PRESENT 26/26. 두 첫 안정 3장 순수 집계는 FAIL/RIGHT_PIPE_MISSING이며 실제 PLC 검사는 미실행. 기존 중앙 자세 대비 추정각 변화는 -19.043도와 +161.072도; 후자는 방향을 크게 뒤집은 대조로 보존하며 작은 반대 기울기 검증으로 세지 않는다. 모델·운영 기준 변경 없음. RIGHT_ROTATION_COMPARISON_v001.json에 원본 연결·위치 변화·각도 추정 한계 기록. 사용자에게 STOP에서 긴 금색 손잡이가 화면 오른쪽 아래를 향하는 작은 반대 기울기 배치 안내; 응답 대기.
+
+후속 양쪽 작은 회전 대조 완료(정지 보정 자료): 사용자가 긴 금색 손잡이를 화면 오른쪽 아래로 배치한 STOP_RIGHT_OTHER_TILT_v001 51원본/4.916초·107파일·픽셀SHA/PTS 검증. 재생26장 모두 제품/자세 유효, 오른쪽파이프 MISSING·나머지PRESENT; 최초 안정3장 집계 FAIL/RIGHT_PIPE_MISSING(원본시간1.176초, 실제응답시간아님). 중앙기준 추정각 변화 -19.043도와 +21.516도 두 기울기 모두 동일 결품 결과. 위치도 함께 바뀌었으므로 ±각도 허용범위·각도 단일원인·독립검증 성공으로 일반화하지 않는다. 별도 +161.072도 방향 반전도 보존. 운영 임계값/모델 변경0·실제PLC검사0. 현재 STOP·결품모형이 화면 안에 있으며 다음 물리 행동은 요청하지 않음. 다음: 기존 자료로 부족한 실제 운전 전후 원본을 기존 Worker로 수집하는 구체안 확인. 운전 중 신규 수집은 사용자 승인 전 미구현/미실행.
+
+Previous checkpoint:
+INSPECTION RELIABILITY / FINAL PC+ARM64/C PASS / STOP DIAGNOSTIC RELEASE STAGED / NOT APPLIED
+2026-10-18 현재 후보 engine-integrated-5fd0e2ab9559458e, 운영555c3a43053ce4ce/bootc8d72e3f/Main8165/Worker182705 유지. 수정8파일: runtime/journal request_start, production_admission, standalone, standalone_web, stopped_capture, misassembly_shadow, frame_matches. 모델·threshold·PLC·3초/0.6초/새3장·400ms 변경 없음.
+최종 Windows111 중110PASS/Linux전용1skip(FINAL_WINDOWS_v002), ARM64/실제 C AF_UNIX 격리117PASS/0skip(ARM64_v006_RESULT). 실제PLC/새실물30은미실행. 시험중 실패 원본 보존: Windows spawn 실행기 main-guard 누락, 운영line_view와 다른 오래된기대문구(WEB_BASELINE_CONTRACT로 원본 동일 증명), ARM64 staging HTML누락, 가상프레임큐 overflow/queue.empty 주입경합을 실제put_latest/완료영수증시점주입으로 수정. 운영보호/assertion을 낮추지 않음.
+C 동일6원본 ABBA 참고계산16.318→7.434초·출력/픽셀일치, 전체PLC응답/VALID자세정확도아님. B threshold 및 위치편차 성능은 미검증. 새 사용자 지시의 위치·카메라 편차/운전영상 분석은 현재 Task와 CONTINUOUS_RUNTIME_AUDIT에 반영; 상대자세슬롯 구조 확인, TARGET_UNCERTAIN 초기화 실제분포 추가분석. 운전 중 새수집 정책은 미승인. STOP최대5초만 승인.
+사용자 최신 ‘비웠어’로 STOP·빈벨트 확인. TRANSITION_STAGE_v002에서 fresh STOP/RequestLOW/출력0, 요청23/완료23/유휴확인. 이전 완료요청23의 inactive PRODUCT_OBSERVATION_GAP 진단은 원기록보존; 전환전검사만 정확한완료token·C수량과대조해 허용. 실제fault거부14경우, 재부팅게이트는엄격유지. current/config/DB/서비스변경아직없음. 원격sudo비인증이라 사용자전환시작만필요.
+전환 입력·후보·검증manifest: runs/inspection_reliability_20261018/. 동일Jetson tmp/verify 폴더 stage완료. 다음: device_transition.py transition 사용자sudo시작→watch_transition.py 백업회수/SHA/SQLite/원검사행검증→8파일통합적용→기동·실제재부팅·3새frame/단일Worker/PLC대기→승인된STOP원본촬영→B위치/관찰연속성 분석→필요한최소보정검증→독립혼합30. 원본/기존실패/미커밋보존. GitHub반영미실행.
+
+Previous checkpoint:
+INSPECTION RELIABILITY / A CANDIDATE 68 CHECKS PASS / C DUPLICATE MATCHING VERIFIED / NOT DEPLOYED
+2026-10-18 사용자 실제 STOP 응답 뒤 새 PLC snapshot(2ms)으로 Mc_Run=false/RequestLOW/출력0/유휴를 확인했다. 같은 운영555c3a43053ce4ce/Main8165/bootc8d72e3f 유지, CameraWorker182705 새영상 수신 복구. 이 작업에서 서비스재시작·재부팅·PLC출력·운영변경 없음. 수동 카메라 점검·재시작 절차는 docs/PROGRAM_START_STOP_KO.md에 기록했다.
+A-1 같은 저장 완료 ID의 촬영 전 관찰시간 만료를 미실행ERROR로 영속화하고 기존 NG/Done으로 종결하는 후보, A-2 유휴 저장준비조회에서만 tracking session 분리하는 후보를 수정했다. Windows62 PASS, ARM64/실제 C AF_UNIX 격리68 PASS(0skip); 동일 요청ERROR→다음PASS→FAIL, STOP/저장실패/늦은완료·실제owner변경 보호 포함. 운영·실물 통과 아님. 코드3개/시험해시는 runs/inspection_reliability_20261018/ARM64_v002_RESULT.json.
+C: 실제4·6회 참고분석의 pose_matching이 기록된 참고시간 약94%였다. 같은 원본6장 Jetson 계측에서 한프레임6검색 중3검색이 descriptor 바이트·shape·dtype·method까지 동일, 중복약2.94초/장. frozen 코드/모델은 그대로 두고 load_frozen_models의 한프레임 범위에서만 동일 matching을 재사용하는 후보 추가. ABBA 동일6장/각방식2반복, 수치허용1e-6·그외/픽셀정확일치: 기존 참고계산 평균16.318초→7.434초(전체 PLC시간 아님). 여섯 프레임의 참고 자세결과는 기존에도FAILED였으며 VALID 부품분류 정확도 검증으로 세지 않는다. 코드 frame_matches.py, misassembly_shadow.py, runtime_allowlist.json. 근거 REFERENCE_CALLS_v001.json, REFERENCE_COMPARE_v001_RESULT.json/INPUTS.json; 결과회수완료. Windows 관련검사 통과 부분과 Linux fsync미실행은 각로그를따름.
+B: 제품 threshold 후보/운영설정은 아직 변경하지 않았다. 현 독립운전 read_only_field_ui가 진단촬영POST를403거부, 우회없이 중단. 사용자가 2026-10-18 ‘정지 상태의 진단 촬영만 허용’ 승인. 새로운 /api/v1/maintenance/diagnostic-capture/{start,stop}는 loopback·same-origin·기존session token+fresh STOP/RequestLOW/IDLE/저장유휴에서만 최대5초·100프레임·128MiB, 같은카메라Worker 사용 후보를 구현중. 운전/요청/owner변경시진단만중지·중단기록. PLC운전·판정경로는추가하지않음.
+진단촬영 시험: 일반guard6항목은 동작; 최초 body기본값중복 TypeError는수정. 중첩ASGI웹시험대기 원인조사중이며 STOPPED_CAPTURE_GREEN 실패로그 보존, v002시험에는180초덤프/240초상한. 설치/검증완료 아님. staged stopped_capture.py, standalone_web.py, standalone.py, test_stopped_diagnostic_capture.py. 다음: 웹시험정체 원인수정→정지촬영/변경전체 PC·ARM64/C 회귀→선택변경만백업배포·재부팅→새원본 기반B검증 및 별도혼합30. 사용자 STOP 유지, 새 모형배치 아직 요청하지 않음. 기준/모델/400ms/안정0.6초/촬영3초/새3장 유지, E04/B04 미사용. 기존 실패·운영DB·원본 보존, 아직push안함.
+
+## 2026-10-18 추가 요구: 위치·카메라 편차와 운전 영상
+
+사용자 추가 지시를 현재 A/B/C 안정화 작업에 통합한다. 기존 후보/회귀/속도 결과 보존.
+허용 위치·각도·카메라 편차는 현장 영상 분포로 측정하며 임의 cm/px 범위를 만들지 않는다.
+정상→PASS/OK, 결품→FAIL/NG, REVIEW→NG, 유효 거래 ERROR→NG. 원인/원본 보존;
+거래 완료와 유효 새3장 검사 성공을 분리한다. 3초·0.6초·3장·400ms·부품/STOP 보호 유지.
+검출 안정성은 제품 선택→자세→슬롯→motion 초기화→3장 집계까지 점검한다.
+정상 위치/각도 편차, STOP에서 바꾼 카메라 위치, 미세 진동, 실제 이동/가림/화면 이탈,
+결품/빈 벨트/다른 물체를 분리 검증한다. 보정·별도 검증 구간도 분리한다.
+원본 운전 영상은 기존 자료/수집 경로로 충분한지 먼저 평가한다. 현재 승인 범위는
+기존 Worker·인증·fresh STOP·RequestLOW·검사/저장 유휴의 최대5초 진단 촬영뿐이다.
+운전 중 신규 수집/접근 정책 변경은 부담·안전조건·변경범위를 보고하고 별도 확인받는다.
+진단에서 START/STOP/모터 제어 없음. 운전 중 벨트/카메라에 손대도록 요구하지 않는다.
+최종 같은 실행본·한START·PLC+Jetson 정상/오른쪽파이프 결품 혼합30, 이전 구간 합산 금지.
+
+
+Previous checkpoint:
+INSPECTION RELIABILITY / AUTHORIZED A-B-C FIXES / WINDOWS REPRODUCTION
+2026-10-18 새 사용자 TASK(a4c679e9 첨부)가 촬영 전 대기 실패·준비 확인 결합의 최소 수정, 제품 검출 후보 오프라인 비교, 저장 이후 지연 계측과 증거 기반 개선을 승인했다. 기존 시험만 진행 제한보다 우선한다. 현장 적용 전 관련 회귀·ARM64/C 검증, 최신 STOP·유휴·백업 확인, 적용 후 실제 재부팅과 별도 혼합30을 수행한다. 모델 재학습/PLC 계약/부품 임계값/400ms/촬영3초·안정0.6초·새3장/내구성은 유지한다. 참고 조립 분석을 결과 전송 뒤로 옮기는 변경은 별도 확인 대상이다.
+읽기 전용 점검: 운영 engine-integrated-555c3a43053ce4ce/Main8165, boot c8d72e3f-d5cf-423a-b832-774394ba8243. 코드·패키지·참고분석 자산223개 manifest SHA 일치. 네 문제 모두 아직 운영 미개선. USB HCAM0는 인식되지만 CAMERA_FRAME_TIMEOUT/Worker RECOVERY 관측; PLC API snapshot은 오래되어 현재 STOP 증거로 사용할 수 없다. 사용자 USB 연결 확인. 재시작·PLC 출력·배포 변경 없음. 증거 runs/inspection_reliability_20261018/{LIVE_INVENTORY,LIVE_HASHES,CAMERA_READONLY}.json. 기존 Attempt15 23거래/21유효/ERROR2를 보존하고 새30 성공으로 세지 않는다.
+다음: Windows에서 A-1 저장 완료 후 관찰 기한 실패를 같은 ID의 미실행 ERROR로 종결하는 회귀 재현부터 진행한다. 카메라 수동 확인/복구 명령은 docs/PROGRAM_START_STOP_KO.md에 보완했다. 실제 영상 복구·새 실물 시험은 아직 미확인.
+
+Previous checkpoint:
 ATTEMPT15 AUDITED / MIXED23 TRANSACTIONS COMPLETE / CAPTURE ERROR2 / THIRTY NOT MET
 2026-10-17 동일 운영555c3a43053ce4ce, 한START·노트북LAN분리 정상→오른쪽파이프결품 재시험을 실제 원장으로 확인했다. 요청1–23 총23건: PASS11/FAIL10/ERROR2/REVIEW0. 정상12건=PASS11+ERROR1, 오른쪽결품11건=FAIL10+ERROR1. 사용자 “순서를 지켰고 추가 START 없이 계속됐어요”와 C기록을 대조: 전23건 저장→Result→후속sequence Done→RequestLOW→다음대기, 중간 STOP/재접속/서비스재시작0. ERROR1→다음2 FAIL, ERROR16→다음17 PASS로 계속됐다. 사용자STOP/LAN재연결 뒤 실제STOP·출력0·유휴 확인. 23회 거래연속성은 확인했지만 30회/무오류 합격은 아님; 최대연속유효검사14건.
 69원본PNG·92자산/165보존파일SHA·디코딩픽셀SHA·SQLite quick_check ok. 21건은 유효연속3장, ERROR2건의6장은 실패진단후보이며 성공사진으로 세지 않는다. 두 ERROR 모두 DEADLINE_EXCEEDED: 1회 후보12/거부12(TARGET_UNCERTAIN5),16회 후보10/거부10(TARGET_UNCERTAIN7), 안정선택0. 오류원본6장 실제확인: 모형은보이나 제품전체점수1회0.459/0.501/0.451,16회0.450/0.462/0.468으로 기준0.5 주변 미검출이 연속관찰을 끊었다. 큰이동/손가림은 이3장에 보이지 않음; 전체3초영상 없음, 위치·반사·각도 등물리원인은 미확정. ERROR를 실제결품FAIL로 고치지 않음. 기존계약 AI_ERROR_AS_PLC_NG로 거래완료.

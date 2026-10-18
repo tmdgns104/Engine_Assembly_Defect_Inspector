@@ -4,6 +4,7 @@ No reference learning, camera access, image resizing or file writes occur here.
 The reference bank contains only reviewed empty images. A whole-image reference
 is chosen; pixels from different references are never spliced together.
 """
+from src import config as parameters
 import hashlib
 import json
 import math
@@ -295,7 +296,7 @@ class BackgroundOccupancy:
 
 class ClearWindow:
     """Continuity is source-time based; missing/replayed input never advances it."""
-    def __init__(self, duration=1.2, minimum_frames=6, maximum_gap=.5, maximum_age=1.):
+    def __init__(self, duration=parameters.AREA_CLEAR_SECONDS, minimum_frames=parameters.AREA_CLEAR_FRAMES, maximum_gap=parameters.AREA_MAX_FRAME_GAP_SECONDS, maximum_age=parameters.AREA_MAX_FRAME_AGE_SECONDS):
         self.duration = duration
         self.minimum_frames = minimum_frames
         self.maximum_gap = maximum_gap

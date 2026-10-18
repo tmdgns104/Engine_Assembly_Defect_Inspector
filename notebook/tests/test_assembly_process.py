@@ -47,6 +47,7 @@ class AssemblyProcessTests(unittest.TestCase):
         self.assertLess(max(gaps),.2)
         self.assertNotEqual(owner.status()['worker_pid'],os.getpid())
         self.assertEqual(owner.status()['execution_owner'],'ASSEMBLY_PROCESS_NO_CAMERA')
+        self.assertEqual(owner.status()['mode'], 'REFERENCE_ANALYSIS_WITH_DURABLE_EVIDENCE')
 
     def test_load_failure_and_process_exit_are_not_ready(self):
         failed=self.make(broken_loader)

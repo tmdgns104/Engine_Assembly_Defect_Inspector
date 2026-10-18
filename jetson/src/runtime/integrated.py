@@ -1,4 +1,5 @@
 """기존 소유 객체를 직렬 연결한다. 결과 확인 thread와 종료 소유자는 각각 하나다."""
+from src import config as parameters
 from copy import deepcopy
 import threading
 import time
@@ -235,7 +236,7 @@ class IntegratedRuntime:
             return self.status()
 
     def _run(self):
-        while not self.stop.wait(.03):
+        while not self.stop.wait(parameters.RUNTIME_POLL_SECONDS):
             with self.lock:
                 if self.error or self.closing:
                     continue

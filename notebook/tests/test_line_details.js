@@ -9,6 +9,10 @@ const assembly={state:'COMPLETE',three_frames:{state:'FAIL_CANDIDATE'},frames:ob
   pipe_left:{valid:true,predicted_state:'SIDEWAYS'},exhaust:{valid:true,predicted_state:'MISSING'}}}))};
 let s=summarize(raw,assembly,{});
 assert.equal(s.rows[0].assembly,'SIDEWAYS');assert.equal(s.rows[2].presence,'MISSING_CONFIRMED');assert.equal(s.rows[2].assembly,'MISSING');
+const referencePolicy='BASIC_PRESENCE_ASSEMBLY_REFERENCE_V2';
+assert.equal(summarize(raw,assembly,{policy:referencePolicy,decision:'PASS',assembly_inspector:'FAIL'}).rows[0].assembly,'SIDEWAYS');
+assert.equal(summarize(raw,assembly,{policy:referencePolicy,decision:'PASS',assembly_inspector:'REVIEW'}).rows[0].assembly,'UNCERTAIN');
+assert(script.includes('오조립 분류는 최종 판정과 PLC OK/NG에 반영하지 않습니다.'));
 assembly.frames[1].parts.pipe_left.predicted_state='CORRECT';
 assert.equal(summarize(raw,assembly,{}).rows[0].assembly,'CONFLICT');
 assembly.frames[0].parts.exhaust.valid=false;
@@ -25,6 +29,33 @@ assert(!script.includes('Authorization')&&!script.includes('recovery-token'),'Re
 assert(script.includes('confirmations:')&&script.includes('PHYSICAL_STOP'));
 assert(!script.includes('automatic_arm')&&!script.includes('initial_arm'));
 console.log('line evidence: missing / misassembly / conflicting frames / invalid evidence / no capture / unsafe rendering guards PASS');
+
+const partCrop=vm.runInContext('LineDetails.partCrop',sandbox);
+const presenceLabel=vm.runInContext('LineDetails.presenceLabel',sandbox);
+const cropRaw={inspection_id:'a'.repeat(32),state:'COMPLETE',result:{representative_frame_id:'f2',
+  observations:[1,2].map(n=>({frame_id:'f'+n,width:1280,height:720,engine_dynamic:{
+    inspection_id:'a'.repeat(32),frame_id:'f'+n,pose:{reliable:true},
+    slot_states:{pipe_right:'MISSING'},slot_polygons:{pipe_right:[[100,80],[200,80],[200,180],[100,180]]}}})),
+  assets:[1,2].map(n=>({kind:'raw',frame_id:'f'+n,asset_id:String(n).repeat(32)}))}};
+let crop=partCrop(cropRaw,'pipe_right');assert.equal(crop.frameId,'f2');assert.equal(crop.number,2);
+assert.equal(crop.x,100);assert.equal(crop.width,100);assert.equal(crop.url,'/api/v1/assets/'+'2'.repeat(32));
+assert.equal(presenceLabel('MISSING_CONFIRMED'),'미결합 · 부품 없음');
+assert.equal(presenceLabel('MISSING'),'미결합 의심 · 확인 필요');
+assert.equal(presenceLabel('PRESENT'),'미결합 없음 · 부품 확인');
+assert.equal(partCrop(cropRaw,'toString'),null);
+for(const edit of [o=>o.engine_dynamic.inspection_id='b'.repeat(32),o=>o.engine_dynamic.frame_id='other',
+  o=>o.engine_dynamic.pose.reliable=false,o=>o.width=0,
+  o=>o.engine_dynamic.slot_polygons.pipe_right[0][0]=-1,
+  o=>o.engine_dynamic.slot_polygons.pipe_right=[[1,1],[1,1],[1,1],[1,1]],
+  o=>o.engine_dynamic.slot_polygons.pipe_right[0][0]=NaN]){
+  const bad=structuredClone(cropRaw);bad.result.observations.forEach(edit);assert.equal(partCrop(bad,'pipe_right'),null);
+}
+for(const edit of [a=>a.kind='annotated',a=>a.frame_id='other',a=>a.asset_id='../secret']){
+  const bad=structuredClone(cropRaw);bad.result.assets.forEach(edit);assert.equal(partCrop(bad,'pipe_right'),null);
+}
+assert(script.includes("'presence-result '+tone"));assert(script.includes("'assembly-reference muted'"));
+assert(!script.includes("'조립: '+label(row.assembly)"));
+console.log('part crop: saved inspection/frame/slot identity, missing slot, invalid geometry, raw-only assets, presence emphasis PASS');
 
 async function recoveryUI(){
   const elements=new Map(),calls=[];

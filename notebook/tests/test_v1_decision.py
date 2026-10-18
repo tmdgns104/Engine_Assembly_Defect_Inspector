@@ -7,15 +7,15 @@ from src.vision.integrated_decision import combine_decisions
 
 class V1DecisionTests(unittest.TestCase):
     def test_component_matrix(self):
-        expected = [('PASS','FAIL','PASS','PASS'), ('FAIL','FAIL','FAIL','FAIL'),
-                    ('REVIEW','FAIL','REVIEW','REVIEW'), ('ERROR','FAIL','ERROR','ERROR')]
+        expected = [('PASS','PASS','PASS','PASS'), ('FAIL','FAIL','FAIL','FAIL'),
+                    ('REVIEW','REVIEW','REVIEW','REVIEW'), ('ERROR','ERROR','ERROR','ERROR')]
         for i, basic in enumerate(('PASS','FAIL','REVIEW','ERROR')):
             for j, assembly in enumerate(('PASS_CANDIDATE','FAIL_CANDIDATE','REVIEW','ERROR')):
                 with self.subTest(basic=basic, assembly=assembly):
                     value=combine_decisions(basic, assembly_result(assembly))
                     self.assertEqual(value['decision'], expected[i][j])
                     self.assertTrue(value['publication_allowed'])
-                    self.assertEqual(value['policy'], 'BASIC_WITH_CONFIRMED_ASSEMBLY_FAIL_V1')
+                    self.assertEqual(value['policy'], 'BASIC_PRESENCE_ASSEMBLY_REFERENCE_V2')
 
     def test_summary_candidate_cannot_prove_fail_or_replace_raw_evidence(self):
         value=combine_decisions('PASS',dict(state='COMPLETE', three_frames={'state':'FAIL_CANDIDATE'}))

@@ -3,6 +3,7 @@
 No image/tensor copies, disk writes or inference. The Runtime lock owns writes;
 the read-only diagnostic route snapshots the same lock before copying records.
 """
+from src import config as parameters
 from collections import deque
 from copy import deepcopy
 
@@ -39,7 +40,7 @@ class ConsumedFrames:
         self.checkpoints.append(dict(reason=reason, context=deepcopy(context),
             frames=deepcopy(list(self.frames)[-128:])))
 
-    def capture(self, limit=1024, *, include_checkpoints=False):
+    def capture(self, limit=parameters.CONSUMED_FRAME_LIMIT, *, include_checkpoints=False):
         # Call under the owner's lock. Records are append-only after creation,
         # so these references remain stable after the lock is released.
         return dict(source='RUNTIME_CONSUMED', total=self.total, capacity=1024,
@@ -52,5 +53,5 @@ class ConsumedFrames:
     def copy_snapshot(captured):
         return deepcopy(captured)
 
-    def snapshot(self, limit=1024, *, include_checkpoints=False):
+    def snapshot(self, limit=parameters.CONSUMED_FRAME_LIMIT, *, include_checkpoints=False):
         return self.copy_snapshot(self.capture(limit, include_checkpoints=include_checkpoints))

@@ -1,10 +1,21 @@
 # On-Device AI 엔진 조립 검사
 
-## 최신 통합 운영 범위 — 2026-10-14
+## 최신 작업 — 2026-10-18
+
+운영 설정을 [`jetson/src/config.py`](jetson/src/config.py)에서 한국어 설명과 함께 관리하고, 기존 값을 유지하도록 소비 코드를 연결했습니다. 기존 현장 화면 `/line`을 정리하고 SQLite 검색·상세·CSV 내보내기 화면 `/history`를 추가했습니다. [설정·기록 조회 안내](docs/CONFIGURATION_AND_HISTORY_KO.md)를 참고하세요.
+
+최신 운영본은 `engine-integrated-32c484ac6aeb07f1`입니다. 설정·기록 기능 적용 후 실제 혼합 **7회(PASS4/FAIL3, ERROR0)**에서 저장과 PLC 완료를 확인했고 사용자가 시험을 종료했습니다. 이후 UI 두 파일만 반영하고 실제 재부팅·카메라·모델·PLC 준비를 확인했습니다. **10회 완료나 장시간 무오류 보증은 아닙니다.** 부품 위치 사진과 미결합 여부를 크게, 오조립을 작은 참고 정보로 표시합니다. [검증 결과와 한계](docs/verification/CONFIG-UI-HISTORY-20261018.json), [이전 안정화 기록](docs/STABILIZATION_CLOSEOUT_20261018.md)을 보존합니다. 통합 응답시간 약10~14초와 간헐적인 USB 복구 필요성은 남아 있습니다.
+
+사용 중 검출 모델 두 개와 참고 오조립 모델·동결 자산을 [assets 안내](assets/README.md)에 정리했습니다. 실제 SQLite의 일관된 보관본은 [database 안내](database/README.md)를 따릅니다. 실행 중인 DB를 Git 작업용 파일로 쓰지 않으며, 보관본으로 장치 원장을 덮어쓰지 않습니다. 원본 검사 사진은 이 Git 배포에 포함하지 않습니다.
+
+## 과거 통합 운영 기록 — 2026-10-14
 
 개발 원본은 [jetson/](jetson/README.md) 한 벌입니다. 실제 실행은 `current/`의 `engine-integrated-90a914423826735a`를 `engine-inspector.service` 하나가 감독하며 Python과 OpENer를 같은 Release로 관리합니다. 노트북에는 이전 후보·복구 자료를 보존합니다.
 
 [프로그램 실행 흐름](jetson/INTEGRATED_RUNTIME.md)과 [이번 검증 결과](notebook/deployment/JOURNAL_COMPATIBILITY_VERIFICATION.md)를 먼저 읽으세요. 과거 Journal35 차단은 해결됐고 실제 한 제품의 요청→검사 처리→PLC NG·Done→컨베이어 재가동을 확인했습니다. **AI 최종 결과는 조립 모듈 오류로 ERROR였고, 정상 판별·연속 운전·재부팅·노트북 OFF 검증은 완료되지 않았습니다.** 아래 9월 및 이전 배포 설명은 당시 범위이며 현재 채택 상태는 이 문단과 최신 통합 문서를 따릅니다.
+
+<!-- standalone-install-20261007 -->
+2026-10-07 현재 장치: `engine-dev-780822e39a6316f3` 전체 통합본과 `engine-inspector.service`를 설치해 실행 중입니다. 카메라·모델 준비와 150파일 해시를 확인했습니다. **PLC V3 미적용 및 현장 profile 미검증으로 자동공정은 아직 동작하지 않습니다.** 기존 cron과 별도 launcher를 중복 시작하지 마세요. 실제 재부팅·반복 사이클·노트북 OFF는 NOT_RUN입니다. [현재 근거와 다음 단계](runs/engine_standalone_plc_autostart_001/v001_20261007T052746Z/CHECKPOINT.md).
 
 
 **Jetson Orin Nano가 USB 카메라 영상에서 엔진의 조립 상태를 검사하고, 노트북은 촬영·개발·운영 화면 접속을 맡는 프로젝트입니다.** 검사 결과는 `PASS / FAIL / REVIEW / ERROR`로 저장하며, 제품 추적과 PLC 요청을 연결합니다.

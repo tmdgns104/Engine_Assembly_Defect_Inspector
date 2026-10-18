@@ -1,11 +1,12 @@
 """Bounded process-local timing evidence; no Journal or filesystem dependency."""
+from src import config as parameters
 from collections import deque
 import threading
 import time
 
 
 class HealthDiagnostics:
-    def __init__(self, limit=64):
+    def __init__(self, limit=parameters.HEALTH_DIAGNOSTIC_LIMIT):
         self.lock = threading.Lock()
         self.events = deque(maxlen=limit)
         self.latest = {}

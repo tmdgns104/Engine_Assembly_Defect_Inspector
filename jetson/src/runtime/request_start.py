@@ -5,6 +5,7 @@ camera and cancellation state while waiting; it never dispatches before commit.
 This is not an independent heartbeat thread or an extension of the C lease.
 """
 from copy import deepcopy
+import math
 import queue
 import time
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ import uuid
 
 from src.runtime.inspection_bridge import InspectionBridge
 from src.runtime.inspection_start import tracked_frame_evidence
+from apps.edge_service.production_admission import unstarted_receipt
 
 
 class RequestStart:
@@ -60,6 +62,12 @@ class RequestStart:
                 snapshot.get('boot') if snapshot else None,
                 snapshot.get('connection') if snapshot else None, *self._previous())
 
+    def _readiness_key(self, snapshot):
+        # SQL readiness queries Journal/previous publication, not a product
+        # tracker. Keep every execution/PLC/previous-request owner in its key.
+        # Bound requests continue using the full key, including tracking session.
+        return self._key(snapshot)[1:]
+
     def event(self, value):
         if not self.capture_events:
             return False
@@ -89,7 +97,17 @@ class RequestStart:
             deadline=now+r.line_profile['arrival_deadline_s'],
             reservation=reservation, binding=deepcopy(binding), final=deepcopy(final),
             aborted=None)
-        if reservation is not None and hasattr(reservation, 'deadline_monotonic'):
+        context['idle_readiness'] = kind == 'readiness' and live_token is None
+        if context['idle_readiness']:
+            context['key'] = self._readiness_key(snapshot)
+        if kind == 'finish_no_input':
+            # The expired capture window never becomes a fresh camera window.
+            # Only terminal ERROR persistence receives this bounded deadline.
+            timeout = r.service.station['inspection_timeout_seconds']
+            if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
+                raise ValueError('INVALID_UNEXECUTED_COMPLETION_TIMEOUT')
+            context['deadline'] = now + timeout
+        elif reservation is not None and hasattr(reservation, 'deadline_monotonic'):
             context['deadline'] = min(context['deadline'], reservation.deadline_monotonic)
         # Service activation expects this exact immutable reservation identity.
         owner = reservation if kind == 'admit' else context
@@ -138,7 +156,7 @@ class RequestStart:
             cycle_id=binding.get('cycle_id'), track_id=binding.get('track_id')))
 
     def ready(self, snapshot):
-        return bool(self.readiness_key == self._key(snapshot) and self.settlement()['clean'])
+        return bool(self.readiness_key == self._readiness_key(snapshot) and self.settlement()['clean'])
 
     def begin(self, binding, now):
         r = self.runtime
@@ -199,15 +217,15 @@ class RequestStart:
                 or not 0 <= now-snapshot['generated'] <= .5
                 or not 0 <= now-snapshot['received'] <= .2):
             return 'REQUEST_STORAGE_PLC_UNAVAILABLE', health, snapshot
-        if context['key'] != self._key(snapshot):
+        current_key = (self._readiness_key(snapshot) if context.get('idle_readiness')
+                       else self._key(snapshot))
+        if context['key'] != current_key:
             return 'REQUEST_STORAGE_OWNER_CHANGED', health, snapshot
         if (health.get('error') or not health.get('worker_alive') or not health.get('camera_ready')
                 or not r.service.storage.thread.is_alive() or r.service.switching
                 or health.get('camera_epoch') != context['camera_epoch']
                 or not r.assembly.ready or r.error):
             return health.get('error') or r.error or 'REQUEST_STORAGE_OWNER_UNAVAILABLE', health, snapshot
-        if now > context['deadline']:
-            return 'REQUEST_STORAGE_DEADLINE_EXCEEDED', health, snapshot
         if context['token']:
             token = f"{snapshot['boot']:016x}:{snapshot['connection']}:{snapshot['request_id']}"
             if (token != context['token'] or snapshot['phase'] != 'REQUEST_RECEIVED'
@@ -215,7 +233,56 @@ class RequestStart:
                         ('Inspection_Request','Mc_Run','EStop_OK','Stop_PB'))
                     or r.handshake.cancelled):
                 return 'REQUEST_STORAGE_CONTROL_CANCELLED', health, snapshot
+        if now > context['deadline']:
+            if context['kind'] == 'admit' and context.get('activation_receipt'):
+                return 'ADMISSION_OBSERVATION_DEADLINE_EXCEEDED', health, snapshot
+            if context['kind'] == 'finish_no_input':
+                return 'UNEXECUTED_COMPLETION_STORAGE_DEADLINE_EXCEEDED', health, snapshot
+            return 'REQUEST_STORAGE_DEADLINE_EXCEEDED', health, snapshot
         return None, health, snapshot
+
+    def _check_admission_owner(self, binding):
+        r = self.runtime
+        cycle = r.coordinator.active_cycle
+        if (not cycle or cycle.cycle_id != binding['cycle_id']
+                or r.coordinator._tracker._track_id != binding['track_id']
+                or r.handshake.state != 'REQUEST_LATCHED' or r.handshake.inspection_id
+                or r.cycle_issue or r.automatic_identity_block):
+            raise ValueError('ADMISSION_CURRENT_TRACK_OR_REQUEST_CHANGED')
+
+    def _finish_observation_timeout(self, context):
+        """Queue exactly one same-ID ERROR after verified durable admission."""
+        r = self.runtime
+        self._check_admission_owner(context['binding'])
+        request, row, _, durable = unstarted_receipt(
+            r.service, context['reservation'], context['activation_receipt'])
+        # Slow/failed admission is a storage failure, not missing observation.
+        if durable > context['deadline']:
+            raise ValueError('REQUEST_STORAGE_DEADLINE_EXCEEDED')
+        reason = 'ADMISSION_OBSERVATION_DEADLINE_EXCEEDED'
+        result = dict(decision='ERROR', reason=reason, reason_code=reason,
+            disposition='HOLD', observations=[], assets=[],
+            production_identity=dict(context['binding'], inspection_id=row['inspection_id']),
+            execution=dict(source='not_executed', control='production',
+                worker_generation=r.service.generation),
+            admission_wait=dict(stage='AFTER_DURABLE_ADMISSION_BEFORE_CAPTURE',
+                durable_admission_monotonic=durable, observation_deadline_monotonic=context['deadline']))
+        self.pending = None
+        try:
+            self._submit('finish_no_input', dict(kind='finish_no_input',
+                inspection_id=row['inspection_id'], request=request, package=row['package'],
+                no_input_result=result), reservation=context['reservation'], binding=context['binding'],
+                final=dict(decision='ERROR', existing_decision='NOT_RUN', assembly_decision='NOT_RUN',
+                           policy='NO_INPUT_IS_NEVER_PASS', reason=reason))
+            self.pending['original_admission'] = context
+        except Exception:
+            self.pending = context
+            raise
+        r.phase, r.line_wait = 'ADMITTING', 'WAIT_UNEXECUTED_ERROR_DURABILITY'
+        r.service.health_diagnostics.record('ADMISSION_OBSERVATION_EXPIRED',
+            inspection_id=row['inspection_id'], request_token=context['token'],
+            observation_deadline_monotonic=context['deadline'],
+            terminal_storage_deadline_monotonic=self.pending['deadline'])
 
     def _completed_owner(self, snapshot):
         """An acknowledged durable final may wait for fresh readiness SQL.
@@ -289,6 +356,13 @@ class RequestStart:
     def _poll(self, now):
         r, context = self.runtime, self.pending
         error, health, snapshot = self._live_error(context, now)
+        if error == 'ADMISSION_OBSERVATION_DEADLINE_EXCEEDED' and not context['aborted']:
+            try:
+                self._finish_observation_timeout(context)
+                context = self.pending
+                error, health, snapshot = self._live_error(context, time.monotonic())
+            except Exception as exc:
+                error = str(exc)
         if error:
             self._block(context, error)
         # A queued known job may retain health only with fresh owners and the
@@ -328,7 +402,7 @@ class RequestStart:
         if reason:
             if saved.get('error'):
                 self._block(context, 'REQUEST_STORAGE_FAILED:'+str(saved['error']))
-            if context['kind'] in ('admit', 'no_input'):
+            if context['kind'] in ('admit', 'no_input', 'finish_no_input'):
                 self._cancel_admitted(context, saved, str(reason))
             self.readiness = None
             return
@@ -338,12 +412,7 @@ class RequestStart:
         elif context['kind'] == 'admit':
             try:
                 binding = context['binding']
-                cycle = r.coordinator.active_cycle
-                if (not cycle or cycle.cycle_id != binding['cycle_id']
-                        or r.coordinator._tracker._track_id != binding['track_id']
-                        or r.handshake.state != 'REQUEST_LATCHED' or r.handshake.inspection_id
-                        or r.cycle_issue or r.automatic_identity_block):
-                    raise ValueError('ADMISSION_CURRENT_TRACK_OR_REQUEST_CHANGED')
+                self._check_admission_owner(binding)
                 if not tracked_frame_evidence(r.latest_packet, r.handshake.accepted_at,
                         binding['camera_epoch'], binding['worker_generation'], time.monotonic()):
                     # One preview miss does not change the durable request owner.
@@ -367,12 +436,29 @@ class RequestStart:
             except Exception as exc:
                 self._block(context, str(exc))
                 self._cancel_admitted(context, saved, str(exc))
-        elif context['kind'] == 'no_input':
+        elif context['kind'] in ('no_input', 'finish_no_input'):
+            if context['kind'] == 'finish_no_input':
+                try:
+                    self._check_admission_owner(context['binding'])
+                    original = context['original_admission']
+                    unstarted_receipt(r.service, original['reservation'], original['activation_receipt'])
+                    row = saved['result']['row']
+                    before = original['activation_receipt']['result']['row']
+                    if (row['inspection_id'] != before['inspection_id']
+                            or row['request'] != before['request'] or row['package'] != before['package']
+                            or row['state'] != 'COMPLETE' or row['result']['decision'] != 'ERROR'
+                            or not row['result']['storage_success']):
+                        raise ValueError('UNEXECUTED_COMPLETION_RECEIPT_MISMATCH')
+                except Exception as exc:
+                    self._block(context, str(exc))
+                    self._cancel_admitted(context, saved, str(exc))
+                    return
             self._release(context, 'NO_INPUT_DURABLE')
             self._bind(saved['result']['row'], context['binding'], time.monotonic())
             # Supply the already read durable row; no SQL on this control path.
             r._commit_and_publish(saved['result']['row']['inspection_id'], context['final'],
                                   time.monotonic(), durable_row=saved['result']['row'])
+            self.readiness = None
 
     def tick(self, now):
         """Called under Runtime/Service locks, before any Journal acquisition."""
@@ -400,7 +486,7 @@ class RequestStart:
             # periodically while idle. SQL is never borrowed by the control loop.
             active_request = r.handshake.state == 'REQUEST_LATCHED' and not r.handshake.cancelled
             if (not active_request and not r.error and snapshot
-                    and (self.readiness_key != self._key(snapshot) or self.readiness is None
+                    and (self.readiness_key != self._readiness_key(snapshot) or self.readiness is None
                          or now-self.readiness_at > 1.)):
                 self._request_readiness(snapshot)
                 self._poll(time.monotonic())

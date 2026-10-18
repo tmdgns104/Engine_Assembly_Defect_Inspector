@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src import config as parameters
 from dataclasses import dataclass, replace
 from pathlib import Path
 import hashlib
@@ -32,7 +33,7 @@ def _poly(box):
 def transform_polygon(poly, matrix):
     return cv2.transform(np.asarray(poly,np.float32).reshape(-1,1,2),np.asarray(matrix,np.float32)).reshape(-1,2)
 
-def _expanded_mask(shape,box,margin=0.15):
+def _expanded_mask(shape,box,margin=parameters.POSE_DEFAULT_MARGIN):
     h,w=shape[:2];x1,y1,x2,y2=box;bw=x2-x1;bh=y2-y1
     x1=max(0,int(x1-bw*margin));y1=max(0,int(y1-bh*margin));x2=min(w,int(x2+bw*margin));y2=min(h,int(y2+bh*margin))
     m=np.zeros((h,w),np.uint8);cv2.rectangle(m,(x1,y1),(x2,y2),255,-1);return m
@@ -55,16 +56,16 @@ class EnginePoseEstimator:
                 raise ValueError('POSE_REFERENCE_BANK_INVALID')
         self.reference=cv2.imread(str(self.path.parent/self.cfg['reference_image']))
         if self.reference is None:raise FileNotFoundError(self.cfg['reference_image'])
-        r=self.cfg['registration'];self.orb=cv2.ORB_create(nfeatures=r['orb_nfeatures'],scaleFactor=1.2,nlevels=r.get('orb_nlevels',8),edgeThreshold=15,fastThreshold=r.get('orb_fast_threshold',10))
+        r=self.cfg['registration'];self.orb=cv2.ORB_create(nfeatures=r['orb_nfeatures'],scaleFactor=parameters.POSE_ORB_SCALE_FACTOR,nlevels=r.get('orb_nlevels',parameters.POSE_ORB_LEVELS),edgeThreshold=parameters.POSE_ORB_EDGE_THRESHOLD,fastThreshold=r.get('orb_fast_threshold',parameters.POSE_ORB_FAST_THRESHOLD))
         self.matcher=cv2.BFMatcher(cv2.NORM_HAMMING)
         gray=self._gray(self.reference)
-        self.ref_kp,self.ref_des=self.orb.detectAndCompute(gray,_expanded_mask(self.reference.shape,self.cfg['canonical_product_box_xyxy'],.08))
+        self.ref_kp,self.ref_des=self.orb.detectAndCompute(gray,_expanded_mask(self.reference.shape,self.cfg['canonical_product_box_xyxy'],parameters.POSE_REFERENCE_MARGIN))
         if self.ref_des is None:raise RuntimeError('Reference ORB descriptors missing.')
 
     def _gray(self,image):
         gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
         if self.cfg['registration'].get('contrast_normalization')=='clahe':
-            gray=cv2.createCLAHE(2.,(8,8)).apply(gray)
+            gray=cv2.createCLAHE(parameters.POSE_CLAHE_CLIP,parameters.POSE_CLAHE_GRID).apply(gray)
         return gray
 
     def estimate(self, frame: np.ndarray, product_box: list[float]) -> PoseResult:
@@ -101,7 +102,7 @@ class EnginePoseEstimator:
         if len(product_box)!=4 or not np.isfinite(product_box).all() or product_box[2]<=product_box[0] or product_box[3]<=product_box[1]:
             return rejected('POSE_INVALID_PRODUCT_BOX')
         r=self.cfg['registration'];gray=self._gray(frame)
-        roi_mask=_expanded_mask(frame.shape,product_box,.18)
+        roi_mask=_expanded_mask(frame.shape,product_box,parameters.POSE_SEARCH_MARGIN)
         rx,ry,rw,rh=cv2.boundingRect(roi_mask)
         diagnostics['roi']=[rx,ry,rx+rw,ry+rh]
         kp,des=self.orb.detectAndCompute(gray,roi_mask)

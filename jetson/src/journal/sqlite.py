@@ -1,4 +1,5 @@
 """Single service-owned journal. Durable assets precede immutable result/event/outbox commit."""
+from src import config as parameters
 
 import json
 import shutil
@@ -71,7 +72,7 @@ PRAGMA user_version=1;
 
 
 class Journal:
-    def __init__(self, data_root, producer_id="edge", min_free_bytes=100_000_000, outbox_limit=10000):
+    def __init__(self, data_root, producer_id="edge", min_free_bytes=parameters.JOURNAL_MIN_FREE_BYTES, outbox_limit=parameters.JOURNAL_OUTBOX_LIMIT):
         self.root = Path(data_root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
@@ -281,7 +282,7 @@ class Journal:
             item[key.removesuffix("_json")] = json.loads(raw) if raw else None
         return item
 
-    def history(self, product=None, decision=None, since=None, until=None, limit=50):
+    def history(self, product=None, decision=None, since=None, until=None, limit=parameters.JOURNAL_RECENT_LIMIT):
         clauses, args = [], []
         if product:
             clauses.append("json_extract(package_json,'$.manifest.product_id')=?"); args.append(product)

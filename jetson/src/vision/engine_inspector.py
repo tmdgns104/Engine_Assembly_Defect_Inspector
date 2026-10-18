@@ -1,4 +1,5 @@
 """Worker-owned envelope detector and pose; shares the existing camera frame and lifecycle."""
+from src import config as parameters
 import hashlib
 import json
 from pathlib import Path
@@ -109,8 +110,8 @@ class EngineInspector:
         be mistaken for the full-canvas normalized decision value.
         """
         evidence=dict(policy='TARGET_CAMERA_COORDINATES_V1',coordinate_space='camera_pixels',
-            difference_threshold=25,motion_fraction_threshold=.008,stable_seconds=.6,
-            comparison_size=[320,180],reason='TARGET_UNCERTAIN')
+            difference_threshold=parameters.MOTION_PIXEL_DIFFERENCE,motion_fraction_threshold=parameters.MOTION_FRACTION_LIMIT,stable_seconds=parameters.MOTION_STABLE_SECONDS,
+            comparison_size=[parameters.MOTION_COMPARISON_WIDTH,parameters.MOTION_COMPARISON_HEIGHT],reason='TARGET_UNCERTAIN')
         try:
             if not visible or product is None or freshness is None:raise ValueError('TARGET_UNCERTAIN')
             source=float(freshness['estimated_source_monotonic'])
@@ -118,11 +119,11 @@ class EngineInspector:
             if not epoch or not np.isfinite(source):raise ValueError('SOURCE_TIME_UNCERTAIN')
             height,width=image.shape[:2]
             box=box_of(product)
-            mask=np.zeros((180,320),dtype=bool)
+            mask=np.zeros((parameters.MOTION_COMPARISON_HEIGHT,parameters.MOTION_COMPARISON_WIDTH),dtype=bool)
             x1,y1,x2,y2=box
             if not (0<=x1<x2<=width and 0<=y1<y2<=height):raise ValueError('TARGET_REGION_OUTSIDE_FRAME')
-            left,top=int(np.floor(x1*320/width)),int(np.floor(y1*180/height))
-            right,bottom=int(np.ceil(x2*320/width)),int(np.ceil(y2*180/height))
+            left,top=int(np.floor(x1*parameters.MOTION_COMPARISON_WIDTH/width)),int(np.floor(y1*parameters.MOTION_COMPARISON_HEIGHT/height))
+            right,bottom=int(np.ceil(x2*parameters.MOTION_COMPARISON_WIDTH/width)),int(np.ceil(y2*parameters.MOTION_COMPARISON_HEIGHT/height))
             mask[top:bottom,left:right]=True
             if not mask.any():raise ValueError('EMPTY_TARGET_REGION')
         except (KeyError,ValueError,TypeError,IndexError) as error:
@@ -131,7 +132,7 @@ class EngineInspector:
             self.motion_evidence=evidence
             return 1.,False
 
-        gray=cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2GRAY),(320,180))
+        gray=cv2.resize(cv2.cvtColor(image,cv2.COLOR_BGR2GRAY),(parameters.MOTION_COMPARISON_WIDTH,parameters.MOTION_COMPARISON_HEIGHT))
         identity=(context,epoch,height,width)
         previous=getattr(self,'_motion_sample',None)
         changed=1.
@@ -141,7 +142,7 @@ class EngineInspector:
             elapsed=source-previous['source']
             if elapsed>0:
                 union=mask|previous['mask']
-                different=cv2.absdiff(gray,self.previous_gray)>25
+                different=cv2.absdiff(gray,self.previous_gray)>parameters.MOTION_PIXEL_DIFFERENCE
                 count=int(np.count_nonzero(different & union))
                 area=int(np.count_nonzero(union))
                 changed=count/gray.size
@@ -151,14 +152,14 @@ class EngineInspector:
                     full_frame_motion_fraction=float(different.mean()),source_interval_s=elapsed,
                     bbox_center_delta_px=[(box[0]+box[2]-old[0]-old[2])/2,
                                           (box[1]+box[3]-old[1]-old[3])/2],
-                    reason='TARGET_CHANGED' if changed>.008 else 'WAIT_STABILITY_INTERVAL')
+                    reason='TARGET_CHANGED' if changed>parameters.MOTION_FRACTION_LIMIT else 'WAIT_STABILITY_INTERVAL')
             else:
                 evidence['reason']='SOURCE_TIME_DISCONTINUITY'
-        if changed>.008:self.stable_since=None
+        if changed>parameters.MOTION_FRACTION_LIMIT:self.stable_since=None
         elif self.stable_since is None:self.stable_since=source
         self.previous_gray=gray
         self._motion_sample=dict(identity=identity,source=source,mask=mask,box=box)
-        stable=self.stable_since is not None and source-self.stable_since>=.6
+        stable=self.stable_since is not None and source-self.stable_since>=parameters.MOTION_STABLE_SECONDS
         evidence['stable_since_source']=self.stable_since
         if stable:evidence['reason']='TARGET_STABLE'
         self.motion_evidence=evidence

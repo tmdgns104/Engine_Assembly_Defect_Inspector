@@ -3,6 +3,7 @@
 Only the Worker calls capture/observe/stop. One bounded writer thread owns files.
 Missing raw/tensor payloads remain explicit records, never fabricated samples.
 """
+from src import config as parameters
 import copy
 import hashlib
 import json
@@ -17,21 +18,21 @@ import time
 import cv2
 import numpy as np
 
-RESERVE_BYTES = 512 * 1024 * 1024
+RESERVE_BYTES = parameters.DIAGNOSTIC_RESERVE_BYTES
 # Default requests remain 512 MiB. An explicit 60-second HCAM clip may use
 # up to 1 GiB only after the same Worker-memory and disk reserves pass.
-MAX_ENCODED_BUFFER_BYTES = 1024 ** 3
+MAX_ENCODED_BUFFER_BYTES = parameters.DIAGNOSTIC_MAX_BUFFER_BYTES
 # B03 measured a 1.38 s writer stall at 14 frames/s, with two payloads/frame.
 # 64 pending items absorb that burst; at 1280x720 BGR this bounds pending raw
 # payloads to 177 MB even if every item is an image (plus two in-flight items).
-DEFAULT_QUEUE_ITEMS = 64
+DEFAULT_QUEUE_ITEMS = parameters.DIAGNOSTIC_QUEUE_ITEMS
 
 
 def validate_request(body):
     clip_id = body.get('clip_id', '')
     if not isinstance(clip_id, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,63}', clip_id):
         raise ValueError('CLIP_ID_MUST_BE_1_TO_64_ASCII_LETTERS_DIGITS_DASH_UNDERSCORE')
-    defaults = {'duration_seconds': 10, 'max_frames': 600, 'max_bytes': 512 * 1024 * 1024}
+    defaults = {'duration_seconds': parameters.DIAGNOSTIC_DEFAULT_SECONDS, 'max_frames': parameters.DIAGNOSTIC_DEFAULT_FRAMES, 'max_bytes': parameters.DIAGNOSTIC_DEFAULT_BYTES}
     limits = {'duration_seconds': (1, 60), 'max_frames': (1, 1200), 'max_bytes': (1, 1024 ** 3)}
     result = {'clip_id': clip_id}
     for key, default in defaults.items():

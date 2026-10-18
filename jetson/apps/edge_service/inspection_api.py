@@ -1,4 +1,5 @@
 """Loopback FastAPI surface. The browser never owns a camera or runs inference."""
+from src import config as parameters
 import argparse
 import json
 import secrets
@@ -21,6 +22,8 @@ def create_app(service, catalog, own_service=False):
         if own_service:
             await asyncio.to_thread(service.close)
     app = FastAPI(title='Common Inspection', docs_url=None, redoc_url=None, lifespan=lifespan)
+    from apps.edge_service.history_api import install_history
+    install_history(app, service)
     token = secrets.token_urlsafe(32)
 
     @app.middleware('http')
@@ -119,7 +122,7 @@ def create_app(service, catalog, own_service=False):
         return service.journal.detail(row[0])
 
     @app.get('/api/v1/inspections')
-    def history(product:str=None,decision:str=None,since:str=None,until:str=None,limit:int=30):
+    def history(product:str=None,decision:str=None,since:str=None,until:str=None,limit:int=parameters.HISTORY_DEFAULT_LIMIT):
         return service.journal.history(product,decision,since,until,limit)
 
     @app.get('/api/v1/inspections/{identifier}')

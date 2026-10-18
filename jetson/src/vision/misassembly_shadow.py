@@ -15,6 +15,7 @@ import threading
 import time
 
 from src.vision.assembly_evidence import load_assembly_frames
+from src.vision.frame_matches import same_frame_matches
 
 
 def sha(data):
@@ -36,7 +37,17 @@ def load_frozen_models(root):
     from static_models import StaticShadowModels
     from pose_stability import FrameContext
     from live_observation import ThreeFrameObservation
-    return StaticShadowModels(), FrameContext, ThreeFrameObservation
+    models = StaticShadowModels()
+    frozen_process = models.process
+
+    def process_frame(image, context=None):
+        # Preserve frozen model/preprocessing code and every pose gate. Its
+        # recovery and seed routes can repeat identical descriptor searches.
+        with same_frame_matches(models.processor.base.estimator):
+            return frozen_process(image, context)
+
+    models.process = process_frame
+    return models, FrameContext, ThreeFrameObservation
 
 
 class ShadowObserver:

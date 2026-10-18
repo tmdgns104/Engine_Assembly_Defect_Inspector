@@ -16,3 +16,7 @@
 # These two audited HTML snapshots already use CRLF; CR is part of their preserved EOL.
 /runs/jetson_p0_003/runtime/apps/edge_service/inspection.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 /runs/jetson_p0_004b/candidate_runtime/apps/edge_service/inspection.html whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Frozen 자산은 Python/JSON도 바이트 해시가 계약이다. 줄바꿈 변환 금지.
+/assets/misassembly_runtime/** -text
+/database/snapshots/20261018_post7/journal.sqlite3 -text

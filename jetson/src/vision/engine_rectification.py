@@ -1,4 +1,5 @@
 """Normalize only a verified engine pose; return all detections to raw camera coordinates."""
+from src import config as parameters
 import cv2
 import numpy as np
 from src.decision.engine_dynamic import box_of
@@ -6,13 +7,13 @@ from src.vision.engine_pose import transform_polygon
 
 def rectify_image(image,matrix,config):
     width,height=config['frame_width'],config['frame_height']
-    canonical=cv2.warpAffine(image,cv2.invertAffineTransform(np.asarray(matrix)),(width,height),borderValue=(40,40,40))
+    canonical=cv2.warpAffine(image,cv2.invertAffineTransform(np.asarray(matrix)),(width,height),borderValue=(parameters.RECTIFICATION_BACKGROUND,)*3)
     x1,y1,x2,y2=config['canonical_product_box_xyxy']
-    dx,dy=(x2-x1)*.18,(y2-y1)*.18
+    dx,dy=(x2-x1)*parameters.RECTIFICATION_MARGIN,(y2-y1)*parameters.RECTIFICATION_MARGIN
     mask=np.zeros((height,width),np.uint8)
     cv2.rectangle(mask,(max(0,int(x1-dx)),max(0,int(y1-dy))),
                   (min(width,int(x2+dx)),min(height,int(y2+dy))),255,-1)
-    canonical[mask==0]=40
+    canonical[mask==0]=parameters.RECTIFICATION_BACKGROUND
     return canonical
 
 def restore_detections(detections,matrix):

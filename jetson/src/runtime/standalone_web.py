@@ -173,6 +173,10 @@ def line_view(status, identity):
 
 
 def configure_line_web(app, runtime, identity):
+    from src.runtime.stopped_capture import MUTATIONS, local_capture_request, install_capture_routes
+    install_capture_routes(app, runtime)
+    from src.runtime.run_capture import MUTATIONS as RUN_MUTATIONS, install_run_capture_routes
+    install_run_capture_routes(app, runtime)
     from src.runtime.supervised_web import PreparationAccess, PREPARE_PATH
     access = None
     recovery_access = None
@@ -195,6 +199,12 @@ def configure_line_web(app, runtime, identity):
     @app.middleware('http')
     async def read_only_field_ui(request, call_next):
         if request.method not in ('GET', 'HEAD'):
+            if request.method == 'POST' and request.url.path in MUTATIONS | RUN_MUTATIONS:
+                if not local_capture_request(request):
+                    return JSONResponse({'error':'LOCAL_SAME_ORIGIN_DIAGNOSTIC_REQUIRED'}, status_code=403)
+                # The existing inspection session-token middleware still runs.
+                # Physical STOP and idle checks run inside the endpoint lock.
+                return await call_next(request)
             if request.method == 'POST' and request.url.path == '/api/v1/maintenance/product-context/close' and recovery_access:
                 if not field_reset_allowed(request,recovery_access):
                     return JSONResponse({'error':'LOCAL_SAME_ORIGIN_RESET_REQUIRED'},status_code=403)

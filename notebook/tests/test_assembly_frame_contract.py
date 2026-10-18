@@ -147,6 +147,8 @@ class AssemblyContractTests(unittest.TestCase):
             assembled = inspector(root, model).process_one(row)
             self.assertEqual(assembled['state'], 'COMPLETE')
             self.assertEqual(assembled['source'], 'ASSEMBLY_INSPECTOR')
+            self.assertFalse(assembled['used_by_final_policy'])
+            self.assertTrue(assembled['evidence_required_before_publication'])
             for observation, context in zip(row['result']['observations'], model.contexts):
                 fresh = observation['freshness']
                 self.assertEqual((context.frame_id, context.source_pts_ns, context.camera_epoch),
@@ -162,7 +164,10 @@ class AssemblyContractTests(unittest.TestCase):
             self.assertEqual(row, original)  # Never patch the historical Journal.
             self.assertTrue(all(f['evidence_validation']['integrity_source'] ==
                 'VERIFIED_RAW_PNG_REPLAY' for f in value['frames']))
-            self.assertEqual(combine_decisions('PASS', value)['decision'], 'FAIL')
+            final = combine_decisions('PASS', value)
+            self.assertEqual(final['decision'], 'PASS')
+            self.assertEqual(final['assembly_inspector'], 'FAIL')
+            self.assertFalse(final['assembly_affects_final'])
 
     def test_corrupted_png_or_pixel_hash_never_reaches_models(self):
         for corruption in ('file', 'pixels'):
@@ -247,7 +252,7 @@ class AssemblyContractTests(unittest.TestCase):
         from unittest.mock import Mock
         from notebook.tests.test_opener_guards import DurableIdentityGuards
         for model_state, decision, plc_value in (
-                ('PASS_CANDIDATE', 'PASS', 0), ('FAIL_CANDIDATE', 'FAIL', 1),
+                ('PASS_CANDIDATE', 'PASS', 0), ('FAIL_CANDIDATE', 'PASS', 0),
                 ('REVIEW', 'PASS', 0), ('ERROR', 'PASS', 0)):
             with self.subTest(model_state=model_state):
                 fixture = DurableIdentityGuards()

@@ -3,6 +3,7 @@
 This module has no camera or PLC access. The camera Worker alone supplies frames.
 Capacity failures invalidate evidence instead of slowing acquisition to hide drops.
 """
+from src import config as parameters
 import hashlib
 import json
 from pathlib import Path
@@ -50,10 +51,10 @@ class FieldRawCapture(DiagnosticCapture):
             raise ValueError('WORKER_IDENTITY_REQUIRED')
         if len(json.dumps(context,allow_nan=False).encode('utf-8'))>128*1024:
             raise ValueError('CAPTURE_CONTEXT_LIMIT')
-        if options.get('queue_size',8) != 8 or options.get('encoder_workers',2) != 2:
+        if options.get('queue_size',parameters.FIELD_RAW_QUEUE_SIZE) != parameters.FIELD_RAW_QUEUE_SIZE or options.get('encoder_workers',parameters.FIELD_RAW_ENCODER_WORKERS) != parameters.FIELD_RAW_ENCODER_WORKERS:
             raise ValueError('FIXED_FIELD_CAPTURE_QUEUE_REQUIRED')
         with self.lifecycle:
-            super().start(folder,request,context,queue_size=8,encoder_workers=2,
+            super().start(folder,request,context,queue_size=parameters.FIELD_RAW_QUEUE_SIZE,encoder_workers=parameters.FIELD_RAW_ENCODER_WORKERS,
                           **{k:v for k,v in options.items() if k not in ('queue_size','encoder_workers')})
             self.watcher=threading.Thread(target=self._watch,name='field-capture-deadline',daemon=True)
             self.watcher.start()

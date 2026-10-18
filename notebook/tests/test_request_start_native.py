@@ -98,10 +98,17 @@ class RequestStartNativeTests(unittest.TestCase):
     def test_admitted_request_waits_for_current_frame_without_duplicate_dispatch(self):
         self._exercise_native(frame_wait=True)
 
-    def _exercise_native(self, *, stop_during_admit=False, delay_matrix=False, frame_wait=False):
+    def test_observation_timeout_ERROR_then_PASS_FAIL_on_one_START(self):
+        self._exercise_native(observation_timeout=True)
+
+    def _exercise_native(self, *, stop_during_admit=False, delay_matrix=False, frame_wait=False,
+                         observation_timeout=False):
         import cv2
         import numpy as np
+        from src.vision.inspection_worker import put_latest
         service, journal = make_service(self)
+        if observation_timeout:
+            service.station['fresh_frame']['inspection_window_ms'] = 3000
         renewals = []
         # AF_UNIX sockaddr_un has a small path limit. Deployment verification
         # may set TMPDIR to a deeply nested release path, so do not inherit it.
@@ -146,6 +153,29 @@ class RequestStartNativeTests(unittest.TestCase):
                 qualification_misses = 0
                 frame_wait_receipts = []
 
+                original_completion = service.storage.request_completed.get_nowait
+
+                def completed_receipt():
+                    nonlocal sequence, frame_wait_injected, qualification_misses
+                    saved = original_completion()
+                    pending = runtime.request_start.pending
+                    if ((frame_wait or observation_timeout) and not frame_wait_injected
+                            and cycle_number == (1 if observation_timeout else 3)
+                            and pending and pending['kind'] == 'admit'):
+                        # Inject after an actual durable receipt is retrieved,
+                        # not a racy queue.empty() check before writer completion.
+                        # Use the same observation consumer as the real Runtime.
+                        frame_wait_injected = True
+                        qualification_misses = 10000 if observation_timeout else 3
+                        sequence += 1
+                        now = time.monotonic()
+                        observation = packet(sequence, now-.002, count=0)
+                        observation['processed_monotonic'] = now
+                        runtime._packet(observation)
+                    return saved
+
+                service.storage.request_completed.get_nowait = completed_receipt
+
                 def step():
                     nonlocal sequence, frame_wait_injected, qualification_misses
                     now = time.monotonic()
@@ -153,21 +183,15 @@ class RequestStartNativeTests(unittest.TestCase):
                     service.preview_received = now
                     service.preview = dict(generation='g', freshness={'camera_epoch': 'e'})
                     sequence += 1
-                    pending = runtime.request_start.pending
-                    if (frame_wait and cycle_number == 3 and not frame_wait_injected
-                            and pending and pending['kind'] == 'admit'
-                            and not service.storage.request_completed.empty()):
-                        # The real writer has committed. Only the next few
-                        # preview observations miss the product; owners and the
-                        # PLC request stay unchanged. Do not inject health.
-                        frame_wait_injected = True
-                        qualification_misses = 3
                     observation = packet(sequence, now - .002,
                         count=0 if qualification_misses else int(feed))
                     if qualification_misses:
                         qualification_misses -= 1
                     observation['processed_monotonic'] = now
-                    service.products.put_nowait(observation)
+                    # Match the real camera's bounded latest-preview channel.
+                    # Persistence may temporarily defer consumption; a preview
+                    # overflow replaces its oldest item instead of raising.
+                    put_latest(service.products, observation)
                     with runtime.lock, service.lock:
                         service._storage_completions()
                         if runtime._poll_completion_audit(time.monotonic()):
@@ -324,13 +348,35 @@ class RequestStartNativeTests(unittest.TestCase):
                         self.assertEqual(runtime.aborted_inspection['request_token'], request_token)
                         self.assertEqual(tuple(snapshot[key] for key in
                             ('result_count', 'done_count', 'completed_count')), (0, 0, 0))
-                    decisions = ('PASS', 'REVIEW', 'FAIL') * 4 if delay_matrix else ('PASS', 'FAIL', 'PASS')
+                    decisions = (('ERROR', 'PASS', 'FAIL') if observation_timeout else
+                        ('PASS', 'REVIEW', 'FAIL') * 4 if delay_matrix else ('PASS', 'FAIL', 'PASS'))
                     cycles = () if stop_during_admit else enumerate(decisions, 1)
                     for cycle_number, decision in cycles:
                         wait(lambda s: s['phase'] == 'IDLE' and runtime.request_start.ready(s))
                         feed = True
                         process.stdin.write('R')
                         process.stdin.flush()
+                        if observation_timeout and cycle_number == 1:
+                            snapshot = wait(lambda s: s['completed_count'] == cycle_number,
+                                            timeout=6)
+                            self.assertTrue(service.commands.empty())
+                            rows = journal.db.execute('SELECT inspection_id,state FROM inspections').fetchall()
+                            self.assertEqual(len(rows), 1)
+                            row = journal.detail(rows[0]['inspection_id'])
+                            self.assertEqual(row['state'], 'COMPLETE')
+                            self.assertEqual(row['result']['decision'], 'ERROR')
+                            self.assertEqual(row['result']['reason_code'],
+                                             'ADMISSION_OBSERVATION_DEADLINE_EXCEEDED')
+                            self.assertEqual(row['result']['observations'], [])
+                            self.assertEqual(row['result']['assets'], [])
+                            self.assertEqual(tuple(snapshot[key] for key in
+                                ('result_count', 'done_count', 'completed_count')), (1, 1, 1))
+                            self.assertEqual(runtime.history[0]['inspection_id'], row['inspection_id'])
+                            self.assertEqual(runtime.history[0]['decision'], 'ERROR')
+                            qualification_misses = 0
+                            wait(lambda s: s['phase'] == 'IDLE' and runtime.request_start.ready(s)
+                                 and not runtime.request_start.pending and not runtime.audit_pending)
+                            continue
                         wait(lambda s: not service.commands.empty())
                         command = service.commands.get_nowait()
                         identifier = command['inspection_id']

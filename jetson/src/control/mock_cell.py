@@ -1,9 +1,10 @@
 """Virtual single-cycle controller. No motor, physical PLC or automatic product restart."""
+from src import config as parameters
 import time
 
 
 class MockCell:
-    def __init__(self,port,clock=time.monotonic,timeout=15):
+    def __init__(self,port,clock=time.monotonic,timeout=parameters.MOCK_CYCLE_TIMEOUT_SECONDS):
         self.port,self.clock,self.timeout=port,clock,timeout
         self.state='RECOVERY';self.start_high=False;self.job=None;self.result=None
         self.deadline=None;self.consumed=False;self.result_ack=False;self.disposition=None

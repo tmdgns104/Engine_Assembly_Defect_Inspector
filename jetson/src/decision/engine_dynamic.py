@@ -1,4 +1,5 @@
 """Pure engine-relative assignment and conservative three-frame decision policy."""
+from src import config as parameters
 import math
 import cv2
 import numpy as np
@@ -102,7 +103,7 @@ def inspect_frame(frame,detections,estimator,*,pose=None):
             ratio=max(0.,min(1.,float(overlap)/area))
             inside=cv2.pointPolygonTest(poly.astype(np.float32),center,False)>=0
             comparisons.append(dict(slot=slot,center_inside=inside,overlap=ratio))
-            if inside and ratio>=policy.get('slot_overlap',.4):candidates.append((slot,ratio))
+            if inside and ratio>=policy.get('slot_overlap',parameters.ENGINE_SLOT_OVERLAP):candidates.append((slot,ratio))
         if len(candidates)==1 and d['confidence']>=policy['part_confidence']:
             slot,overlap=candidates[0]
             assignments[slot].append({'detection_index':index,'overlap':overlap})
@@ -116,7 +117,7 @@ def inspect_frame(frame,detections,estimator,*,pose=None):
             if not affected:affected=[s for s in SLOTS if estimator.cfg['slot_expected_class'][s]==d['class_name']]
             ambiguous_slots.update(affected)
         diagnostics.append(dict(detection_index=index,class_name=d['class_name'],confidence=d['confidence'],
-            confidence_threshold=policy['part_confidence'],overlap_threshold=policy.get('slot_overlap',.4),
+            confidence_threshold=policy['part_confidence'],overlap_threshold=policy.get('slot_overlap',parameters.ENGINE_SLOT_OVERLAP),
             coordinate_space='camera',geometry='restored_polygon' if 'detection_polygon' in d else 'legacy_aabb',
             center_in_product_bbox=inside_product,product_overlap=max(0.,min(1.,float(product_intersection)/area)),
             position_detail='INSIDE_PRODUCT_BBOX' if inside_product else 'OUTSIDE_PRODUCT_BBOX',

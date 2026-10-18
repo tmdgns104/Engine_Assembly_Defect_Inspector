@@ -102,6 +102,8 @@ def main():
     args = parser.parse_args()
     config = settings(args.config.resolve())
     profile = line_profile(config['line_profile'])
+    from src.configuration import profile_settings, station_settings, snapshot, validate_package_settings
+    profile = profile_settings(profile)
     contract = plc_contract(config)
     expected_mode = 'EXISTING_PLC_INSPECTION' if contract in ('LEGACY_THREE_BOOL', 'OPENER_CYCLIC') else 'NO_PUSHER_AUTO_INSPECTION'
     if profile['mode'] != expected_mode:
@@ -113,6 +115,10 @@ def main():
     from src.vision.misassembly_shadow import verify_assets
     from src.vision.integrated_decision import POLICY
     station, identity = check_files(config['package'], config['station'], plc_bench=True)
+    from src.recipe.package import load_package
+    validate_package_settings(load_package(config['package']))
+    station = station_settings(station)
+    identity['configuration'] = snapshot()
     assets = ROOT.parent/'assets/misassembly_runtime'
     manifest = verify_assets(assets)
     identity.update(plc_contract=contract, mode=profile['mode'],

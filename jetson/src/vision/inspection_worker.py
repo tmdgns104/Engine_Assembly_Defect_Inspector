@@ -2,6 +2,7 @@
 
 Optional bounded diagnostic raw files are separate from inspection/Journal data.
 """
+from src import config as parameters
 
 import queue
 import threading
@@ -87,7 +88,7 @@ def encode_evidence(frame, observations, recipe, calibration, *, result=None):
     return images
 
 
-def worker_main(package_root, station, generation, commands, results, previews, stopping, cancellation, heartbeat, products=None, production_tracking=None):
+def worker_main(package_root, station, generation, commands, results, previews, stopping, cancellation, heartbeat, products=None, production_tracking=None, *, run_capture_signals=None):
     from src.camera.gstreamer_camera import GStreamerCamera
     from src.vision.detector_factory import create_detector
     import cv2
@@ -103,18 +104,18 @@ def worker_main(package_root, station, generation, commands, results, previews, 
     last_preview = 0
     def preview_frame(frame, metadata, observation=None):
         nonlocal last_preview
-        if time.monotonic()-last_preview < .1:
+        if time.monotonic()-last_preview < parameters.PREVIEW_INTERVAL_SECONDS:
             return
         preview_image=frame.image
         if observation and observation.get('engine_dynamic'):
             from src.vision.engine_inspector import draw_engine_overlay
             preview_image=draw_engine_overlay(frame.image,observation)
-        ok, jpeg = cv2.imencode('.jpg',preview_image,[cv2.IMWRITE_JPEG_QUALITY,75])
+        ok, jpeg = cv2.imencode('.jpg',preview_image,[cv2.IMWRITE_JPEG_QUALITY,parameters.PREVIEW_JPEG_QUALITY])
         if not ok:
             raise RuntimeError('PREVIEW_ENCODING_FAILED')
         jpeg_no_slots=jpeg
         if observation and observation.get('engine_dynamic'):
-            ok,jpeg_no_slots=cv2.imencode('.jpg',draw_engine_overlay(frame.image,observation,show_slots=False),[cv2.IMWRITE_JPEG_QUALITY,75])
+            ok,jpeg_no_slots=cv2.imencode('.jpg',draw_engine_overlay(frame.image,observation,show_slots=False),[cv2.IMWRITE_JPEG_QUALITY,parameters.PREVIEW_JPEG_QUALITY])
             if not ok:raise RuntimeError('PREVIEW_ENCODING_FAILED')
         put_latest(previews,{'jpeg':jpeg.tobytes(),'jpeg_no_slots':jpeg_no_slots.tobytes(),'generation':generation,'freshness':metadata,
             'scene':observation.get('engine_dynamic') if observation else None,
@@ -124,7 +125,7 @@ def worker_main(package_root, station, generation, commands, results, previews, 
 
     def detect_frame(frame, freshness, *, inspection=False):
         if engine:
-            engine.detector.capture_diagnostics = diagnostic.recording
+            engine.detector.capture_diagnostics = diagnostic.recording and getattr(diagnostic,'requires_tensor',True)
         before = hashlib.sha256(frame.image.tobytes()).hexdigest()
         integrity = measured_integrity(frame.image, freshness.get('integrity'))
         freshness = dict(freshness, integrity=integrity)
@@ -181,19 +182,24 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 put_latest(products,packet)
             if diagnostic.recording:
                 from src.observation.engine_envelope import envelope_provider
+                from src.vision.run_capture import part_inference_provenance
                 products_for_record = [d for d in detected['detections'] if d['class_name']=='product_envelope']
                 gate = engine.estimator.cfg['decision_policy']['product_confidence']
                 diagnostic.observe(frame.frame_id, dict(frame_id=frame.frame_id,
                     processed_monotonic=time.monotonic(), inspection=inspection,
-                    detector_frame_id=getattr(engine.detector,'diagnostic_frame_id',None),
+                    detector_frame_id=(getattr(engine.detector,'diagnostic_frame_id',None)
+                        if getattr(diagnostic,'requires_tensor',True) else None),
                     inference_ms=detected['inference_ms'],
                     mode='PRODUCTION_TRACKING' if production_tracking is not None and production_tracking.is_set() and not inspection else 'FULL_INSPECTION_PATH',
                     generation=generation, package_sha256=package.manifest_hash,
-                    input_pixel_sha256=before, detections=products_for_record,
+                    input_pixel_sha256=before,
+                    detections=(products_for_record if getattr(diagnostic,'requires_tensor',True) else detected['detections']),
+                    **part_inference_provenance(detected),
                     provider=envelope_provider(products_for_record,frame.width,frame.height,gate).to_dict(),
                     product_confidence_threshold=gate, engine=detected['engine_dynamic'],
                     production_packet_emitted=packet is not None),
-                    getattr(engine.detector,'diagnostic_output',None))
+                    (getattr(engine.detector,'diagnostic_output',None)
+                        if getattr(diagnostic,'requires_tensor',True) else None))
             preview_frame(frame,freshness,detected)
         return detected,packet
 
@@ -203,10 +209,12 @@ def worker_main(package_root, station, generation, commands, results, previews, 
         diagnostic.capture(value.frame_id, value.image, dict(camera.frame_info))
         return value
     def pulse():
-        while not stopping.wait(.5):
+        while not stopping.wait(parameters.WORKER_HEARTBEAT_INTERVAL_SECONDS):
             heartbeat.value = time.monotonic()
     threading.Thread(target=pulse, daemon=True).start()
     try:
+        from src.configuration import snapshot
+        configuration = snapshot()
         package = load_package(package_root)
         if profile:
             from src.runtime.auto_profile import validate_profile
@@ -236,13 +244,14 @@ def worker_main(package_root, station, generation, commands, results, previews, 
             camera = ContinuousFrames(camera,stopping,preview_frame)
         first = camera.capture()
         backend = detector.runtime_metadata()
+        backend['configuration_sha256'] = configuration['sha256']
         if engine:backend['envelope']=engine.detector.runtime_metadata()
         backend.update(hostname=socket.gethostname(), camera_pipeline=camera.pipeline_text,
                        load_self_test_ms=(time.monotonic()-start)*1000)
         # READY must not expose the parent's stale pre-spawn heartbeat. The pulse
         # thread's first update can occur after the service consumes this message.
         heartbeat.value = time.monotonic()
-        results.put({"type": "ready", "generation": generation, "backend": backend}, timeout=2)
+        results.put({"type": "ready", "generation": generation, "backend": backend}, timeout=parameters.WORKER_RESULT_QUEUE_TIMEOUT_SECONDS)
         while not stopping.is_set():
             frame = capture_frame()
             if engine:
@@ -258,29 +267,40 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 job = commands.get_nowait()
             except queue.Empty:
                 continue
-            if job.get('type') in ('diagnostic_capture','field_raw_capture'):
+            if job.get('type') in ('diagnostic_capture','field_raw_capture','run_capture'):
                 try:
                     if job['action'] == 'stop':
                         diagnostic.stop()
                     else:
-                        if diagnostic.thread and not diagnostic.wait(0):
+                        if diagnostic.phase in ('ARMED','RECORDING','WAIT_SAFE_FLUSH','SAVING') or (diagnostic.thread and not diagnostic.wait(0)):
                             raise ValueError('CAPTURE_ALREADY_ACTIVE_OR_SAVING')
-                        if job['type']=='field_raw_capture':
+                        if job['type']=='run_capture':
+                            from src.vision.run_capture import RunCapture
+                            if run_capture_signals is None:
+                                raise ValueError('RUN_CAPTURE_SIGNALS_UNAVAILABLE')
+                            if job.get('context',{}).get('camera_epoch') != camera.frame_info['camera_epoch']:
+                                raise ValueError('RUN_CAPTURE_CAMERA_EPOCH_CHANGED')
+                            diagnostic = RunCapture()
+                        elif job['type']=='field_raw_capture':
                             from src.vision.field_raw_capture import FieldRawCapture
                             diagnostic = FieldRawCapture()
                         else:
                             diagnostic = DiagnosticCapture()
                         diagnostic.start(job['folder'], job['request'], dict(
                             worker_generation=generation, camera_owner_pid=__import__('os').getpid(),
+                            camera_epoch=camera.frame_info['camera_epoch'],
+                            raw_shape=list(frame.image.shape),
+                            run_capture_approved=job.get('context',{}).get('run_capture_approved',False),
                             camera_pipeline=camera.pipeline_text, package_sha256=package.manifest_hash,
                             capture=package.capture, backend=backend, station=station,
                             conditions=job.get('context',{}),
                             field_raw_approval=job.get('context',{}).get('field_raw_approval',False),
-                            publication_disabled=job.get('context',{}).get('publication_disabled',False)))
-                    results.put({'type':'diagnostic_capture','generation':generation,'status':diagnostic.status()}, timeout=2)
+                            publication_disabled=job.get('context',{}).get('publication_disabled',False)),
+                            **({'signals':run_capture_signals} if job['type']=='run_capture' else {}))
+                    results.put({'type':'diagnostic_capture','generation':generation,'status':diagnostic.status()}, timeout=parameters.WORKER_RESULT_QUEUE_TIMEOUT_SECONDS)
                 except Exception as error:
                     results.put({'type':'diagnostic_capture','generation':generation,
-                                 'status':dict(state='ERROR',error=str(error),clip_id=job.get('request',{}).get('clip_id'))},timeout=2)
+                                 'status':dict(state='ERROR',error=str(error),clip_id=job.get('request',{}).get('clip_id'))},timeout=parameters.WORKER_RESULT_QUEUE_TIMEOUT_SECONDS)
                 continue
             observations, frames = [], []
             motion_modes=('CONVEYOR_MOTION_DEV','CONVEYOR_MOTION_PLC_BENCH')
@@ -479,7 +499,7 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                 if selector:
                     check_processing()
                     result['fresh_frame'] = fresh_evidence(observations)
-                results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],"result":result,"images":images},timeout=2)
+                results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],"result":result,"images":images},timeout=parameters.WORKER_RESULT_QUEUE_TIMEOUT_SECONDS)
             except Exception as error:
                 if stationary_capture and stationary_candidates:
                     # Preserve bounded, real originals on failure. They are
@@ -514,14 +534,14 @@ def worker_main(package_root, station, generation, commands, results, previews, 
                     else:
                         failure['reason_code'] = error.reason if isinstance(error, FreshFrameError) else str(error)
                 results.put({"type":"result","generation":generation,"inspection_id":job["inspection_id"],
-                             "result":failure,"images":failure_images},timeout=2)
+                             "result":failure,"images":failure_images},timeout=parameters.WORKER_RESULT_QUEUE_TIMEOUT_SECONDS)
                 if isinstance(error, FatalDetectorError):
                     # Same FIFO: Service durably handles ERROR before entering recovery.
                     raise
     except Exception as error:
         primary_error = error
         try:
-            results.put({"type":"fault","generation":generation,"error":f"{type(error).__name__}: {error}"},timeout=2)
+            results.put({"type":"fault","generation":generation,"error":f"{type(error).__name__}: {error}"},timeout=parameters.WORKER_RESULT_QUEUE_TIMEOUT_SECONDS)
         except queue.Full:
             pass
     finally:
@@ -543,6 +563,6 @@ def worker_main(package_root, station, generation, commands, results, previews, 
         if cleanup_errors and primary_error is None:
             try:
                 results.put({"type":"fault", "generation":generation,
-                             "error":"WORKER_CLEANUP_FAILED: " + "; ".join(cleanup_errors)}, timeout=2)
+                             "error":"WORKER_CLEANUP_FAILED: " + "; ".join(cleanup_errors)}, timeout=parameters.WORKER_RESULT_QUEUE_TIMEOUT_SECONDS)
             except queue.Full:
                 pass

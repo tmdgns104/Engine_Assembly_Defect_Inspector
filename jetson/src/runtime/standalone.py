@@ -1705,6 +1705,12 @@ class StandaloneRuntime(ProductionRuntime):
             with self.lock, self.service.lock:
                 self.service.health_diagnostics.record('SERVICE_LOCK_RUNTIME', retain=time.monotonic()-waited>.02, wait_ms=(time.monotonic()-waited)*1000)
                 if self.closing: continue
+                maintenance_capture = getattr(self, 'maintenance_capture', None)
+                if maintenance_capture:
+                    maintenance_capture.poll(time.monotonic())
+                run_capture = getattr(self, 'run_capture', None)
+                if run_capture:
+                    run_capture.poll(time.monotonic())
                 if self._poll_completion_audit(time.monotonic()):
                     continue
                 if self.request_start:
@@ -1803,6 +1809,8 @@ class StandaloneRuntime(ProductionRuntime):
         result['request_start_pending'] = bool(request_start and (
             request_start.pending or request_start.events or not request_start.deferred_events.empty()))
         result['ipc_health'] = self.gateway.diagnostics.snapshot() if hasattr(self.gateway, 'diagnostics') else None
+        if getattr(self, 'run_capture', None):
+            result['run_capture'] = self.run_capture.status()
         result['integrated_counts'] = dict.fromkeys(('PASS','FAIL','REVIEW','ERROR'), 0)
         result['integrated_counts'].update(dict(totals))
         if getattr(self.gateway, 'contract_version', None) == 'LEGACY_THREE_BOOL':

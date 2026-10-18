@@ -90,3 +90,10 @@ journal/*.db
 /jetson/.venv/
 /jetson/.install-staging/
 /notebook/misassembly-settings.json
+
+# 2026-10-18 사용자 승인: 검증한 운영 SQLite 사본과 현재 frozen AI 자산만 공유.
+!/database/snapshots/20261018_post7/journal.sqlite3
+!/assets/misassembly_runtime/runs/
+!/assets/misassembly_runtime/**/*.pt
+# 브라우저 검증 임시 파일은 소스 공개 대상이 아니다.
+/.playwright-cli/

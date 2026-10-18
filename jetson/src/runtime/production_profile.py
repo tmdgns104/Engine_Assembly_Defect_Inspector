@@ -1,4 +1,5 @@
 """Station maintenance geometry, independent of frozen model/pose thresholds."""
+from src import config as parameters
 import hashlib
 import json
 import math
@@ -22,9 +23,9 @@ def validate_zone(value):
 
 
 def tracker_config(zone, *, wait_area_clear=False, plc_request_tracking=False):
-    return SingleActiveTrackerConfig(validate_zone(zone),'x',1,.22,.22,12,1,
-        max_center_speed_norm_s=.2,max_unobserved_seconds=3,
-        free_motion=True,zone_hysteresis=.025,zone_entry_frames=3,wait_area_clear=wait_area_clear,
+    return SingleActiveTrackerConfig(validate_zone(zone),'x',1,parameters.TRACK_MAX_CENTER_STEP,parameters.TRACK_MAX_REVERSE_STEP,parameters.TRACK_MAX_MISSED_FRAMES,parameters.TRACK_CLEAR_FRAMES,
+        max_center_speed_norm_s=parameters.TRACK_MAX_CENTER_SPEED,max_unobserved_seconds=parameters.TRACK_MAX_UNOBSERVED_SECONDS,
+        free_motion=True,zone_hysteresis=parameters.TRACK_ZONE_HYSTERESIS,zone_entry_frames=parameters.TRACK_ZONE_ENTRY_FRAMES,wait_area_clear=wait_area_clear,
         plc_request_tracking=plc_request_tracking)
 
 

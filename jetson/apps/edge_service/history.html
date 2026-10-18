@@ -1,0 +1,19 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>검사 기록 · 조회 및 내보내기</title><link rel="stylesheet" href="/operator.css"><script defer src="/history.js"></script></head>
+<body><main>
+<header><div><p class="overline">INSPECTION RECORDS</p><h1>검사 기록</h1><p class="muted">Jetson에 저장된 검사·오류와 실제 처리 결과를 확인합니다.</p></div><nav aria-label="주 메뉴"><a href="/line">현장 화면</a><a href="/history" aria-current="page">검사 기록</a><a href="/">수동·진단</a></nav></header>
+<section class="panel" aria-label="검색 조건"><form id="search-form"><div class="filters">
+<label>검사 ID · 요청 번호 · 오류 코드<input id="q" name="q" maxlength="128" placeholder="예: DEADLINE_EXCEEDED"></label>
+<label>제품 ID<input id="product" name="product" maxlength="100" placeholder="전체 제품"></label>
+<label>원판정<select id="decision" name="decision"><option value="">전체</option><option value="PASS">PASS · 정상</option><option value="FAIL">FAIL · 결품</option><option value="REVIEW">REVIEW · 불확실</option><option value="ERROR">ERROR · 검사 오류</option></select></label>
+<label>기록 상태<select id="state" name="state"><option value="">전체</option><option value="COMPLETE">저장 완료</option><option value="ACCEPTED">처리 중</option><option value="CANCELLED">취소</option></select></label>
+<label>시작 시각 <span class="timezone"></span><input id="since" type="datetime-local" name="since"></label>
+<label>종료 시각 미만 <span class="timezone"></span><input id="until" type="datetime-local" name="until"></label>
+<label>기록 종류<select id="kind" name="kind"><option value="">전체</option><option value="inspect">제품 검사</option><option value="calibrate">기준 진단</option></select></label>
+<label>페이지당 표시<select id="limit" name="limit"><option>30</option><option>50</option><option>100</option></select></label>
+</div><div class="actions"><button class="primary" type="submit" id="search">조회</button><button type="button" id="clear-filters">조건 지우기</button><button type="button" id="export">검색 결과 CSV 저장</button><span class="muted">원판정과 PLC 처분은 별도로 표시합니다.</span></div></form></section>
+<p id="message" role="status" aria-live="polite">저장 기록을 읽는 중입니다.</p><p id="error" class="error" role="alert" hidden></p>
+<div id="summary" class="summary" aria-label="검색 결과 건수"></div>
+<section class="panel"><div class="table-scroll"><table><thead><tr><th>검사 시각</th><th>제품 / 기록 종류</th><th>원판정</th><th>최종판정 / PLC 값</th><th>이유</th><th>기록</th></tr></thead><tbody id="rows"></tbody></table></div><p id="empty" class="empty" hidden>검색 조건에 맞는 기록이 없습니다.</p><div class="paging"><button id="previous">이전</button><span id="page-label"></span><button id="next">다음</button></div></section>
+<section id="detail" class="panel" hidden tabindex="-1"><div class="record-toolbar"><h2>검사 상세</h2><button id="close-detail">닫기</button></div><p id="detail-id" class="muted"></p><dl id="detail-meta" class="detail-meta"></dl><h3>저장 이미지</h3><p class="muted">실시간 미리보기가 아닌 해당 검사에 저장된 사진입니다.</p><div id="images" class="detail-grid"></div><details><summary>원검사·최종처분 JSON</summary><pre id="json"></pre></details></section>
+<details><summary>조회 기준과 실행 설정</summary><p>카운트는 검색 조건에 맞는 원판정 기준입니다. ERROR·REVIEW는 결품 검출 성공으로 합산하지 않습니다. 제품 검사와 기준 진단을 구분합니다. CSV는 최대 <span id="export-limit">설정 조회 중</span>건이며 기록을 삭제하거나 수정하지 않습니다.</p><p id="settings-state">실행 설정 확인 중</p><pre id="settings"></pre></details>
+</main></body></html>

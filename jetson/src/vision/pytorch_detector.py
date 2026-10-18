@@ -1,4 +1,5 @@
 """GPU-only BENCH adapter; deployment must pass the original model hash."""
+from src import config as parameters
 
 import hashlib
 import copy
@@ -9,7 +10,7 @@ from src.contracts import BoundingBox, Detection, DetectionResult, DetectorError
 
 
 class PyTorchDetector:
-    def __init__(self, model_path, expected_sha256, class_names, confidence=0.25, nms_iou=0.7, preprocessing=None, *, latency_enabled=False):
+    def __init__(self, model_path, expected_sha256, class_names, confidence=parameters.DETECTOR_CONFIDENCE, nms_iou=parameters.PYTORCH_DEFAULT_NMS_IOU, preprocessing=None, *, latency_enabled=False):
         import torch
         from ultralytics import YOLO
 

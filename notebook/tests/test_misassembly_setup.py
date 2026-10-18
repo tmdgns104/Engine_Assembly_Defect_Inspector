@@ -30,6 +30,8 @@ class SetupTests(unittest.TestCase):
             root = tk.Tk()
             app = MisassemblyApp(root, home=folder, camera=SampleCamera(), auto_start=False)
             app.operator.set('pause-setup-test')
+            (Path(folder)/'data').mkdir()
+            app.start_new_dataset(Path(folder)/'data')
             app.connect()
             app.accept_setup()
             create = CollectionSession.create
@@ -69,6 +71,8 @@ class SetupTests(unittest.TestCase):
             root = tk.Tk()
             app = MisassemblyApp(root, home=folder, camera=SampleCamera(), auto_start=False)
             app.operator.set('slow-setup-test')
+            (Path(folder)/'data').mkdir()
+            app.start_new_dataset(Path(folder)/'data')
             app.connect()
             app.accept_setup()
             create = CollectionSession.create
@@ -118,6 +122,8 @@ class SetupTests(unittest.TestCase):
                 self.assertFalse(app.setting_roi)
                 self.assertTrue(app.setup_panel_open)
                 app.operator.set('setup-test')
+                (Path(folder)/'data').mkdir()
+                app.start_new_dataset(Path(folder)/'data')
                 app.accept_setup()
                 self.assertTrue(app.setup_complete)
                 self.assertFalse(app.setup_panel_open)

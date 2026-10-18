@@ -12,7 +12,7 @@ from src.journal.sqlite import ConflictError
 from src.runtime.initial_approval import count_unfinished_inspections
 
 
-KINDS = frozenset(('events', 'admit', 'readiness', 'cancel', 'no_input'))
+KINDS = frozenset(('events', 'admit', 'readiness', 'cancel', 'no_input', 'finish_no_input'))
 
 
 class RequestJobError(RuntimeError):
@@ -204,12 +204,43 @@ def _no_input(journal, job, timings):
     return result
 
 
+def _finish_no_input(journal, job, timings):
+    """Finish the original admission, never allocate or revive a request."""
+    identifier = job['inspection_id']
+    final = deepcopy(job['no_input_result'])
+    request = job['request']
+    binding = request.get('runtime_binding', {})
+    if (not isinstance(identifier, str) or not identifier
+            or final.get('decision') != 'ERROR' or final.get('observations') != []
+            or final.get('assets') != [] or final.get('execution', {}).get('source') != 'not_executed'
+            or final.get('production_identity') != dict(binding, inspection_id=identifier)):
+        raise ValueError('INVALID_UNEXECUTED_COMPLETION')
+    result = dict(inspection_id=identifier, request=deepcopy(request))
+    started = time.monotonic()
+    try:
+        row = journal.detail(identifier)
+        if (not row or row['request'] != request or row['package'] != job['package']
+                or row['state'] != 'ACCEPTED'):
+            raise ValueError('UNEXECUTED_COMPLETION_OWNER_CHANGED_OR_TERMINAL')
+        result['finished_result'] = journal.finish(identifier, final, ())
+        result['row'] = journal.detail(identifier)
+        if (result['finished_result'] is None or not result['row']
+                or result['row']['state'] != 'COMPLETE'
+                or not result['finished_result'].get('storage_success')):
+            raise ValueError('UNEXECUTED_COMPLETION_NOT_DURABLE')
+    except Exception as error:
+        raise RequestJobError(error, result) from error
+    finally:
+        timings['unexecuted_finish_including_commit_ms'] = (time.monotonic() - started) * 1000
+    return result
+
+
 def execute_request_job(journal, job, timings):
     validate_job(job)
     started = time.monotonic()
     try:
         return {'events': _events, 'admit': _admit,
                 'readiness': _readiness, 'cancel': _cancel,
-                'no_input': _no_input}[job['kind']](journal, job, timings)
+                'no_input': _no_input, 'finish_no_input': _finish_no_input}[job['kind']](journal, job, timings)
     finally:
         timings[job['kind'] + '_total_ms'] = (time.monotonic() - started) * 1000
