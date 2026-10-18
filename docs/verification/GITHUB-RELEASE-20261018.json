@@ -1,0 +1,68 @@
+{
+  "verified_at": "2026-10-18T09:46:37.618288+00:00",
+  "repository": "https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector",
+  "visibility": "public",
+  "default_branch": "master",
+  "content_commit": "3852cdcd58d3cbc2266717e6197a6fc1ee366245",
+  "remote_commit": "3852cdcd58d3cbc2266717e6197a6fc1ee366245",
+  "tree": "1c6a9c58bafaafd2d9044f950965c2e1a39b4235",
+  "required_files": {
+    "jetson/products/ENGINE_Z3005_5/dynamic_parts_005/model.plan": {
+      "git_blob": "da07d5304d5c91f12609a6d6cea324b5370af563",
+      "bytes": 10092164
+    },
+    "jetson/products/ENGINE_Z3005_5/envelope_v007_fp16/model.plan": {
+      "git_blob": "24121472a95b73f141a2b5a9fe86c3d6c830fe54",
+      "bytes": 13556092
+    },
+    "database/snapshots/20261018_post7/journal.sqlite3": {
+      "git_blob": "44db17b53ad777c56709f27b6153fe3fb9cff8a8",
+      "bytes": 94973952
+    },
+    "database/snapshots/20261018_post7/snapshot.json": {
+      "git_blob": "67068e403e08e9a5d080595cf35de9fc3c831acf",
+      "bytes": 560
+    },
+    "jetson/src/config.py": {
+      "git_blob": "8816087d41b8bbf52302e747fb073ae1eaab65c6",
+      "bytes": 10834
+    },
+    "jetson/apps/edge_service/history_api.py": {
+      "git_blob": "ee135d981018df37136908377f22804cd6cad565",
+      "bytes": 2797
+    },
+    "jetson/apps/edge_service/line_details.js": {
+      "git_blob": "b4752f9556f728281a8bce18824db373b0f7bc4d",
+      "bytes": 20150
+    },
+    "assets/misassembly_runtime/runs/engine_dynamic_pose_002/training/envelope_v004/weights/best.pt": {
+      "git_blob": "d6fc050fb20b45f44ed8777979629985a1781dd5",
+      "bytes": 5449562
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/exhaust/weights/best.pt": {
+      "git_blob": "5feb805be089af98589dcb4c6ebbc7663f29cf66",
+      "bytes": 3192524
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_left/weights/best.pt": {
+      "git_blob": "d6c8dfa6a3807e322db7154f367ed1d2b743ffbf",
+      "bytes": 3191628
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_right/weights/best.pt": {
+      "git_blob": "54d01bc728c67243a81adfa5382ad337895a674f",
+      "bytes": 3191692
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/symbol/weights/best.pt": {
+      "git_blob": "648966cacec3a661a677ba7e11c63de153f90d61",
+      "bytes": 3188876
+    }
+  },
+  "ai_model_files": 7,
+  "sqlite_inspections": 368,
+  "sqlite_integrity": "ok",
+  "sqlite_sha256": "19d18d00ed41a54aec793ed298cbca8b0a42e11880def25642ec06d8bb308c8d",
+  "deployed_release": "engine-integrated-32c484ac6aeb07f1",
+  "unrelated_worktree_changes_preserved": true,
+  "remaining_worktree_entries": 145,
+  "field_cycles": 7,
+  "additional_user_manual_test": "Not included in this acceptance or snapshot"
+}
