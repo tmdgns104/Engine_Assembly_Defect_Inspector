@@ -1,0 +1,47 @@
+{
+  "purpose": "Existing source publication, not training execution",
+  "files": [
+    {
+      "published": "notebook/training/engine_detection/parts/train_engine_parts.py",
+      "original_source": "D:\\OneDevice_Worktrees\\jetson-p0-004c0\\runs\\manual_tracking_dev\\engine_parts_CFA8507_v001\\train_engine_parts.py",
+      "sha256": "a7adb1a312a5bcee6fc5b4b750806841dbc88ffff7575ca038cc340b1ae595a4",
+      "bytes": 15616,
+      "logic_changed": false
+    },
+    {
+      "published": "notebook/training/engine_detection/envelope/prepare_data.py",
+      "original_source": "D:\\OneDevice_Team_project\\runs\\engine_dynamic_pose_002\\prepare_data.py",
+      "sha256": "3879f8fc6aa220039287674a9cfc072164b5024e81fb769635d27f2cfc9caa3b",
+      "bytes": 2153,
+      "logic_changed": false
+    },
+    {
+      "published": "notebook/training/engine_detection/envelope/build_envelope.py",
+      "original_source": "D:\\OneDevice_Team_project\\runs\\engine_dynamic_pose_002\\build_envelope.py",
+      "sha256": "76117e2a04fe9daa67c561106443fe458f7090b08325399ce17485d83af6ac65",
+      "bytes": 5204,
+      "logic_changed": false
+    },
+    {
+      "published": "notebook/training/engine_detection/envelope/finalize_envelope.py",
+      "original_source": "D:\\OneDevice_Team_project\\runs\\engine_dynamic_pose_002\\finalize_envelope.py",
+      "sha256": "abd215b022758392f18496d3e6e45721a111b6edc3380189fa50614e44e10a5b",
+      "bytes": 3009,
+      "logic_changed": false
+    },
+    {
+      "published": "notebook/training/engine_detection/envelope/train_envelope.py",
+      "original_source": "D:\\OneDevice_Team_project\\runs\\engine_dynamic_pose_002\\train_envelope.py",
+      "sha256": "303fd212ddc4fe578ce84695fa563ad0b533e8b916577ff106da8e4bc0f7fb3a",
+      "bytes": 2215,
+      "logic_changed": false
+    },
+    {
+      "published": "notebook/training/engine_detection/envelope/export_envelope.py",
+      "original_source": "D:\\OneDevice_Team_project\\runs\\engine_dynamic_pose_002\\export_envelope.py",
+      "sha256": "371ac897fd58bc23040345acef115dff30a5301427b7ce0d12672737312e8514",
+      "bytes": 1637,
+      "logic_changed": false
+    }
+  ]
+}

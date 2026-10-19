@@ -1,5 +1,7 @@
 # 통합 프로그램 소스와 운영 범위
 
+> 아래는 2026-10-14 첫 제품 단계의 구조 기록입니다. 현재 `engine-integrated-32c484ac6aeb07f1`은 PLC 반복 요청·미결합 최종판정·오조립 참고 정책이며 [최신 검증](../docs/verification/CONFIG-UI-HISTORY-20261018.json)을 따릅니다. 새 장치는 [통합 설치 안내](INSTALL_OPERATING_KO.md)를 사용하세요. 아래 첫 제품1회/필수 조립 정책을 새 운영 설정으로 재적용하지 않습니다.
+
 최신 개발 원본은 이 `jetson/` 디렉터리다. 이전 TASK 후보는 노트북의 근거·복구 자료이며 개발 원본이 아니다.
 운영 경로는 `/home/jetson/oned_device_bench/current`, 감독자는 `engine-inspector.service` 하나다.
 현장 설정과 모델은 `config/`, `assets/`, 검사 이력과 승인은 `data/`, 실행 환경은 `envs/`에 보존한다.

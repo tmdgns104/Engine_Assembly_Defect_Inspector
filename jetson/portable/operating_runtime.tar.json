@@ -1,0 +1,10 @@
+{
+  "archive": "operating_runtime.tar.gz",
+  "sha256": "36759e4171c061ddad1459b62cb02cc24ba85ddadedccdf80f3bd3c797187f51",
+  "bytes": 70712513,
+  "source_release": "engine-integrated-32c484ac6aeb07f1",
+  "source_commit": "e53ba0b7e2129a15c898b4857a0880158733ebc1",
+  "files": 203,
+  "model_count": 7,
+  "new_device_execution": "NOT_VERIFIED"
+}

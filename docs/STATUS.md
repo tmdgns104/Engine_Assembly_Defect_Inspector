@@ -1,3 +1,7 @@
+PORTABLE OPERATING BUNDLE + NOTEBOOK TRAINING SOURCE / GIT EXPORT VERIFIED
+2026-10-19 사용자 요청으로 현재 운영32c4를 다른 Orin Nano에 복사할 jetson/portable 묶음(203파일·모델7개·승인된 SQLite368건)과 신규 설치/환경/GPU 점검·한국어 문서 준비. source200파일 해시 보존. 기존 장치의 승인·원장은 새 장치에 운영 승인으로 복사하지 않으며, 기존 수동 UI의 새 기준/영역 확인 기록이 필요하다. notebook/에 실제 엔진 부품/전체 검출 및 참고 분류 학습 소스·출처·촬영→라벨→분리→학습 안내 추가. 설치·손상/덮어쓰기 거부·Windows/Linux 격리·Git export 의존성/원본SHA·관련 합성 시험 PASS. 실제 기본 브랜치 master 게시 대상 확정. 새 장치 GPU/카메라/PLC/재부팅은 UNVERIFIED이며 현재 Jetson 운영32c4 변경/재학습/추가 실물시험 없음. Task: JETSON-PORTABLE-OPERATING-001. Evidence: docs/verification/JETSON-PORTABLE-OPERATING-001.json.
+
+Previous checkpoint:
 CONFIG + UI + HISTORY ACCEPTED / MIXED7 VERIFIED / UI-ONLY UPDATE REBOOT VERIFIED
 2026-10-18 최신 운영 engine-integrated-32c484ac6aeb07f1. 설정 중앙화(기존 값 유지), /history 검색·상세·CSV, 부품 위치 원본 crop와 미결합 강조 UI 반영. 실물 시험은 사용자 종료로 실제7건: PASS4/FAIL3, REVIEW0/ERROR0, 원본21장·자산28SHA·저장/PLC완료7 확인. 계획10회 완료 아님. 최종 UI 두파일만 추가 변경; boot c45d184a-3707-4703-995a-8fa89ec76a8e, 서비스 자동시작·단일Worker 새3프레임·모델/PLC 준비·전체200파일·원장368건 보존 확인. 7회 후 UI 준비 중 USB 수신 장애는 사용자 재연결로 복구했으며, 마지막 UI 재부팅 뒤에는 추가 USB 조작/서비스 재시작 없이 준비됐다. 통합 응답10.183~14.324초 및 검출편차/오조립 참고 한계 유지. 추가 실물시험·학습·보정 없음. GitHub public/master 게시·원격 트리 검증 완료. 기능/모델/DB 커밋 3852cdcd58d3cbc2266717e6197a6fc1ee366245. 게시 영수증: docs/verification/GITHUB-RELEASE-20261018.json. Evidence: docs/verification/CONFIG-UI-HISTORY-20261018.json; runs/config_ui_history_20261018/ui_transition/.
 

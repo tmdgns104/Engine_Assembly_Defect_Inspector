@@ -1,0 +1,165 @@
+{
+  "task": "JETSON-PORTABLE-OPERATING-001",
+  "verified_at": "2026-10-19T00:46:55.237231+00:00",
+  "repository": "https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector",
+  "default_branch": "master",
+  "source_release": "engine-integrated-32c484ac6aeb07f1",
+  "source_commit": "e53ba0b7e2129a15c898b4857a0880158733ebc1",
+  "scope": "Portable publication and existing training source; no current-device change or new training",
+  "portable": {
+    "archive": "operating_runtime.tar.gz",
+    "sha256": "36759e4171c061ddad1459b62cb02cc24ba85ddadedccdf80f3bd3c797187f51",
+    "bytes": 70712513,
+    "source_release": "engine-integrated-32c484ac6aeb07f1",
+    "source_commit": "e53ba0b7e2129a15c898b4857a0880158733ebc1",
+    "files": 203,
+    "model_count": 7,
+    "new_device_execution": "NOT_VERIFIED"
+  },
+  "source_runtime_files_preserved": 200,
+  "database": {
+    "path": "history/journal.sqlite3 inside portable archive",
+    "original": "database/snapshots/20261018_post7/journal.sqlite3",
+    "inspections": 368,
+    "sha256": "19d18d00ed41a54aec793ed298cbca8b0a42e11880def25642ec06d8bb308c8d",
+    "integrity_check": "ok",
+    "active_database": false,
+    "original_photos_included": false
+  },
+  "tests": {
+    "windows_portable": {
+      "passed": 14,
+      "skipped": 1,
+      "skip": "Linux symlink/install only"
+    },
+    "linux_latest_focused": {
+      "passed": 6,
+      "seconds": 177.41,
+      "environment": "WSL Ubuntu22.04 x86_64 Python3.10"
+    },
+    "linux_isolated_install": {
+      "environment": "WSL Ubuntu22.04 x86_64 Python3.10",
+      "GPU": "NOT_RUN",
+      "camera": "NOT_RUN",
+      "PLC": "NOT_RUN",
+      "check_only_exit": 0,
+      "release": "engine-install-8fbd545a5a2f7945",
+      "source_release": "engine-integrated-32c484ac6aeb07f1",
+      "fresh_data_empty": true,
+      "independent_of_project_assets": true,
+      "systemd_unit_verify_exit": 0,
+      "systemd_unit_verify_output": "netplan-ovs-cleanup.service: Failed to open /run/systemd/system/netplan-ovs-cleanup.service: Permission denied\n/lib/systemd/system/snapd.service:23: Unknown key name 'RestartMode' in section 'Service', ignoring.\n",
+      "status": "PASS"
+    },
+    "training_publication": {
+      "passed": 6,
+      "inputs": "synthetic; no protected data"
+    },
+    "recovery": {
+      "passed": 4
+    },
+    "capture_startup": {
+      "passed": 5
+    },
+    "manual_reference_contract": {
+      "station_fingerprint_same_manual_and_standalone": true,
+      "reference_result": "REVIEW_WITH_CALIBRATION_CANDIDATE_NOT_PRODUCT_PASS",
+      "original_capture_zone_valid": true,
+      "status": "PASS"
+    },
+    "git_export": {
+      "checks": [
+        {
+          "name": "portable",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_portable.log"
+        },
+        {
+          "name": "training",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_training.log"
+        },
+        {
+          "name": "recovery",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_recovery.log"
+        },
+        {
+          "name": "capture_startup",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_capture_startup.log"
+        },
+        {
+          "name": "readiness_import",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_readiness_import.log"
+        },
+        {
+          "name": "prepare_via_project",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_prepare_via_project.log"
+        },
+        {
+          "name": "via_to_yolo",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_via_to_yolo.log"
+        },
+        {
+          "name": "build_grouped_dataset",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_build_grouped_dataset.log"
+        },
+        {
+          "name": "train_baseline",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_train_baseline.log"
+        },
+        {
+          "name": "evaluate_baseline",
+          "exit_code": 0,
+          "log": "runs/portable_20261019/fresh_evaluate_baseline.log"
+        }
+      ],
+      "source_hashes_after_git_export": "PASS",
+      "status": "PASS"
+    }
+  },
+  "export": {
+    "tree": "1b7fbddf145f8eec304cfebe9c3b89a3fbb371e3",
+    "staged_files": 54,
+    "export_files": 923,
+    "status": "EXPORTED",
+    "source_refresh": [
+      "notebook/training/capture_windows/misassembly_guidance.py"
+    ]
+  },
+  "publication_audit": {
+    "files": 54,
+    "findings": [],
+    "max_file_bytes": 70712513,
+    "training_sources_original_hashes_verified": 6,
+    "prior_history_audit": "docs/verification/GITHUB-RELEASE-20261018.json",
+    "status": "PASS"
+  },
+  "limitations": [
+    "New Jetson GPU/camera/PLC/reboot NOT_RUN",
+    "Frozen training scripts require original private input metadata and images; no new training performed",
+    "Data readiness APIs are published; additional capture UI integration is not part of this release",
+    "Historical inspection photos are not included",
+    "Existing USB recovery/localization/latency limits remain; no stability improvement claimed"
+  ],
+  "acceptance": "PASS_FOR_PUBLICATION; NEW_DEVICE_COMMISSIONING_UNVERIFIED",
+  "local_evidence_hashes": {
+    "runs/portable_20261019/fresh_build_grouped_dataset.log": "be08cb1f303d466172327d023d91b943972bfa910a0e56a85248051ce51fbfcb",
+    "runs/portable_20261019/fresh_capture_selftest.log": "071bc35ff22374c64792487cea9a7168137c06d0ed0b1e7689e36b56f4ade6d0",
+    "runs/portable_20261019/fresh_capture_startup.log": "1b3361b81154f7217305c5291602e928f7bd8b112987544f3f221f494e473c1f",
+    "runs/portable_20261019/fresh_evaluate_baseline.log": "e48a5be22a09c0d982b04237ef0e87df3b2727f178d7a6bd163edf893d79a6ff",
+    "runs/portable_20261019/fresh_portable.log": "181add7a6300ceb9e2f7f865d56c46aae73c3b1d45fa6074d3960f024f060058",
+    "runs/portable_20261019/fresh_prepare_via_project.log": "c338de4776e28dfd07b939aeb57e5f01db33d237d46b5573c019e311cad6913e",
+    "runs/portable_20261019/fresh_readiness_import.log": "5f53b1ccc5bfcaf07ecf88746536784b06af091b9d8728a2b007f1ae5f4bb404",
+    "runs/portable_20261019/fresh_recovery.log": "c79ea5a7f92dd88535a108d8cc3ad4c4e5603b7ece831a939a4978c997d420f3",
+    "runs/portable_20261019/fresh_training.log": "e2f10de4013b310641c8215a5bc061710621081ed80f4889de60490155b61df8",
+    "runs/portable_20261019/fresh_train_baseline.log": "d9489a90c1e49d58a7c4abb2a3d4340e1d72050d37640404d9a97859660f2e4d",
+    "runs/portable_20261019/fresh_via_to_yolo.log": "ff34fb900f70684c9f95ac2c8c66bee826701a9375b09226f525e4c5af316e2e"
+  }
+}

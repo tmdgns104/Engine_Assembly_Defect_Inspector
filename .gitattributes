@@ -20,3 +20,6 @@
 # Frozen 자산은 Python/JSON도 바이트 해시가 계약이다. 줄바꿈 변환 금지.
 /assets/misassembly_runtime/** -text
 /database/snapshots/20261018_post7/journal.sqlite3 -text
+/jetson/portable/*.tar.gz -text
+# 과거 학습 소스 이관 SHA를 유지한다(실행 논리 변경 없음).
+/notebook/training/engine_detection/**/*.py -text

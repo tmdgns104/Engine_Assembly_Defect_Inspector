@@ -8,6 +8,8 @@ Command wrappers for training, validation, evaluation, and export belong here.
 removed-object metadata remain in the provenance manifest, not detection classes.
 Run from the repository root using the existing Python environment:
 
+With the current `notebook/` source layout, first set `$env:PYTHONPATH = (Resolve-Path .\notebook).Path + ';' + (Resolve-Path .\jetson).Path` in PowerShell. Old `training/...` data/config paths below are historical placeholders; use the actual input paths. The end-to-end Korean guide is [../README_KO.md](../README_KO.md). Tests in the current layout live under `notebook/tests`; archived tests are not implied by old commands below.
+
 ```powershell
 .\.venv\Scripts\python.exe -B -X utf8 -m training.scripts.via_to_yolo --project <reviewed.json> --schema <label_schema.json> --provenance <provenance.json> --review-record <human_review.json> --original-root <collection-folder> --output <new-output-folder> --purpose train_candidate
 ```

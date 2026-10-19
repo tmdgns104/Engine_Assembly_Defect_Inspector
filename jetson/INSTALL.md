@@ -1,5 +1,7 @@
 # 새 Jetson Orin Nano에 설치
 
+> **현재 통합 운영본 설치는 [INSTALL_OPERATING_KO.md](INSTALL_OPERATING_KO.md)를 사용하세요.** 아래는 과거 CORE MOCK 설치 기록입니다. `setup.sh/install.py`만으로는 현재 PLC 통합 운영본이 설치되지 않습니다. 현재 전체 모델·코드·SQLite 보관본은 `portable/operating_runtime.tar.gz`에 포함됩니다.
+
 이 저장소에는 실제 운영 중인 부품/엔진 검출 TensorRT 모델과 필수 Pose 자산이 들어 있습니다. 모델을 따로 요청할 필요가 없습니다. 최초 설치 스크립트는 기존 설치와 데이터가 있으면 중단하고, 시스템 설정이나 PLC를 변경하지 않습니다.
 
 ## 1. 장치 환경

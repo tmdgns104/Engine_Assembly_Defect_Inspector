@@ -1,6 +1,10 @@
 # Jetson Orin Nano 실행 코드
 
-**현재 통합 프로그램은 [INTEGRATED_RUNTIME.md](INTEGRATED_RUNTIME.md)부터 읽으세요.** 이 폴더 하나가 개발 원본이며, TASK별 후보는 노트북의 보존 자료입니다. 기존 운영 장치에는 승인된 전체 Release를 배포합니다. 처음 설치하는 장치의 환경 준비는 [INSTALL.md](INSTALL.md), 모델 파일 점검은 `python install.py --check-only`를 참고하세요. 새 설치 점검과 현장 통신 승인은 별개입니다.
+**다른 Orin Nano에 복사할 때는 [INSTALL_OPERATING_KO.md](INSTALL_OPERATING_KO.md)부터 읽으세요.** `jetson/` 전체에 고정 운영본32c4의 코드·모델7개·SQLite 보관본이 포함됩니다. `python install_operating.py --verify`로 확인합니다. 신규 설치 점검과 새 장치의 실제 GPU·카메라·PLC 수용은 별개입니다. 개발 후보를 설치기에 자동 반영하지 않습니다.
+
+최신 실제 운영 상태는 [프로젝트 README](../README.md)와 [검증 기록](../docs/verification/CONFIG-UI-HISTORY-20261018.json)을 따릅니다. 아래 구조 설명에는 이전 단계의 첫 제품 승인/필수 조립 기록이 남아 있습니다. 현재는 PLC 반복 요청, 미결합 최종판정, 오조립 참고 정책입니다. 과거 Release/미적용 문구는 당시 기록이며 최신 상태가 아닙니다.
+
+## 이전 구조 설명
 
 노트북에서 편집·검증하고 전체 allowlist 묶음을 `/home/jetson/oned_device_bench/current`에 배포합니다. `engine-inspector.service` 하나가 Python Runtime·카메라 Worker·필수 조립 모듈·OpENer를 감독합니다. 현재 확인한 운영 Release는 `engine-integrated-d247e1e9579ab6e7`입니다. Git의 [TASK-019 저장/health 수정](../docs/PYTHON_NOT_READY_FIX_REPORT.md)은 ARM64 격리 검증을 마쳤지만 아직 운영에 적용하지 않았습니다. 저장 작업자는 원본과 최종판정의 durable commit을 담당하고, Runtime은 건강 상태와 같은 요청의 완료를 검증한 뒤에만 발행합니다. [이전 실제 한 제품 시험](../notebook/deployment/JOURNAL_COMPATIBILITY_VERIFICATION.md)은 ERROR를 PLC NG로 전달한 사례이며, 정상 판별과 연속 자동운전은 완료되지 않았습니다. `release.json`은 과거 배포 기준 기록이며 최신 개발 소스의 배포 완료 표식이 아닙니다.
 

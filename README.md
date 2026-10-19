@@ -1,5 +1,11 @@
 # On-Device AI 엔진 조립 검사
 
+## 다른 장치 설치와 학습 코드 — 2026-10-19
+
+다른 Orin Nano에는 **`jetson/` 폴더 전체**를 복사하고 [통합 설치 안내](jetson/INSTALL_OPERATING_KO.md)를 따릅니다. 검증된 운영본32c4 코드·모델7개·SQLite 보관본이 포함되며 OS/GPU 환경·카메라·PLC는 해당 장치에서 설정합니다. 신규 장치 설치 검증과 실제 장치 운전 검증은 구분합니다. 현재 운영 Jetson에는 변경을 적용하지 않았습니다.
+
+노트북의 수집·라벨링·데이터셋 구성·실제 엔진 학습 소스는 [학습 과정 안내](notebook/training/README_KO.md)에 연결했습니다. 소스 게시이며 재학습이나 전체 원본 데이터 공개가 아닙니다.
+
 ## 최신 작업 — 2026-10-18
 
 운영 설정을 [`jetson/src/config.py`](jetson/src/config.py)에서 한국어 설명과 함께 관리하고, 기존 값을 유지하도록 소비 코드를 연결했습니다. 기존 현장 화면 `/line`을 정리하고 SQLite 검색·상세·CSV 내보내기 화면 `/history`를 추가했습니다. [설정·기록 조회 안내](docs/CONFIGURATION_AND_HISTORY_KO.md)를 참고하세요.
@@ -20,7 +26,7 @@
 
 **Jetson Orin Nano가 USB 카메라 영상에서 엔진의 조립 상태를 검사하고, 노트북은 촬영·개발·운영 화면 접속을 맡는 프로젝트입니다.** 검사 결과는 `PASS / FAIL / REVIEW / ERROR`로 저장하며, 제품 추적과 PLC 요청을 연결합니다.
 
-**현재 사용하는 AI 모델 두 개와 Pose 기준 자산을 이 저장소에 포함합니다.** `git clone`과 GitHub의 **Code → Download ZIP** 모두 실제 모델 파일을 받습니다. Git LFS나 별도 모델 다운로드가 필요하지 않습니다.
+**현재 검출 모델2개와 참고 분류 관련 모델5개, 기준 자산을 포함합니다.** `git clone`과 GitHub의 **Code → Download ZIP** 모두 실제 파일을 받습니다. 현재 운영 모델은 Git LFS나 별도 다운로드가 필요하지 않습니다.
 
 ## 다운로드와 시작
 
@@ -34,9 +40,9 @@ ZIP을 사용하면 먼저 전체 압축을 풉니다. 두 장비에 같은 저�
 | 장비 | 들어 있는 파일 | 처음 할 일 |
 |---|---|---|
 | Windows 10/11 x64 노트북 | [`notebook/`](notebook/README.md): 촬영 앱, 데이터 준비·학습 도구, SSH 화면 연결, 패키징·시험 | Python 3.13 x64 설치 → `notebook/setup_capture.cmd` → `notebook/start_misassembly.cmd` |
-| Jetson **Orin Nano** | [`jetson/`](jetson/INSTALL.md): 실행 코드, 웹 HMI, 모델·Recipe·Pose, 최초 설치 도구 | 지원 JetPack 준비 → 카메라 by-id 확인 → `bash jetson/setup.sh /dev/v4l/by-id/실제카메라-video-index0` |
+| Jetson **Orin Nano** | [`jetson/`](jetson/INSTALL_OPERATING_KO.md): 통합 운영 코드·UI·모델7개·SQLite 보관본 | 지원 환경 준비 → `python3.10 jetson/install_operating.py --verify` → 문서의 신규 장치 설정·서비스 등록 |
 
-Jetson 설치는 `~/oned_device_bench/current`에 실행 코드를, `assets`에 모델을 배치합니다. 장치별 설정과 데이터는 별도 폴더에 보존합니다. 설치 후 안내되는 명령으로 서버를 시작하고 Jetson 브라우저에서 `http://127.0.0.1:18771/auto`를 엽니다. 노트북에서는 [SSH 접속 안내](notebook/README.md#jetson-운영-화면-접속)를 따릅니다.
+Jetson 설치는 `~/oned_device_bench/current`에 실행 코드를, `assets`에 모델을 배치합니다. 장치별 설정과 새 원장은 별도 보존합니다. 설치 안내대로 systemd를 시작하고 현장 화면 `http://127.0.0.1:18771/line`을 엽니다. 노트북에서는 SSH 터널을 사용합니다. 이전 CORE MOCK의 `setup.sh/manage_live.py`와 통합 서비스를 중복 실행하지 않습니다.
 
 지원 기준은 **Orin Nano / Linux aarch64 / Python 3.10 / TensorRT 10.3 / CUDA 12.6**입니다. 기존 Jetson Nano(Orin이 아닌 구형 모델)는 이 TensorRT 모델의 실행 대상이 아닙니다. [NVIDIA는 직렬화된 TensorRT 엔진의 플랫폼·GPU·버전 호환에 제약이 있음을 명시합니다.](https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/engine-compatibility.html) 모델은 포함되어 있지만 OS·드라이버·Python과 연결한 카메라의 설정은 장치에서 준비해야 합니다.
 

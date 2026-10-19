@@ -2,6 +2,8 @@
 
 노트북은 개발·촬영·데이터 준비·학습·패키징을 맡습니다. Jetson의 실제 검사 기능은 [`../jetson`](../jetson/README.md)에 있습니다.
 
+**촬영부터 실제 학습까지는 [training/README_KO.md](training/README_KO.md)를 보세요.** 수집·VIA 라벨·YOLO 분리와 실제 엔진 부품/전체 검출·참고 분류 학습 소스를 연결했습니다. 과거 고정 실험 입력과 재사용 가능한 도구를 구분합니다. 다른 Jetson 설치 묶음은 [통합 설치 안내](../jetson/INSTALL_OPERATING_KO.md)를 따릅니다.
+
 | 위치 | 역할 / 시작점 |
 |---|---|
 | [`start_capture.cmd`](start_capture.cmd) | 기존 Engine Dataset Wizard V1을 실행하는 Windows 바로가기 |
@@ -58,4 +60,4 @@ ssh -N -L 18771:127.0.0.1:18771 실제사용자@Jetson주소
 .venv\Scripts\python.exe -B -X utf8 -m unittest discover -s tests -p test_engine_portable.py -v
 ```
 
-Git에는 `data`, `logs`, 운영 DB, 배포 압축파일을 넣지 않습니다. 현재 승인된 공개 범위의 실행 모델만 `jetson/products`에 포함합니다. 장치별 SSH 키·접속 설정은 별도로 관리합니다.
+전체 촬영 `data`, 실행 로그, 활성 DB, 개인 SSH 키는 Git에 넣지 않습니다. 사용자 공개 승인 범위의 모델·기준 자산, 일관된 SQLite 보관본 및 고정 운영 설치 묶음은 각각 `jetson/products`·`assets`, `database/snapshots`, `jetson/portable`에 포함합니다. 보관본으로 운영 원장을 덮어쓰지 않습니다.
