@@ -11,7 +11,8 @@
 - 추가 사용자 요청: `notebook/`에 촬영→라벨→데이터셋→실제 학습 소스도 함께 게시한다. 기존 도구를 재사용하고, 누락된 엔진 검출 학습 원본6개는 SHA 그대로 이관한다. 부품 참고 분류·전처리 소스와 필요한 데이터 준비 모듈도 포함한다. 학습·새 라벨 승인·E04 접근 없음.
 - GitHub: 이번 설치·학습 소스만 선택 게시. 현재 운영 Release와 새 장치 설치 ID를 별도 기록한다. 실제 기본 브랜치는 master이며 main을 새로 만들지 않는다.
 
-상태: 구현·분리 Git 트리 검증 완료. 게시 대상 확정.
+상태: 구현·분리 Git 트리 검증·GitHub master 게시 완료.
+게시 커밋: `52d5e900f37d2da0953a4b1401e2f73ada55979c`. 원격 필수68파일 blob 대조, public/master·origin/master 추적 확인. 게시 영수증: `docs/verification/GITHUB-PORTABLE-20261019.json`.
 
 - 묶음: 203파일/7모델, 운영 source200 SHA 보존, 70,712,513bytes. 과거 SQLite integrity=ok/368건, 새 활성 DB와 분리.
 - Windows 설치15 중14 PASS/Linux전용1skip. Linux 최초 설치·확정 기준/영역·재설정 거부6 PASS. 별도 WSL 설치본 설정 점검 및 systemd unit 정적 검사 PASS. WSL은 x86_64이며 Jetson GPU 실적이 아니다.

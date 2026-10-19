@@ -1,4 +1,5 @@
-PORTABLE OPERATING BUNDLE + NOTEBOOK TRAINING SOURCE / GIT EXPORT VERIFIED
+PORTABLE OPERATING BUNDLE + NOTEBOOK TRAINING SOURCE / GIT EXPORT AND GITHUB MASTER VERIFIED
+게시 완료: `52d5e900f37d2da0953a4b1401e2f73ada55979c`, GitHub public/master·원격 필수68파일 해시 확인. `docs/verification/GITHUB-PORTABLE-20261019.json` 참조.
 2026-10-19 사용자 요청으로 현재 운영32c4를 다른 Orin Nano에 복사할 jetson/portable 묶음(203파일·모델7개·승인된 SQLite368건)과 신규 설치/환경/GPU 점검·한국어 문서 준비. source200파일 해시 보존. 기존 장치의 승인·원장은 새 장치에 운영 승인으로 복사하지 않으며, 기존 수동 UI의 새 기준/영역 확인 기록이 필요하다. notebook/에 실제 엔진 부품/전체 검출 및 참고 분류 학습 소스·출처·촬영→라벨→분리→학습 안내 추가. 설치·손상/덮어쓰기 거부·Windows/Linux 격리·Git export 의존성/원본SHA·관련 합성 시험 PASS. 실제 기본 브랜치 master 게시 대상 확정. 새 장치 GPU/카메라/PLC/재부팅은 UNVERIFIED이며 현재 Jetson 운영32c4 변경/재학습/추가 실물시험 없음. Task: JETSON-PORTABLE-OPERATING-001. Evidence: docs/verification/JETSON-PORTABLE-OPERATING-001.json.
 
 Previous checkpoint:

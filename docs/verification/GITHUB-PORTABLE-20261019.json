@@ -1,0 +1,285 @@
+{
+  "verified_at": "2026-10-19T00:48:35.363958+00:00",
+  "repository": "https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector",
+  "visibility": "public",
+  "default_branch": "master",
+  "content_commit": "52d5e900f37d2da0953a4b1401e2f73ada55979c",
+  "remote_commit": "52d5e900f37d2da0953a4b1401e2f73ada55979c",
+  "tree": "52d5e900f37d2da0953a4b1401e2f73ada55979c",
+  "tracking": "origin/master",
+  "required_files": {
+    ".gitattributes": {
+      "git_blob": "062fb267db1c906669f7dc113bc5f6309273acd6",
+      "bytes": 1600
+    },
+    "README.md": {
+      "git_blob": "ac0852c492daacf8f75fb4dc213c1181e17fcf64",
+      "bytes": 10788
+    },
+    "assets/misassembly_runtime/runs/engine_dynamic_pose_002/training/envelope_v004/weights/best.pt": {
+      "git_blob": "d6fc050fb20b45f44ed8777979629985a1781dd5",
+      "bytes": 5449562
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/exhaust/weights/best.pt": {
+      "git_blob": "5feb805be089af98589dcb4c6ebbc7663f29cf66",
+      "bytes": 3192524
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_left/weights/best.pt": {
+      "git_blob": "d6c8dfa6a3807e322db7154f367ed1d2b743ffbf",
+      "bytes": 3191628
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/pipe_right/weights/best.pt": {
+      "git_blob": "54d01bc728c67243a81adfa5382ad337895a674f",
+      "bytes": 3191692
+    },
+    "assets/misassembly_runtime/runs/engine_misassembly_baseline_training_001/v001_20261002T191929Z/full/symbol/weights/best.pt": {
+      "git_blob": "648966cacec3a661a677ba7e11c63de153f90d61",
+      "bytes": 3188876
+    },
+    "database/snapshots/20261018_post7/journal.sqlite3": {
+      "git_blob": "44db17b53ad777c56709f27b6153fe3fb9cff8a8",
+      "bytes": 94973952
+    },
+    "docs/STATUS.md": {
+      "git_blob": "fcbaa16d8a3830ff5f505552bcd94dcae56aff07",
+      "bytes": 234485
+    },
+    "docs/verification/JETSON-PORTABLE-OPERATING-001.json": {
+      "git_blob": "84be3a4e25f09ca74e3d55f68e4c4c19ac672a40",
+      "bytes": 6643
+    },
+    "jetson/INSTALL.md": {
+      "git_blob": "5dfcdc46f3e7fccd985d0e1acc1e27439ea20dfc",
+      "bytes": 6655
+    },
+    "jetson/INSTALL_OPERATING_KO.md": {
+      "git_blob": "be3bbf17a694f8c1d979e3a1eff313979296a2f8",
+      "bytes": 13577
+    },
+    "jetson/INTEGRATED_RUNTIME.md": {
+      "git_blob": "1f0408c24dd784f7db047eb8ce3face7bfcbc8af",
+      "bytes": 4376
+    },
+    "jetson/README.md": {
+      "git_blob": "93b302f5b550516bd9973061b09dedded74b8643",
+      "bytes": 7765
+    },
+    "jetson/check_operating.py": {
+      "git_blob": "caccb460d7fd14809bb0827ae6ebae1412944026",
+      "bytes": 3812
+    },
+    "jetson/install_operating.py": {
+      "git_blob": "9cdb965d1f0d7c1b20709bd768eca383377bd9c6",
+      "bytes": 20640
+    },
+    "jetson/portable/README.md": {
+      "git_blob": "6462aba80cec491c0e2d39881a17c67a44700b28",
+      "bytes": 1713
+    },
+    "jetson/portable/operating_runtime.tar.gz": {
+      "git_blob": "4a31a2360a662fda27ff258fa98ee49d39a283cb",
+      "bytes": 70712513
+    },
+    "jetson/portable/operating_runtime.tar.json": {
+      "git_blob": "97737b51ce364a7ee23c8325f2172b4a03b11395",
+      "bytes": 344
+    },
+    "jetson/products/ENGINE_Z3005_5/dynamic_parts_005/model.plan": {
+      "git_blob": "da07d5304d5c91f12609a6d6cea324b5370af563",
+      "bytes": 10092164
+    },
+    "jetson/products/ENGINE_Z3005_5/envelope_v007_fp16/model.plan": {
+      "git_blob": "24121472a95b73f141a2b5a9fe86c3d6c830fe54",
+      "bytes": 13556092
+    },
+    "notebook/README.md": {
+      "git_blob": "f68f43b71190e9854ec6ba835eb97ce169913222",
+      "bytes": 6262
+    },
+    "notebook/deployment/build_portable_release.py": {
+      "git_blob": "cc48657ee8867184ab6696f9c93c58c90f1910ce",
+      "bytes": 4843
+    },
+    "notebook/deployment/test_portable_operating.py": {
+      "git_blob": "c30e6cebcc77d50dfb18364038ae0bccaca1fad9",
+      "bytes": 12135
+    },
+    "notebook/tests/test_training_publication.py": {
+      "git_blob": "f7f4112aafd3ce124967018363882ee960a662fc",
+      "bytes": 4674
+    },
+    "notebook/training/README_KO.md": {
+      "git_blob": "57ef53eab355a082cbea22da0ac1a3606ca83617",
+      "bytes": 10273
+    },
+    "notebook/training/capture_windows/misassembly_dataset.py": {
+      "git_blob": "66a28f6863425d68ac457d9facd0d7372c795e87",
+      "bytes": 3879
+    },
+    "notebook/training/capture_windows/misassembly_guidance.py": {
+      "git_blob": "4b3549cf8795d6212d9113343242c3805fdf8084",
+      "bytes": 7946
+    },
+    "notebook/training/capture_windows/misassembly_readiness.py": {
+      "git_blob": "683131aae126ec98900dae52bd22f2ee3d7ca872",
+      "bytes": 24231
+    },
+    "notebook/training/engine_baseline/build_visual_report.py": {
+      "git_blob": "7414a6994e0515f3500340b76f127497aba38e25",
+      "bytes": 6535
+    },
+    "notebook/training/engine_baseline/classification.py": {
+      "git_blob": "4042c51d7db5477a408ac6c8d40ebc0047c9c0c0",
+      "bytes": 2150
+    },
+    "notebook/training/engine_baseline/evaluate_models.py": {
+      "git_blob": "d4e5419ac5ac3a613cd3976eec4e71ed8693d575",
+      "bytes": 9688
+    },
+    "notebook/training/engine_baseline/freeze_inputs.py": {
+      "git_blob": "a12eab66afcc0e44b1d4a64d41dc48db226fe9f8",
+      "bytes": 4692
+    },
+    "notebook/training/engine_baseline/prepare_alignment.py": {
+      "git_blob": "9ffccb5228720ea805291f4afdcdde5900e88884",
+      "bytes": 4978
+    },
+    "notebook/training/engine_baseline/preprocess.py": {
+      "git_blob": "1e2e82c53f53f57cc4085cf6b16ebd1d7586368c",
+      "bytes": 6548
+    },
+    "notebook/training/engine_baseline/process_dataset.py": {
+      "git_blob": "962130a9118cba4352b0a3104ba5451031a27563",
+      "bytes": 6746
+    },
+    "notebook/training/engine_baseline/serve_visual_report.py": {
+      "git_blob": "431d8fd1902f7117215da3a7b7154a9b32a5a26a",
+      "bytes": 1312
+    },
+    "notebook/training/engine_baseline/train_models.py": {
+      "git_blob": "fbef1b2e2f48f7c171620ffb831fee3ecb98d22c",
+      "bytes": 5887
+    },
+    "notebook/training/engine_baseline/verify_and_report.py": {
+      "git_blob": "e02ca0666a09861064f28e526bbf4396cc07896a",
+      "bytes": 28433
+    },
+    "notebook/training/engine_baseline/visual_report_template.html": {
+      "git_blob": "f1f9bf6490c0a1842d0bb840a8adcf45ffdbe932",
+      "bytes": 42328
+    },
+    "notebook/training/engine_detection/SOURCE_PROVENANCE.json": {
+      "git_blob": "7e7217a3f6694f76d7e85a7148f5dd53fed7bcd8",
+      "bytes": 2151
+    },
+    "notebook/training/engine_detection/envelope/build_envelope.py": {
+      "git_blob": "f2ed934d5ebae903a12972df3bf2448a96398dde",
+      "bytes": 5204
+    },
+    "notebook/training/engine_detection/envelope/export_envelope.py": {
+      "git_blob": "318b9ef118b1ea0f74e11c169aac919e6ceeb79e",
+      "bytes": 1637
+    },
+    "notebook/training/engine_detection/envelope/finalize_envelope.py": {
+      "git_blob": "96c5dd5285aef5f3aa4b094f20dfe0b19ea831f4",
+      "bytes": 3009
+    },
+    "notebook/training/engine_detection/envelope/prepare_data.py": {
+      "git_blob": "2e9abfc09d6180691432ecf3d22cd14e535b329d",
+      "bytes": 2153
+    },
+    "notebook/training/engine_detection/envelope/train_envelope.py": {
+      "git_blob": "a13ca66b87814c3f68c7bedbe0b83430cadc69d2",
+      "bytes": 2215
+    },
+    "notebook/training/engine_detection/parts/train_engine_parts.py": {
+      "git_blob": "1d4ee2ac82f1619df7a695488e0c75d17170bf11",
+      "bytes": 15616
+    },
+    "notebook/training/engine_recovery/build_report.py": {
+      "git_blob": "81af5acfa58aeabc30e7dee013b912020d3234e7",
+      "bytes": 7542
+    },
+    "notebook/training/engine_recovery/evaluate.py": {
+      "git_blob": "627f08eb8e9f1502a56f1af7a4b5bb501c4739be",
+      "bytes": 7312
+    },
+    "notebook/training/engine_recovery/findings.py": {
+      "git_blob": "58c6da014094dad2afd2d3ff5a6ac7b44aff0387",
+      "bytes": 5906
+    },
+    "notebook/training/engine_recovery/fit_train.py": {
+      "git_blob": "a210fc0b954b430e7db0a53b47e43849676209b0",
+      "bytes": 5724
+    },
+    "notebook/training/engine_recovery/investigate.py": {
+      "git_blob": "2b9e5192af7f78e7c0eccae6c5bd191839ce7419",
+      "bytes": 6184
+    },
+    "notebook/training/engine_recovery/latency.py": {
+      "git_blob": "d67fceb4ec94d58611ada166c1bd0444389f204a",
+      "bytes": 2547
+    },
+    "notebook/training/engine_recovery/package_review.py": {
+      "git_blob": "3a899f2d399e31261efb5fcd3ed7a4dbfa9cfcf2",
+      "bytes": 7855
+    },
+    "notebook/training/engine_recovery/recovery.py": {
+      "git_blob": "c30ae5598aae8a470a2403df36c575a32ed1bc31",
+      "bytes": 5254
+    },
+    "notebook/training/engine_recovery/recovery_report.js": {
+      "git_blob": "ff30c5e9a2220b0267a9e9be80bcb7eb90ae6a49",
+      "bytes": 7919
+    },
+    "notebook/training/engine_recovery/recovery_section.html": {
+      "git_blob": "55ec33cc68fd7e53db12453da9001b8f8c383aad",
+      "bytes": 7185
+    },
+    "notebook/training/engine_recovery/replay_frozen.py": {
+      "git_blob": "6201b959157d1bb74ccfd4eb1851c97679e73243",
+      "bytes": 1273
+    },
+    "notebook/training/engine_recovery/run_preprocessing.py": {
+      "git_blob": "5991f1093d58401582d7dd903c5512d46635f176",
+      "bytes": 6437
+    },
+    "notebook/training/engine_recovery/serve_report.py": {
+      "git_blob": "7bbdd9ea3df0e257e4422eecdd800f9ed9a48cb6",
+      "bytes": 1282
+    },
+    "notebook/training/engine_recovery/test_recovery.py": {
+      "git_blob": "65fd3ec7872e02be192cdf436ffec89407b8d11d",
+      "bytes": 1422
+    },
+    "notebook/training/engine_recovery/verify_artifacts.py": {
+      "git_blob": "5bc3b810c2e427d6f25bb1b0f1d0b915d266470b",
+      "bytes": 11281
+    },
+    "notebook/training/scripts/README.md": {
+      "git_blob": "a07d3df7d23d2bb0b619b2cfe21d66eadd32d6fc",
+      "bytes": 6121
+    },
+    "notebook/training/scripts/build_grouped_dataset.py": {
+      "git_blob": "1ec6ae7948c7a89b53c0899de5e0d1099d42e183",
+      "bytes": 9508
+    },
+    "notebook/training/scripts/prepare_via_project.py": {
+      "git_blob": "ae9c601df69aa0e1b1fd99466d4bb0cca69364a9",
+      "bytes": 7517
+    },
+    "notebook/training/scripts/train_baseline.py": {
+      "git_blob": "509194e6688268b35ce5699408c1325dc6044484",
+      "bytes": 4664
+    },
+    "notebook/training/scripts/via_to_yolo.py": {
+      "git_blob": "4cce7355091dd3ec3a2711263b53000d05acda87",
+      "bytes": 15412
+    },
+    "tasks/JETSON-PORTABLE-OPERATING-001.md": {
+      "git_blob": "7f7b65a002ead36083b6175d148a24ee0f8d459d",
+      "bytes": 3674
+    }
+  },
+  "status": "PUBLISHED_AND_REMOTE_TREE_VERIFIED"
+}
