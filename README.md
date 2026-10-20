@@ -1,102 +1,391 @@
-# On-Device AI 엔진 조립 검사
+# On-Device AI 엔진 모형 조립 검사 시스템
 
-## 다른 장치 설치와 학습 코드 — 2026-10-19
+> **카메라 → Jetson AI 검사 → PLC 결과 전달 → SQLite 이력 저장 → 웹 조회**까지 연결한 온디바이스 비전 검사 프로젝트
 
-다른 Orin Nano에는 **`jetson/` 폴더 전체**를 복사하고 [통합 설치 안내](jetson/INSTALL_OPERATING_KO.md)를 따릅니다. 검증된 운영본32c4 코드·모델7개·SQLite 보관본이 포함되며 OS/GPU 환경·카메라·PLC는 해당 장치에서 설정합니다. 신규 장치 설치 검증과 실제 장치 운전 검증은 구분합니다. 현재 운영 Jetson에는 변경을 적용하지 않았습니다.
+- 과정: 온디바이스 AI 기반 산업용 소프트웨어 개발 1기
+- 대상 장치: **NVIDIA Jetson Orin Nano**
+- 기준 운영 Release: **`engine-integrated-32c484ac6aeb07f1`**
+- GitHub 기준: `master` / `cfaa372eece0cd6a7dc659cc316c256fb4b6af76`
+- 현재 최종 판정 범위: **필수 부품 존재·결품 검사**
+- 참고 기능: 오조립 분류는 기록·화면 표시용이며 최종 PASS/FAIL에는 반영하지 않음
 
-노트북의 수집·라벨링·데이터셋 구성·실제 엔진 학습 소스는 [학습 과정 안내](notebook/training/README_KO.md)에 연결했습니다. 소스 게시이며 재학습이나 전체 원본 데이터 공개가 아닙니다.
+---
 
-## 최신 작업 — 2026-10-18
+## 1. 프로젝트 한눈에 보기
 
-운영 설정을 [`jetson/src/config.py`](jetson/src/config.py)에서 한국어 설명과 함께 관리하고, 기존 값을 유지하도록 소비 코드를 연결했습니다. 기존 현장 화면 `/line`을 정리하고 SQLite 검색·상세·CSV 내보내기 화면 `/history`를 추가했습니다. [설정·기록 조회 안내](docs/CONFIGURATION_AND_HISTORY_KO.md)를 참고하세요.
+조립 공정에서는 제품이 검사 위치에 도착했을 때 **필수 부품이 모두 장착되어 있는지 빠르게 확인하고, 판정 결과와 근거를 추적 가능하게 남기는 것**이 중요합니다.
 
-최신 운영본은 `engine-integrated-32c484ac6aeb07f1`입니다. 설정·기록 기능 적용 후 실제 혼합 **7회(PASS4/FAIL3, ERROR0)**에서 저장과 PLC 완료를 확인했고 사용자가 시험을 종료했습니다. 이후 UI 두 파일만 반영하고 실제 재부팅·카메라·모델·PLC 준비를 확인했습니다. **10회 완료나 장시간 무오류 보증은 아닙니다.** 부품 위치 사진과 미결합 여부를 크게, 오조립을 작은 참고 정보로 표시합니다. [검증 결과와 한계](docs/verification/CONFIG-UI-HISTORY-20261018.json), [이전 안정화 기록](docs/STABILIZATION_CLOSEOUT_20261018.md)을 보존합니다. 통합 응답시간 약10~14초와 간헐적인 USB 복구 필요성은 남아 있습니다.
+이 프로젝트는 엔진 모형을 대상으로 다음 흐름을 실제 장비에 연결했습니다.
 
-사용 중 검출 모델 두 개와 참고 오조립 모델·동결 자산을 [assets 안내](assets/README.md)에 정리했습니다. 실제 SQLite의 일관된 보관본은 [database 안내](database/README.md)를 따릅니다. 실행 중인 DB를 Git 작업용 파일로 쓰지 않으며, 보관본으로 장치 원장을 덮어쓰지 않습니다. 원본 검사 사진은 이 Git 배포에 포함하지 않습니다.
+```mermaid
+flowchart LR
+    A[포토센서 / PLC 검사 요청] --> B[Jetson Orin Nano]
+    C[USB 카메라] --> B
+    B --> D[M2 엔진 전체 검출]
+    D --> E[Pose 정렬]
+    E --> F[M1 부품 검출]
+    F --> G[3프레임 일치 판정]
+    G --> H[PASS / FAIL / REVIEW / ERROR]
+    H --> I[SQLite Journal / Evidence]
+    H --> J[PLC Result → Done]
+    J --> K[LED / 컨베이어 동작]
+    I --> L[웹 /line · /history]
+```
 
-## 과거 통합 운영 기록 — 2026-10-14
+핵심 설계는 **클라우드가 아니라 현장의 Jetson에서 촬영·추론·판정·저장을 수행**하는 것입니다. 노트북은 개발·조회용이며, 이미 기동된 검사 서비스의 필수 실행 장치는 아닙니다.
 
-개발 원본은 [jetson/](jetson/README.md) 한 벌입니다. 실제 실행은 `current/`의 `engine-integrated-90a914423826735a`를 `engine-inspector.service` 하나가 감독하며 Python과 OpENer를 같은 Release로 관리합니다. 노트북에는 이전 후보·복구 자료를 보존합니다.
+---
 
-[프로그램 실행 흐름](jetson/INTEGRATED_RUNTIME.md)과 [이번 검증 결과](notebook/deployment/JOURNAL_COMPATIBILITY_VERIFICATION.md)를 먼저 읽으세요. 과거 Journal35 차단은 해결됐고 실제 한 제품의 요청→검사 처리→PLC NG·Done→컨베이어 재가동을 확인했습니다. **AI 최종 결과는 조립 모듈 오류로 ERROR였고, 정상 판별·연속 운전·재부팅·노트북 OFF 검증은 완료되지 않았습니다.** 아래 9월 및 이전 배포 설명은 당시 범위이며 현재 채택 상태는 이 문단과 최신 통합 문서를 따릅니다.
+## 2. 확인된 주요 성과
 
-<!-- standalone-install-20261007 -->
-2026-10-07 현재 장치: `engine-dev-780822e39a6316f3` 전체 통합본과 `engine-inspector.service`를 설치해 실행 중입니다. 카메라·모델 준비와 150파일 해시를 확인했습니다. **PLC V3 미적용 및 현장 profile 미검증으로 자동공정은 아직 동작하지 않습니다.** 기존 cron과 별도 launcher를 중복 시작하지 마세요. 실제 재부팅·반복 사이클·노트북 OFF는 NOT_RUN입니다. [현재 근거와 다음 단계](runs/engine_standalone_plc_autostart_001/v001_20261007T052746Z/CHECKPOINT.md).
+### 모델 개발
 
+| 항목 | M1 부품 검출 | M2 엔진 전체 검출 |
+|---|---:|---:|
+| 모델 | YOLO11n | YOLO11n |
+| 학습 이미지 | 144장 | 144장 |
+| 개발 검증 이미지 | 72장 | 72장 |
+| Precision | **0.99770** | **0.96041** |
+| Recall | **1.00000** | **1.00000** |
+| mAP50 | **0.99500** | **0.99500** |
+| mAP50–95 | **0.66473** | **0.88427** |
 
-**Jetson Orin Nano가 USB 카메라 영상에서 엔진의 조립 상태를 검사하고, 노트북은 촬영·개발·운영 화면 접속을 맡는 프로젝트입니다.** 검사 결과는 `PASS / FAIL / REVIEW / ERROR`로 저장하며, 제품 추적과 PLC 요청을 연결합니다.
+위 수치는 Windows 환경에서 `best.pt`를 다시 불러 수행한 E03 개발 검증 결과입니다. 제품 단위 PASS/FAIL 정확도와는 구분합니다.
 
-**현재 검출 모델2개와 참고 분류 관련 모델5개, 기준 자산을 포함합니다.** `git clone`과 GitHub의 **Code → Download ZIP** 모두 실제 파일을 받습니다. 현재 운영 모델은 Git LFS나 별도 다운로드가 필요하지 않습니다.
+### Jetson 최적화
 
-## 다운로드와 시작
+같은 Jetson Orin Nano에서 동일 E03 72장을 사용해 PyTorch FP32와 운영 TensorRT를 비교했습니다.
+
+| 항목 | M1 | M2 |
+|---|---:|---:|
+| PyTorch RSS 관측 최대 | 1,250.5 MiB | 1,263.8 MiB |
+| TensorRT RSS 관측 최대 | 636.9 MiB | 649.7 MiB |
+| **RSS 감소율** | **약 49.1%** | **약 48.6%** |
+| PT / TRT 고정조건 TP·FP·FN | 192/0/0 → 192/0/0 | 72/0/0 → 72/0/0 |
+| 평균 지연시간 | 29.313 → 29.022 ms | 29.480 → 30.266 ms |
+
+이번 최적화의 가장 분명한 성과는 **실행 프로세스 메모리 절감**입니다. 전처리·후처리를 포함한 평균 처리시간은 두 백엔드 모두 약 30 ms 수준이었고, 큰 속도 가속은 확인되지 않았습니다.
+
+### 실제 장비 통합시험
+
+2026-10-18 실물 시험에서 정상 모형과 오른쪽 파이프 결품 모형을 번갈아 투입했습니다.
+
+| 항목 | 결과 |
+|---|---:|
+| 실제 완료 검사 | **7건** |
+| 정상 계획 → PASS | **4 / 4** |
+| 오른쪽 파이프 결품 계획 → FAIL | **3 / 3** |
+| 검사당 새 원본 | **3장** |
+| 저장된 원본 | **21장** |
+| Result / Done / PLC 주기 완료 | **각 7건** |
+| 동일 ID 상세·검색 조회 | **14 / 14 HTTP 200** |
+
+FAIL 3건은 **시험 실패가 아니라 의도한 결품 검출 결과**입니다. 실제 시험 중 LED와 컨베이어 동작도 운영자가 확인했습니다. 다만 검사별 독립 동작 영상과 전기적 소비 피드백은 별도 확보 대상입니다.
+
+---
+
+## 3. 검사 대상과 판정 기준
+
+### M1 — 필수 부품 검출
+
+운영 클래스는 다음 3개입니다.
+
+- `gray_pipe` — 좌/우 파이프 두 자리를 같은 클래스로 검출
+- `exhaust_top`
+- `symbol_module`
+
+정상 모형에서는 `gray_pipe` 2개, `exhaust_top` 1개, `symbol_module` 1개가 기대됩니다.
+
+### M2 — 엔진 전체 검출
+
+- `product_envelope` 1개
+- 엔진 전체 영역을 검출해 검사 대상의 위치와 Pose 처리에 사용
+
+### 최종 판정 정책
+
+현재 최종 판정은 **필수 부품 존재·결품**을 기준으로 합니다.
+
+- `PASS` — 필요한 부품이 3프레임에서 일관되게 존재
+- `FAIL` — 필요한 부품의 결품이 3프레임에서 일관되게 확인
+- `REVIEW` — 자세·품질·가시성·프레임 일치 등으로 자동 확정이 어려움
+- `ERROR` — 카메라·프로그램·저장 등 시스템 오류
+
+오조립 분류 M3~M6는 참고 정보로 저장·표시하지만 현재 최종 PASS/FAIL에는 반영하지 않습니다.
+
+---
+
+## 4. 데이터와 학습 과정
+
+학습 과정은 `notebook/training/`에 보존합니다.
+
+```text
+실제 촬영
+  ↓
+촬영 검토 / provenance
+  ↓
+VIA 라벨링
+  ↓
+YOLO 변환
+  ↓
+train / validation 분리 검증
+  ↓
+YOLO11n 학습
+  ↓
+best.pt 평가
+  ↓
+ONNX export
+  ↓
+TensorRT plan build
+  ↓
+Jetson 운영 패키지
+```
+
+주요 문서:
+
+- [`notebook/training/README_KO.md`](notebook/training/README_KO.md) — 촬영·라벨링·학습 과정
+- [`jetson/products/README.md`](jetson/products/README.md) — 운영 모델과 자산
+- `jetson/products/ENGINE_Z3005_5/dynamic_parts_005/manifest.json` — M1 운영 manifest
+- `jetson/products/ENGINE_Z3005_5/envelope_v007_fp16/manifest.json` — M2 운영 manifest
+
+전체 원본 학습·검증 데이터는 저장소 용량과 보호 자료 범위 때문에 GitHub에 모두 포함하지 않습니다. 제출용 데이터 증빙 묶음은 별도로 제공합니다.
+
+---
+
+## 5. PT → ONNX → TensorRT 운영 모델 연결
+
+현재 운영 모델은 학습 가중치부터 운영 plan까지 SHA-256으로 연결했습니다.
+
+| 모델 | PT | ONNX | 운영 TensorRT |
+|---|---|---|---|
+| M1 | `42db1830...bf5259` | `433b16fd...9c296` | `743ce54b...bf2d6c` |
+| M2 | `cf117def...0f7755` | `5cb024bb...ca830` | `c82f2658...cebf83` |
+
+운영 TensorRT는 단순 파일 확장자 변경이 아니라, manifest에 고정된 입력·출력 계약과 전처리·후처리를 사용합니다.
+
+- 입력: batch 1, `640×640`
+- letterbox + padding 114
+- BGR → RGB
+- `/255`
+- class-aware NMS
+- 원본 좌표 복원
+- native TensorRT `execute_async_v3`
+
+실행 코드는 backend를 명시적으로 선택하며, 운영 TensorRT 실패 시 조용히 PyTorch로 fallback하지 않습니다.
+
+주요 코드:
+
+- [`jetson/src/vision/detector_factory.py`](jetson/src/vision/detector_factory.py)
+- [`jetson/src/vision/tensorrt_native.py`](jetson/src/vision/tensorrt_native.py)
+- [`jetson/src/vision/tensorrt_preprocess.py`](jetson/src/vision/tensorrt_preprocess.py)
+- [`jetson/src/vision/tensorrt_postprocess.py`](jetson/src/vision/tensorrt_postprocess.py)
+- [`jetson/src/vision/engine_inspector.py`](jetson/src/vision/engine_inspector.py)
+
+---
+
+## 6. Jetson 운영 구조
+
+운영 경로의 중심은 다음과 같습니다.
+
+```text
+/home/jetson/oned_device_bench/
+├── current/        실행 코드 / Web UI / release.json
+├── assets/         TensorRT + 참고 분류 모델 / 기준 자산
+├── config/         장치별 설정
+├── data/           현재 검사 Journal / 원본 / Evidence
+├── history/        과거 SQLite 보관본
+├── envs/           GPU Python 환경
+└── service/        systemd unit
+```
+
+`engine-inspector.service` 하나가 통합 서비스를 감독합니다.
+
+`standalone_service.py`는 다음 컴포넌트를 구성합니다.
+
+1. 카메라 Worker
+2. M1/M2 검사
+3. 자세 정렬과 3프레임 판정
+4. SQLite Journal / Evidence
+5. OpENer 기반 PLC 통신
+6. `/line`, `/history` Web UI
+
+상세 구조는 [`jetson/INTEGRATED_RUNTIME.md`](jetson/INTEGRATED_RUNTIME.md)를 참고하세요.
+
+---
+
+## 7. PLC 연계
+
+현재 실제 라인은 OMRON PLC와 OpENer cyclic I/O를 사용합니다.
+
+핵심 흐름:
+
+```text
+PLC Inspection_Request
+    ↓
+Jetson 새 프레임 확보
+    ↓
+AI 검사 + 최종 판정 + 저장
+    ↓
+Result
+    ↓
+다음 cyclic update에서 Done
+    ↓
+PLC 요청 LOW 복귀 / 다음 사이클
+```
+
+- `Result=false` → OK
+- `Result=true` → NG
+- PASS → PLC OK
+- FAIL / REVIEW / ERROR → PLC NG
+
+현재 제출 범위는 **푸셔 없는 구성**입니다. 자동 분리 푸셔가 구현됐다고 주장하지 않습니다.
+
+---
+
+## 8. 검사 이력과 Web UI
+
+SQLite에는 단순 PASS/FAIL만 저장하지 않고 검사 근거를 연결합니다.
+
+예:
+
+- inspection ID
+- 촬영 시각
+- 원본 frame
+- 부품별 판정
+- reason code
+- 최종 판정
+- 모델·설정 정보
+- PLC cycle / event
+- 저장 상태
+
+Web:
+
+- `/line` — 현재 라인 상태·최근 검사
+- `/history` — 검색·상세 조회·CSV 내보내기
+
+실제 7건 통합시험은 검사 ID 기준으로 원본·판정·PLC 이벤트·DB 조회를 연결했습니다.
+
+---
+
+## 9. 다른 Jetson에서 실행
+
+현재 운영본의 설치 기준은 [`jetson/INSTALL_OPERATING_KO.md`](jetson/INSTALL_OPERATING_KO.md)입니다.
+
+먼저 저장소를 받습니다.
 
 ```bash
 git clone https://github.com/tmdgns104/Engine_Assembly_Defect_Inspector.git
 cd Engine_Assembly_Defect_Inspector
 ```
 
-ZIP을 사용하면 먼저 전체 압축을 풉니다. 두 장비에 같은 저장소를 받아도 됩니다. 아래 설치 작업은 각 장비에서 수행합니다.
-
-| 장비 | 들어 있는 파일 | 처음 할 일 |
-|---|---|---|
-| Windows 10/11 x64 노트북 | [`notebook/`](notebook/README.md): 촬영 앱, 데이터 준비·학습 도구, SSH 화면 연결, 패키징·시험 | Python 3.13 x64 설치 → `notebook/setup_capture.cmd` → `notebook/start_misassembly.cmd` |
-| Jetson **Orin Nano** | [`jetson/`](jetson/INSTALL_OPERATING_KO.md): 통합 운영 코드·UI·모델7개·SQLite 보관본 | 지원 환경 준비 → `python3.10 jetson/install_operating.py --verify` → 문서의 신규 장치 설정·서비스 등록 |
-
-Jetson 설치는 `~/oned_device_bench/current`에 실행 코드를, `assets`에 모델을 배치합니다. 장치별 설정과 새 원장은 별도 보존합니다. 설치 안내대로 systemd를 시작하고 현장 화면 `http://127.0.0.1:18771/line`을 엽니다. 노트북에서는 SSH 터널을 사용합니다. 이전 CORE MOCK의 `setup.sh/manage_live.py`와 통합 서비스를 중복 실행하지 않습니다.
-
-지원 기준은 **Orin Nano / Linux aarch64 / Python 3.10 / TensorRT 10.3 / CUDA 12.6**입니다. 기존 Jetson Nano(Orin이 아닌 구형 모델)는 이 TensorRT 모델의 실행 대상이 아닙니다. [NVIDIA는 직렬화된 TensorRT 엔진의 플랫폼·GPU·버전 호환에 제약이 있음을 명시합니다.](https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/engine-compatibility.html) 모델은 포함되어 있지만 OS·드라이버·Python과 연결한 카메라의 설정은 장치에서 준비해야 합니다.
-
-## 시스템 구성
-
-```mermaid
-flowchart LR
-    N[Windows 노트북<br/>촬영 · 데이터 준비 · 학습] --> P[검증한 제품 모델 · Recipe]
-    P --> J[Jetson Orin Nano]
-    C[USB 카메라] --> J
-    J --> E[엔진 검출 → Pose 정렬<br/>부품 검출 → 3프레임 판정]
-    E --> D[SQLite Journal · Evidence]
-    D --> G[MOCK 또는 명시적 PLC 벤치<br/>Result 확인 → Done 확인]
-    B[노트북 브라우저] -->|SSH 터널| H[Jetson /auto 운영 화면]
-    H --> J
-```
-
-검사 카메라·AI·Journal은 Jetson에서 실행됩니다. 노트북이 꺼져도 Jetson에서 이미 시작한 서버는 독립적으로 실행됩니다. 노트북의 촬영 앱은 학습 자료를 수집하는 별도 프로그램입니다.
-
-## 포함 모델
-
-| 모델 | 역할 | 파일 크기 | SHA-256 앞 12자리 |
-|---|---|---:|---|
-| [`dynamic_parts_005/model.plan`](jetson/products/ENGINE_Z3005_5/dynamic_parts_005/model.plan) | 부품 검출과 조립 판정 입력 | 10,092,164 bytes | `743ce54b4d5c` |
-| [`envelope_v007_fp16/model.plan`](jetson/products/ENGINE_Z3005_5/envelope_v007_fp16/model.plan) | 엔진 전체 위치 검출 | 13,556,092 bytes | `c82f2658ac20` |
-
-두 모델의 manifest·Recipe·전처리·기동 점검 이미지, D001 Pose 기준 이미지와 Pose bank도 함께 있습니다. 기존 운영 자산의 바이트/해시를 유지했습니다. 설치 전 아래 명령은 GPU·카메라·PLC 없이 파일과 해시를 검사합니다.
+파일·패키지 검증:
 
 ```bash
-python jetson/install.py --check-only
+python3.10 -B -X utf8 jetson/install_operating.py --verify
 ```
 
-학습 원본 전체, 운영 DB, 개인 SSH 설정, 보호된 E04 자료는 배포하지 않습니다. 모델 및 외부 의존성의 출처·사용 범위는 [모델 안내](jetson/products/README.md)를 확인하세요.
+새 환경에서의 기본 점검:
 
-## 현재 진척 — 2026-09-30
+```bash
+~/oned_device_bench/envs/app_v1/bin/python -B -X utf8 jetson/check_operating.py
+~/oned_device_bench/envs/app_v1/bin/python -B -X utf8 \
+  ~/oned_device_bench/current/standalone_service.py \
+  --config ~/oned_device_bench/config/standalone.json \
+  --check-only
+~/oned_device_bench/envs/app_v1/bin/python -B -X utf8 jetson/check_operating.py --gpu-smoke
+```
 
-| 항목 | 확인된 결과 | 남은 검증 / 제한 |
-|---|---|---|
-| Jetson 검사·웹 HMI | TensorRT 검사, 단일 카메라 Worker, SQLite/Evidence, 제품별 Track, `/auto` 구현 | 새 장치에서 카메라·GPU·작업면 확인 필요 |
-| 정지 제품 PLC 벤치 | 9월 28일 PASS → FAIL → PASS 세 제품을 별도 요청·저장·종료 | 생산 정확도와 실제 배출 동작을 의미하지 않음 |
-| 이동 검사 | MOCK에서 고유 3프레임 검사·ACK·제품 이탈 후 다음 제품 대기 확인 | 실제 컨베이어 속도·연속 제품 미검증 |
-| 실제 PLC 이동 벤치 | 9월 29일 REVIEW 저장 후 Result=1 / Done=1·요청 해제 확인 | 빈 작업면 오점유로 자동 종료가 막힌 사례, Sysmac 표시와 CIP 읽기 불일치 미해결 |
-| Windows 촬영 | 기존 Wizard와 간편 촬영 소스 포함. 10° 간격 총 654장 계획. 최종 EXE GUI 7항목·HCAM 40프레임 미리보기 확인 | 실물 엔진 원본 저장·타 PC 조작·후속 학습은 미검증 |
-| GitHub 배포 | 모델 포함, 장비별 설치·파일 점검 도구, 공개 스냅샷 검증 절차 | 모든 PC/Jetson에서 실물 실행을 완료했다는 의미는 아님 |
+> TensorRT plan은 생성 환경과 GPU/TensorRT 호환성의 영향을 받습니다. 파일 복사 성공과 실제 장비 인수시험은 구분합니다.
 
-기존 Jetson의 마지막 기록된 실행 릴리스는 `engine-dev-745e95e832c6b402`입니다. 이 저장소의 설치용 패키지 ID는 포함된 파일 해시로 새로 계산되며 기존 장치에 자동 적용되지 않습니다. 새 설치는 **MOCK**, 물리 출력 비활성입니다. PASS의 PLC Result는 0, FAIL·REVIEW·ERROR는 1이며 저장 완료 전에 결과를 보내지 않습니다.
+실제 카메라 기준 등록, PLC 계약 확인, systemd 등록과 신규 장치 실물 시험은 설치 문서의 순서대로 진행합니다.
 
-세부 근거: [이동 검사 Task](tasks/ENGINE-CONVEYOR-MOTION-001.md), [촬영 Task](tasks/ENGINE-MISASSEMBLY-CAPTURE-001.md), [GitHub 배포 Task](tasks/GITHUB-DEPLOYMENT-001.md), [누적 STATUS](docs/STATUS.md). 과거 완료 기록과 미해결 한계를 구분합니다.
+---
 
-## 개발·발표 자료
+## 10. 저장소 구조
 
-- [Jetson 코드 읽는 순서](jetson/README.md) · [새 Jetson 설치](jetson/INSTALL.md) · [Windows 사용법](notebook/README.md)
-- [노트북에서 패키징 및 기존 장치 업데이트](notebook/deployment/README.md)
-- [프로젝트 범위](docs/PROJECT.md) · [아키텍처](docs/ARCHITECTURE.md) · [결정 기록](docs/DECISIONS.md)
-- `hardware/`는 설치물 설계, `docs/`·`tasks/`는 계약과 검증 기록입니다. 이전 경로를 적은 과거 문서는 당시 증거로 보존합니다.
+```text
+Engine_Assembly_Defect_Inspector/
+├── jetson/                   Jetson 운영 코드·설치·모델
+│   ├── apps/                 Web / edge service
+│   ├── src/                  vision / runtime / control / journal
+│   ├── products/             M1·M2 운영 패키지
+│   └── portable/             운영본 portable 설치 입력
+├── notebook/
+│   ├── training/             촬영·라벨·학습·평가 소스
+│   └── deployment/           배포·검증 도구
+├── assets/                   참고 오조립 모델·동결 자산
+├── database/                 SQLite 보관본·설명
+├── docs/                     설계·결정·검증 기록
+├── tasks/                    개발 Task 이력
+└── hardware/                 장비·거치 구조 관련 자료
+```
 
-소스 수정은 `jetson/`와 `notebook/`에서 시작합니다. `runs/`, `archives/`, `dist/`와 옛 루트 소스 사본은 개발·복구용 로컬 자료이며 새 실행 원본이 아닙니다.
+개발 원본은 `jetson/`과 `notebook/`입니다. 과거 `runs/`, 후보 결과, Task 자료는 개발 이력과 근거로 읽습니다.
+
+---
+
+## 11. 평가·검증 자료
+
+프로젝트의 주요 결과는 다음 자료로 구분해 검증합니다.
+
+| 자료 | 확인 내용 |
+|---|---|
+| 데이터셋 설명서 | 실제 수집·라벨 기준, train/validation 분할, 전체 사진·라벨 증빙 |
+| 모델 평가서 | M1/M2 학습 설정, P/R/mAP, 오류·경계 사례 |
+| Jetson 실행·TensorRT 절차서 | 실행 코드, PT→ONNX→TRT 계보, 설치·운영 |
+| Benchmark 보고서 | 동일 Jetson의 PT/TRT Latency·메모리·정확도 비교 |
+| 통합 테스트 결과서 | 실제 정상·결품 7건의 AI→PLC→DB 연결 |
+| DB 구조·조회 설명서 | SQLite 구조, 조회 API·SQL, 실제 ID 추적 |
+| 문제정의서 / 기획안 | 현장 문제, 시스템 설계, 계획 대비 달성 결과 |
+
+GitHub의 공개 코드와 별도로, 대용량 원본 이미지·평가 증빙 ZIP·제출 PDF는 최종 제출 패키지에서 제공합니다.
+
+---
+
+## 12. 확인된 범위와 다음 검증
+
+현재까지 확인한 것:
+
+- 데이터 수집·라벨링·학습·평가 과정
+- M1/M2 운영 모델과 학습 모델의 해시 연결
+- Jetson TensorRT 실제 실행
+- 동일 Jetson PT/TRT Benchmark
+- 정상/오른쪽 파이프 결품 7건의 실제 통합시험
+- PLC Result/Done과 DB 저장·조회 연결
+- Web UI와 이력 조회
+- 운영자의 LED·컨베이어 동작 확인
+
+추가로 더 강하게 검증할 수 있는 항목:
+
+- 최신 UI 운영본에서 정상 → 결품 → 정상 시연 영상
+- 조명·거리·각도 변화의 체계적 비교
+- 장시간 반복 운전
+- 다른 결품 유형의 실제 라인 반복시험
+- 신규 장치 설치 후 실제 장비 인수시험
+
+이 항목들은 현재 구현이 없다는 뜻이 아니라, **현재 제출 근거의 일반화 범위를 넓히기 위한 추가 시험**입니다.
+
+---
+
+## 13. 현재 기준 문서
+
+- [Jetson 코드와 구조](jetson/README.md)
+- [현재 운영본 설치](jetson/INSTALL_OPERATING_KO.md)
+- [통합 Runtime](jetson/INTEGRATED_RUNTIME.md)
+- [학습 과정](notebook/training/README_KO.md)
+- [설정·이력 조회](docs/CONFIGURATION_AND_HISTORY_KO.md)
+- [최신 운영 검증](docs/verification/CONFIG-UI-HISTORY-20261018.json)
+- [SQLite 보관본](database/README.md)
+
+---
+
+## 14. 프로젝트 범위에 대한 주의
+
+이 저장소는 교육용 프로젝트의 **실제 개발·검증 기록과 운영 코드**를 보존합니다.
+
+- 개발 검증 mAP를 전체 라인 정확도로 바꾸어 표현하지 않습니다.
+- 7회 실물시험을 장시간 신뢰성 시험으로 표현하지 않습니다.
+- 통신 완료 기록과 모터의 독립 전기 피드백을 같은 것으로 보지 않습니다.
+- 오조립 참고 분류를 현재 최종 PASS/FAIL 기능으로 표현하지 않습니다.
+- 과거 후보 Release와 현재 채택 Release를 구분합니다.
+
+그 대신 **실제로 확인한 데이터·모델·Jetson·PLC·DB 연결 성과는 원본 기록과 함께 제시합니다.**
